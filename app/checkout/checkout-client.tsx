@@ -143,6 +143,7 @@ import {
   type FulfillmentChannel,
 } from "@/lib/commerce/fulfillment-channel";
 import type { DirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
+import { resolveFulfillmentPostalAvailability } from "@/lib/commerce/fulfillment-postal-availability";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -582,6 +583,7 @@ function CheckoutContent({
 
   // Track delivery-zone errors as soon as they appear so Nära köp can answer
   // "why did checkout fail?" instead of just "checkout abandoned".
+  // postal_out_of_zone only when no fulfillment channel remains (direct may still work).
   const zoneErrorTrackRef = useRef<string | null>(null);
   useEffect(() => {
     const err = zoneInfo.zoneError ?? null;
@@ -589,8 +591,24 @@ function CheckoutContent({
       zoneErrorTrackRef.current = null;
       return;
     }
-    if (zoneErrorTrackRef.current === err) return;
-    zoneErrorTrackRef.current = err;
+
+    const zoneMatch =
+      err === "UNSUPPORTED_COUNTRY"
+        ? ("unsupported_country" as const)
+        : err === "NO_DELIVERY_ZONE"
+          ? ("out_of_zone" as const)
+          : ("unknown" as const);
+    const availability = resolveFulfillmentPostalAvailability({
+      zoneMatch,
+      budbeeAvailable,
+      directBoxCheckoutEnabled,
+      directBoxDeliverySelectable: directBoxAvailability.deliverySelectable,
+      countryCode: ageCountryCode,
+    });
+
+    const trackKey = `${err}|${availability.availableChannels.join(",")}`;
+    if (zoneErrorTrackRef.current === trackKey) return;
+    zoneErrorTrackRef.current = trackKey;
 
     const postalDraft = postalDraftAnalytics(postalCodeDraft);
     const { wineIds, producerIds } = cartIdsForCheckoutError();
@@ -609,15 +627,26 @@ function CheckoutContent({
             }
           : {}),
         country_code: ageCountryCode,
+        available_fulfillment_channels: availability.availableChannels,
       },
     });
-    if (err === "NO_DELIVERY_ZONE") {
+    if (err === "NO_DELIVERY_ZONE" && availability.shouldLogPostalOutOfZone) {
       lastCheckoutBlockerRef.current = {
         reason: "postal_out_of_zone",
         field: "postal",
         code: "postal_out_of_zone",
       };
-      emitCheckoutError("postal", "postal", "postal_out_of_zone");
+      // Keep event name/code; add which channels were still possible (usually []).
+      void AnalyticsTracker.trackEvent({
+        eventType: "checkout_error",
+        eventCategory: "checkout",
+        metadata: {
+          ...checkoutEventMeta("postal"),
+          field: "postal",
+          code: "postal_out_of_zone",
+          available_fulfillment_channels: availability.availableChannels,
+        },
+      });
       void trackCheckoutError({
         errorCode: "no_delivery_zone",
         message: zoneInfo.zoneErrorMessage ?? t("checkout.noDeliveryZoneYet"),
@@ -625,6 +654,9 @@ function CheckoutContent({
         postalRaw: postalCodeDraft,
         wineIds,
         producerIds,
+        metadataExtra: {
+          available_fulfillment_channels: availability.availableChannels,
+        },
       });
     }
     if (err === "UNSUPPORTED_COUNTRY") {
@@ -649,10 +681,21 @@ function CheckoutContent({
           ...checkoutEventMeta("postal"),
           country: ageCountryCode,
           reason: zoneInfo.zoneErrorMessage || "UNSUPPORTED_COUNTRY",
+          available_fulfillment_channels: availability.availableChannels,
         },
       });
     }
-  }, [zoneInfo.zoneError, zoneInfo.zoneErrorMessage, postalCodeDraft, ageCountryCode]);
+  }, [
+    zoneInfo.zoneError,
+    zoneInfo.zoneErrorMessage,
+    postalCodeDraft,
+    ageCountryCode,
+    budbeeAvailable,
+    directBoxCheckoutEnabled,
+    directBoxAvailability.deliverySelectable,
+    t,
+    browseOnlyCountryMessage,
+  ]);
 
   const hasZoneDeliveryReady = useMemo(() => {
     if (activeShop?.geoZoneId) {
@@ -823,6 +866,46 @@ function CheckoutContent({
         selectedPallet.delivery_zone_id.trim() !== ""),
     [zoneInfo.selectedDeliveryZoneId, selectedPallet?.delivery_zone_id],
   );
+
+  const postalFulfillment = useMemo(() => {
+    const zoneMatch =
+      zoneInfo.zoneError === "UNSUPPORTED_COUNTRY"
+        ? ("unsupported_country" as const)
+        : zoneInfo.zoneError === "NO_DELIVERY_ZONE"
+          ? ("out_of_zone" as const)
+          : deliveryZoneReady
+            ? ("in_zone" as const)
+            : ("unknown" as const);
+    return resolveFulfillmentPostalAvailability({
+      zoneMatch,
+      budbeeAvailable,
+      directBoxCheckoutEnabled,
+      directBoxDeliverySelectable: directBoxAvailability.deliverySelectable,
+      countryCode: ageCountryCode,
+    });
+  }, [
+    zoneInfo.zoneError,
+    deliveryZoneReady,
+    budbeeAvailable,
+    directBoxCheckoutEnabled,
+    directBoxAvailability.deliverySelectable,
+    ageCountryCode,
+  ]);
+
+  // When shared pallet is unavailable for the postal but direct works, select it.
+  useEffect(() => {
+    if (!postalFulfillment.directBoxAvailable) return;
+    if (postalFulfillment.sharedPalletAvailable) return;
+    if (fulfillmentChannel === "direct_box") return;
+    setServerQuote(null);
+    setQuoteStatus("loading");
+    setFulfillmentChannel("direct_box");
+  }, [
+    postalFulfillment.directBoxAvailable,
+    postalFulfillment.sharedPalletAvailable,
+    fulfillmentChannel,
+  ]);
+
   // Age/compliance unlock: address + channel only.
   // Do NOT wait on /api/checkout/quote here — that deadlocked guests when
   // DIRECT_BOX_CHECKOUT_ENABLED was on (quote needs auth; ensure-session
@@ -1187,14 +1270,14 @@ function CheckoutContent({
       }
       return "zone_required";
     }
+    if (fulfillmentChannel === "direct_box") {
+      if (!directBoxAvailability.deliverySelectable) {
+        return "direct_box_carrier_unconfigured";
+      }
+      return "delivery_not_selected";
+    }
     if (hasProducerItems && !selectedPallet) return "pallet_required";
     if (!deliveryZoneReady) return "zone_required";
-    if (
-      fulfillmentChannel === "direct_box" &&
-      !directBoxAvailability.deliverySelectable
-    ) {
-      return "direct_box_carrier_unconfigured";
-    }
     return "delivery_not_selected";
   }, [
     hasZoneDeliveryReady,
@@ -2714,27 +2797,43 @@ function CheckoutContent({
     }
 
     if (zoneInfo.zoneError === "NO_DELIVERY_ZONE") {
-      setIsFinalizingReservation(false);
-      toast.error(
-        zoneInfo.zoneErrorMessage?.trim() ||
-          t("checkout.noDeliveryArea"),
-      );
-      return;
+      // Hard-block only when no channel can fulfill (direct may cover out-of-zone).
+      if (
+        fulfillmentChannel !== "direct_box" ||
+        !postalFulfillment.directBoxAvailable
+      ) {
+        setIsFinalizingReservation(false);
+        toast.error(
+          zoneInfo.zoneErrorMessage?.trim() ||
+            t("checkout.noDeliveryArea"),
+        );
+        return;
+      }
     }
 
-    const deliveryZoneReady =
+    const deliveryZoneReadyForSubmit =
       Boolean(zoneInfo.selectedDeliveryZoneId) ||
       (typeof selectedPallet?.delivery_zone_id === "string" &&
         selectedPallet.delivery_zone_id.trim() !== "");
 
-    if (hasZoneDeliveryReady && !deliveryZoneReady) {
+    // Shared pallet still needs a matched delivery zone; direct_box does not.
+    if (
+      fulfillmentChannel === "shared_pallet" &&
+      hasZoneDeliveryReady &&
+      !deliveryZoneReadyForSubmit
+    ) {
       setIsFinalizingReservation(false);
       toast.error(t("checkout.noDeliveryZoneMatch"));
       return;
     }
 
-    // Check if pallet is available (should be auto-selected)
-    if (zoneInfo.pallets && zoneInfo.pallets.length > 0 && !selectedPallet) {
+    // Check if pallet is available (should be auto-selected) — shared only.
+    if (
+      fulfillmentChannel === "shared_pallet" &&
+      zoneInfo.pallets &&
+      zoneInfo.pallets.length > 0 &&
+      !selectedPallet
+    ) {
       setIsFinalizingReservation(false);
       toast.error(t("checkout.noPalletLocation"));
       return;
@@ -4776,18 +4875,22 @@ function CheckoutContent({
                     !isUsConditional &&
                     (selectedPallet != null ||
                       Boolean(zoneInfo.deliveryZone) ||
-                      zoneInfo.selectedDeliveryZoneId != null) ? (
+                      zoneInfo.selectedDeliveryZoneId != null ||
+                      (hasPostalCode &&
+                        postalFulfillment.directBoxAvailable)) ? (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-sm font-medium text-foreground">
                             {t("checkout.deliveryOptions")}
                           </p>
-                          <Link
-                            href={homeDeliveryGuidePath(shopping.locale)}
-                            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                          >
-                            {t("checkout.homeDeliveryGuideLink")}
-                          </Link>
+                          {postalFulfillment.sharedPalletAvailable ? (
+                            <Link
+                              href={homeDeliveryGuidePath(shopping.locale)}
+                              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                            >
+                              {t("checkout.homeDeliveryGuideLink")}
+                            </Link>
+                          ) : null}
                         </div>
                         <div
                           className="flex items-start justify-between border-b border-border py-3"
@@ -4795,35 +4898,50 @@ function CheckoutContent({
                           aria-label={t("checkout.deliveryOptionAria")}
                         >
                           <div className="flex items-center gap-3">
-                            <div
-                              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-foreground"
-                              aria-hidden
-                            >
-                              <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
-                            </div>
+                            {!(
+                              directBoxCheckoutEnabled &&
+                              directBoxAvailability.offered
+                            ) ? (
+                              <div
+                                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-foreground"
+                                aria-hidden
+                              >
+                                <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                              </div>
+                            ) : null}
                             <div>
-                              <p className="text-sm font-medium text-foreground">
-                                {t("checkout.homeDeliveryBring")}
-                              </p>
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                {homeDeliveryHintEstimate
-                                  ? t("checkout.deliveryBringHint", {
-                                      estimate: homeDeliveryHintEstimate,
-                                    })
-                                  : t("checkout.deliveryBringHint", {
-                                      estimate: "",
-                                    }).replace(/^\s*·\s*/, "")}
-                              </p>
-                              {budbeeAvailable === false &&
-                                fulfillmentChannel === "shared_pallet" && (
-                                <p className="mt-1 text-xs text-amber-500">
-                                  {t("checkout.budbeeUnavailable")}
-                                </p>
-                              )}
-                              {directBoxCheckoutEnabled &&
-                                directBoxAvailability.offered && (
-                                <div className="mt-3 space-y-2">
-                                  <label className="flex items-start gap-2 text-xs text-foreground">
+                              {!(
+                                directBoxCheckoutEnabled &&
+                                directBoxAvailability.offered
+                              ) ? (
+                                <>
+                                  <p className="text-sm font-medium text-foreground">
+                                    {t("checkout.homeDeliveryBring")}
+                                  </p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">
+                                    {homeDeliveryHintEstimate
+                                      ? t("checkout.deliveryBringHint", {
+                                          estimate: homeDeliveryHintEstimate,
+                                        })
+                                      : t("checkout.deliveryBringHint", {
+                                          estimate: "",
+                                        }).replace(/^\s*·\s*/, "")}
+                                  </p>
+                                  {budbeeAvailable === false ? (
+                                    <p className="mt-1 text-xs text-amber-500">
+                                      {t("checkout.budbeeUnavailable")}
+                                    </p>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <div className="space-y-2">
+                                  <label
+                                    className={cn(
+                                      "flex items-start gap-2 text-xs text-foreground",
+                                      !postalFulfillment.sharedPalletAvailable &&
+                                        "opacity-60",
+                                    )}
+                                  >
                                     <input
                                       type="radio"
                                       name="fulfillment_channel"
@@ -4831,7 +4949,15 @@ function CheckoutContent({
                                       checked={
                                         fulfillmentChannel === "shared_pallet"
                                       }
+                                      disabled={
+                                        !postalFulfillment.sharedPalletAvailable
+                                      }
                                       onChange={() => {
+                                        if (
+                                          !postalFulfillment.sharedPalletAvailable
+                                        ) {
+                                          return;
+                                        }
                                         setServerQuote(null);
                                         setQuoteStatus("loading");
                                         setFulfillmentChannel("shared_pallet");
@@ -4843,8 +4969,10 @@ function CheckoutContent({
                                       </span>
                                       {/* min-h keeps 390 layout from jumping when the other option wraps */}
                                       <span className="mt-0.5 block min-h-[2.75rem] text-muted-foreground tabular-nums leading-snug">
-                                        {typeof sharedShippingSek === "number"
-                                          ? t(
+                                        {postalFulfillment.sharedPalletAvailable ? (
+                                          typeof sharedShippingSek ===
+                                          "number" ? (
+                                            t(
                                               "checkout.fulfillmentSharedSubtitle",
                                               {
                                                 shipping: formatChargedAmount(
@@ -4852,16 +4980,28 @@ function CheckoutContent({
                                                 ),
                                               },
                                             )
-                                          : shippingDisplayPending
-                                            ? null
-                                            : "\u00a0"}
-                                        {typeof sharedShippingSek !== "number" &&
-                                        shippingDisplayPending ? (
-                                          <span
-                                            className="mt-1 inline-block h-3 w-40 animate-pulse rounded bg-muted"
-                                            aria-hidden
-                                          />
-                                        ) : null}
+                                          ) : shippingDisplayPending ? (
+                                            <span
+                                              className="mt-1 inline-block h-3 w-40 animate-pulse rounded bg-muted"
+                                              aria-hidden
+                                            />
+                                          ) : (
+                                            t("checkout.deliveryBringHint", {
+                                              estimate:
+                                                homeDeliveryHintEstimate ||
+                                                t(
+                                                  "checkout.dualOfferSharedDeliveryFact",
+                                                ),
+                                            })
+                                          )
+                                        ) : (
+                                          t(
+                                            postalFulfillment.sharedUnavailableReason ===
+                                              "budbee_unavailable"
+                                              ? "checkout.sharedPalletPostalBudbeeUnavailable"
+                                              : "checkout.sharedPalletPostalUnavailable",
+                                          )
+                                        )}
                                       </span>
                                     </span>
                                   </label>
@@ -4913,7 +5053,12 @@ function CheckoutContent({
                                             )
                                           : shippingDisplayPending
                                             ? null
-                                            : directBoxEtaLabel}
+                                            : t(
+                                                "checkout.fulfillmentDirectHint",
+                                                {
+                                                  estimate: directBoxEtaLabel,
+                                                },
+                                              )}
                                         {typeof directShippingSek !==
                                           "number" && shippingDisplayPending ? (
                                           <span
@@ -4928,7 +5073,13 @@ function CheckoutContent({
                                             "checkout.directBoxChannelUnavailable",
                                           )}
                                         </span>
-                                      ) : null}
+                                      ) : (
+                                        <span className="mt-0.5 block text-muted-foreground">
+                                          {t(
+                                            "checkout.directBoxHandoverHint",
+                                          )}
+                                        </span>
+                                      )}
                                     </span>
                                   </label>
                                 </div>
@@ -5036,7 +5187,8 @@ function CheckoutContent({
                     ) : null}
 
                     {!zoneLoading &&
-                    zoneInfo.zoneError === "NO_DELIVERY_ZONE" ? (
+                    zoneInfo.zoneError === "NO_DELIVERY_ZONE" &&
+                    postalFulfillment.noFulfillmentAvailable ? (
                       <p className="text-sm text-destructive">
                         {isUsConditional
                           ? zoneInfo.zoneErrorMessage?.trim() ||

@@ -799,6 +799,78 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
     expect(paymentIntentsRetrieve).toHaveBeenCalledWith("pi_direct_ok");
   });
 
+  it("POST confirm: Kiruna out-of-zone + direct_box succeeds (no deliveryZoneId)", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
+    resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
+    determineZones.mockResolvedValue({
+      pickupZoneId: "pz-1",
+      deliveryZoneId: null,
+      noDeliveryZone: {
+        error: "NO_DELIVERY_ZONE",
+        message: "We don't deliver to your area yet.",
+      },
+    });
+    paymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_direct_ok",
+      status: "succeeded",
+      amount: DIRECT_AMOUNT_ORE,
+      customer: "cus_test",
+      payment_method: "pm_test",
+      metadata: directPiMetadata(),
+    });
+
+    const res = await postConfirm(
+      directConfirmBody({
+        address: {
+          ...baseAddress,
+          postcode: "98131",
+          city: "Kiruna",
+        },
+      }),
+    );
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(store.reservationInserts).toHaveLength(1);
+    expect(store.reservationInserts[0]!.fulfillment_channel).toBe("direct_box");
+    expect(store.reservationInserts[0]!.delivery_zone_id).toBeNull();
+    expect(store.reservationInserts[0]!.pallet_id).toBeNull();
+  });
+
+  it("POST confirm: Kiruna out-of-zone + shared_pallet still blocked", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
+    resolveAndChargeCheckoutShipping.mockResolvedValue({
+      ...DIRECT_RATE,
+      rateChannel: "pact",
+      fulfillmentMode: "shared_pallet",
+      shippingSek: 99,
+    });
+    determineZones.mockResolvedValue({
+      pickupZoneId: "pz-1",
+      deliveryZoneId: null,
+      noDeliveryZone: {
+        error: "NO_DELIVERY_ZONE",
+        message: "We don't deliver to your area yet.",
+      },
+    });
+
+    const res = await postConfirm({
+      address: {
+        ...baseAddress,
+        postcode: "98131",
+        city: "Kiruna",
+      },
+      fulfillment_channel: "shared_pallet",
+      selectedPalletId: "pallet-1",
+      stripe_intent_id: "seti_shared",
+      stripe_intent_type: "setup_intent",
+    });
+    expect(res.status).toBe(400);
+    expect(store.reservationInserts).toHaveLength(0);
+  });
+
   it("POST confirm: owner mismatch rejected (no order)", async () => {
     process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
     loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
