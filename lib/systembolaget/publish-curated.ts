@@ -98,12 +98,15 @@ export async function publishCuratedById(
   if (!row) {
     return { ok: false, id, reason: "not_found", message: `No curated row ${id}` };
   }
-  if (row.verdict === "skipped") {
+  if (row.verdict === "skipped" || row.verdict === "candidate") {
     return {
       ok: false,
       id,
       reason: "skipped_verdict",
-      message: "Skipped verdict cannot be published",
+      message:
+        row.verdict === "candidate"
+          ? "Candidate verdict cannot be published"
+          : "Skipped verdict cannot be published",
     };
   }
 

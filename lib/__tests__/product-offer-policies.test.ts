@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildProductPdpJsonLd,
+  countOfferNodes,
+  normalizeWineGtin,
   normalizeWineGtin13,
+  parseProductJsonLd,
   resolveProductOfferAvailability,
 } from "@/lib/seo/product-json-ld";
 import {
+  PACT_B2C_MERCHANT_RETURN_LINK,
   PACT_B2C_MERCHANT_RETURN_POLICY,
   PACT_SE_DIRECT_SHIPPING_PRICE,
   productOfferCommerceFields,
@@ -16,13 +20,21 @@ describe("PACT_B2C_MERCHANT_RETURN_POLICY", () => {
     expect(PACT_B2C_MERCHANT_RETURN_POLICY).toEqual({
       "@type": "MerchantReturnPolicy",
       applicableCountry: "SE",
+      returnPolicyCountry: "SE",
       returnPolicyCategory:
         "https://schema.org/MerchantReturnFiniteReturnWindow",
       merchantReturnDays: 14,
       returnMethod: "https://schema.org/ReturnByMail",
+      // No fixed fee → ReturnFeesCustomerResponsibility (not ReturnShippingFees)
       returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
       refundType: "https://schema.org/FullRefund",
     });
+    expect(PACT_B2C_MERCHANT_RETURN_POLICY).not.toHaveProperty(
+      "returnShippingFeesAmount",
+    );
+    expect(PACT_B2C_MERCHANT_RETURN_LINK).toBe(
+      "https://pactwines.com/villkor",
+    );
   });
 });
 
@@ -37,6 +49,9 @@ describe("productOfferCommerceFields", () => {
     expect(fields.shippingDetails).not.toHaveProperty("deliveryTime");
     expect(fields.hasMerchantReturnPolicy).toMatchObject(
       PACT_B2C_MERCHANT_RETURN_POLICY,
+    );
+    expect(fields.hasMerchantReturnPolicy.merchantReturnLink).toBe(
+      PACT_B2C_MERCHANT_RETURN_LINK,
     );
     expect(fields.hasMerchantReturnPolicy.url).toBe(
       "https://pactwines.com/villkor",
@@ -97,18 +112,29 @@ describe("resolveProductOfferAvailability", () => {
   });
 });
 
-describe("normalizeWineGtin13", () => {
+describe("normalizeWineGtin / normalizeWineGtin13", () => {
   it("returns null when EAN is missing or inventable garbage", () => {
+    expect(normalizeWineGtin(null)).toBeNull();
+    expect(normalizeWineGtin(undefined)).toBeNull();
+    expect(normalizeWineGtin("")).toBeNull();
+    expect(normalizeWineGtin("123")).toBeNull();
+    expect(normalizeWineGtin("not-an-ean")).toBeNull();
     expect(normalizeWineGtin13(null)).toBeNull();
-    expect(normalizeWineGtin13(undefined)).toBeNull();
-    expect(normalizeWineGtin13("")).toBeNull();
     expect(normalizeWineGtin13("123")).toBeNull();
-    expect(normalizeWineGtin13("not-an-ean")).toBeNull();
   });
 
-  it("accepts a real 13-digit EAN", () => {
+  it("accepts a real 13-digit EAN as gtin13", () => {
+    expect(normalizeWineGtin("4006381333931")).toEqual({
+      gtin13: "4006381333931",
+    });
+    expect(normalizeWineGtin("4006 3813 3393 1")).toEqual({
+      gtin13: "4006381333931",
+    });
     expect(normalizeWineGtin13("4006381333931")).toBe("4006381333931");
-    expect(normalizeWineGtin13("4006 3813 3393 1")).toBe("4006381333931");
+  });
+
+  it("accepts a real 8-digit EAN as gtin8", () => {
+    expect(normalizeWineGtin("12345670")).toEqual({ gtin8: "12345670" });
   });
 });
 
@@ -137,6 +163,7 @@ describe("buildProductPdpJsonLd", () => {
     expect(jsonLd.sku).toBe("l-2023");
     expect(jsonLd.offers.sku).toBe("l-2023");
     expect(jsonLd).not.toHaveProperty("gtin13");
+    expect(jsonLd).not.toHaveProperty("gtin8");
     expect(jsonLd).not.toHaveProperty("gtin");
   });
 
@@ -170,6 +197,7 @@ describe("buildProductPdpJsonLd", () => {
     const serialized = JSON.stringify(jsonLd);
 
     expect(jsonLd).not.toHaveProperty("gtin13");
+    expect(jsonLd).not.toHaveProperty("gtin8");
     expect(jsonLd).not.toHaveProperty("gtin");
     expect(serialized).not.toContain("gtin");
   });
@@ -182,6 +210,18 @@ describe("buildProductPdpJsonLd", () => {
     });
 
     expect(jsonLd.gtin13).toBe("4006381333931");
+    expect(jsonLd).not.toHaveProperty("gtin8");
+  });
+
+  it("emits gtin8 only when a real EAN-8 is provided", () => {
+    const jsonLd = buildProductPdpJsonLd({
+      ...baseInput,
+      ean: "12345670",
+      includeB2cReturnPolicy: true,
+    });
+
+    expect(jsonLd.gtin8).toBe("12345670");
+    expect(jsonLd).not.toHaveProperty("gtin13");
   });
 
   it("embeds the shared B2C MerchantReturnPolicy in Offer JSON-LD", () => {
@@ -196,16 +236,29 @@ describe("buildProductPdpJsonLd", () => {
     expect(jsonLd.offers.hasMerchantReturnPolicy).toMatchObject(
       PACT_B2C_MERCHANT_RETURN_POLICY,
     );
+    expect(jsonLd.offers.hasMerchantReturnPolicy.merchantReturnLink).toBe(
+      PACT_B2C_MERCHANT_RETURN_LINK,
+    );
     expect(jsonLd.offers.hasMerchantReturnPolicy.url).toBe(
       "https://pactwines.com/villkor",
     );
     expect(jsonLd.offers.hasMerchantReturnPolicy.applicableCountry).toBe("SE");
+    expect(jsonLd.offers.hasMerchantReturnPolicy.returnPolicyCountry).toBe(
+      "SE",
+    );
     expect(jsonLd.offers.hasMerchantReturnPolicy.merchantReturnDays).toBe(14);
     expect(jsonLd.offers.hasMerchantReturnPolicy.returnFees).toBe(
       "https://schema.org/ReturnFeesCustomerResponsibility",
     );
+    expect(jsonLd.offers.hasMerchantReturnPolicy).not.toHaveProperty(
+      "returnShippingFeesAmount",
+    );
     expect(serialized).toContain("MerchantReturnFiniteReturnWindow");
     expect(serialized).toContain('"merchantReturnDays":14');
+    expect(serialized).toContain("ReturnFeesCustomerResponsibility");
+    expect(serialized).not.toContain("ReturnShippingFees");
+    expect(serialized).toContain("merchantReturnLink");
+    expect(serialized).toContain("returnPolicyCountry");
     expect(serialized).toContain("PreOrder");
   });
 
@@ -258,5 +311,65 @@ describe("buildProductPdpJsonLd", () => {
     // No invented identifiers
     expect(jsonLd).not.toHaveProperty("gtin");
     expect(jsonLd).not.toHaveProperty("gtin13");
+    expect(jsonLd).not.toHaveProperty("gtin8");
+  });
+
+  it("parses available and sold-out Product JSON-LD with a single Offer each", () => {
+    const palletSerialized = JSON.stringify(
+      buildProductPdpJsonLd({
+        ...baseInput,
+        availableForSale: true,
+        directDeliveryAvailable: false,
+        includeB2cReturnPolicy: true,
+      }),
+    );
+    const directSerialized = JSON.stringify(
+      buildProductPdpJsonLd({
+        ...baseInput,
+        availableForSale: true,
+        directDeliveryAvailable: true,
+        includeB2cReturnPolicy: true,
+      }),
+    );
+    const soldOutSerialized = JSON.stringify(
+      buildProductPdpJsonLd({
+        ...baseInput,
+        availableForSale: false,
+        includeB2cReturnPolicy: true,
+      }),
+    );
+
+    const pallet = parseProductJsonLd(palletSerialized);
+    const direct = parseProductJsonLd(directSerialized);
+    const soldOut = parseProductJsonLd(soldOutSerialized);
+
+    expect(countOfferNodes(pallet.offers)).toBe(1);
+    expect(countOfferNodes(direct.offers)).toBe(1);
+    expect(countOfferNodes(soldOut.offers)).toBe(1);
+    expect(Array.isArray(pallet.offers)).toBe(false);
+    expect(Array.isArray(direct.offers)).toBe(false);
+    expect(Array.isArray(soldOut.offers)).toBe(false);
+
+    const palletOffer = pallet.offers as Record<string, unknown>;
+    const directOffer = direct.offers as Record<string, unknown>;
+    const soldOutOffer = soldOut.offers as Record<string, unknown>;
+
+    expect(palletOffer["@type"]).toBe("Offer");
+    expect(directOffer["@type"]).toBe("Offer");
+    expect(soldOutOffer["@type"]).toBe("Offer");
+    expect(palletOffer.availability).toBe("https://schema.org/PreOrder");
+    expect(directOffer.availability).toBe("https://schema.org/InStock");
+    expect(soldOutOffer.availability).toBe("https://schema.org/OutOfStock");
+    expect(pallet.product.sku).toBe("l-2023");
+    expect(direct.product.sku).toBe("l-2023");
+    expect(soldOut.product.sku).toBe("l-2023");
+    expect(pallet.product).not.toHaveProperty("gtin13");
+    expect(direct.product).not.toHaveProperty("gtin13");
+    expect(soldOut.product).not.toHaveProperty("gtin13");
+
+    // Offer must not be duplicated as both Product.offers and a nested array.
+    expect(palletSerialized.match(/"@type":"Offer"/g)?.length).toBe(1);
+    expect(directSerialized.match(/"@type":"Offer"/g)?.length).toBe(1);
+    expect(soldOutSerialized.match(/"@type":"Offer"/g)?.length).toBe(1);
   });
 });

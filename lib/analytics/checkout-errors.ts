@@ -144,6 +144,11 @@ export type TrackCheckoutFunnelInput = {
   message?: string | null;
   /** Stable machine code, e.g. no_pickup_for_cart */
   errorCode: string;
+  /**
+   * Optional non-PII extras (e.g. available_fulfillment_channels).
+   * Merged into event_metadata after the CRO envelope.
+   */
+  metadataExtra?: Record<string, unknown>;
 };
 
 /**
@@ -184,6 +189,9 @@ export async function trackCheckoutError(
       metadata: {
         ...props,
         event_name: "checkout_error" satisfies CheckoutFunnelEventName,
+        ...(input.metadataExtra && typeof input.metadataExtra === "object"
+          ? input.metadataExtra
+          : {}),
       },
     });
   } catch {

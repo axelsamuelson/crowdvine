@@ -9,13 +9,22 @@ export type ProductOfferAvailability =
 /**
  * Availability for pactwines.com Product Offer JSON-LD.
  *
- * - OutOfStock when the wine is not available for sale (sold out / not listed).
- * - InStock only when direct delivery can fulfill now (flag/logic says so).
- * - PreOrder for the default shared-pallet model (delivery after the pallet closes).
+ * Code sources (do not invent):
+ * - `availableForSale` on the PDP comes from `resolveProductAvailableForSale`
+ *   (`lib/wine-availability.ts`), which for B2C is `wines.available_for_sale !== false`
+ *   via `isWineAvailableForSale`.
+ * - `directDeliveryAvailable` on the PDP is
+ *   `buildDirectBoxUiAvailability({ countryCode: "SE" }).deliverySelectable`
+ *   (and B2C host only).
+ *
+ * Mapping (product decision — Axel 2026-11-20):
+ * - OutOfStock when the wine cannot be ordered (`availableForSale === false`).
+ * - InStock when available and direct delivery is selectable.
+ * - PreOrder when available but shared-pallet only (no direct delivery).
  */
 export function resolveProductOfferAvailability(input: {
   availableForSale: boolean;
-  /** True when direct delivery (immediate fulfilment) is offered for this product. */
+  /** True when direct delivery is selectable for this product / market. */
   directDeliveryAvailable?: boolean;
 }): ProductOfferAvailability {
   if (!input.availableForSale) {
@@ -28,16 +37,25 @@ export function resolveProductOfferAvailability(input: {
 }
 
 /**
- * Normalize a stored EAN into gtin13 when it is a real 13-digit value.
- * Returns null when missing or not a valid EAN-13 — never invents a value.
+ * Normalize a stored EAN into gtin13 / gtin8 when it is a real digit string.
+ * Returns null when missing or not a valid length — never invents a value.
  */
+export function normalizeWineGtin(
+  ean: string | null | undefined,
+): { gtin13: string } | { gtin8: string } | null {
+  if (ean == null) return null;
+  const digits = String(ean).replace(/\D/g, "");
+  if (digits.length === 13) return { gtin13: digits };
+  if (digits.length === 8) return { gtin8: digits };
+  return null;
+}
+
+/** @deprecated Prefer normalizeWineGtin — kept for existing call sites/tests. */
 export function normalizeWineGtin13(
   ean: string | null | undefined,
 ): string | null {
-  if (ean == null) return null;
-  const digits = String(ean).replace(/\D/g, "");
-  if (digits.length !== 13) return null;
-  return digits;
+  const normalized = normalizeWineGtin(ean);
+  return normalized && "gtin13" in normalized ? normalized.gtin13 : null;
 }
 
 export type ProductJsonLdInput = {
@@ -48,15 +66,15 @@ export type ProductJsonLdInput = {
   brandName: string;
   availableForSale: boolean;
   /**
-   * When true, Offer.availability is InStock (direct delivery now).
+   * When true, Offer.availability is InStock (direct delivery selectable).
    * When false/omitted and available, availability is PreOrder (shared pallet).
    */
   directDeliveryAvailable?: boolean;
   /** Own wine id and/or handle — used for Offer/Product sku. */
   sku?: string | null;
   /**
-   * Real EAN from the database only. When present and valid EAN-13, emitted as
-   * gtin13. Omitted entirely when missing — never invent.
+   * Real EAN from the database only. When present and valid EAN-13/EAN-8,
+   * emitted as gtin13 / gtin8. Omitted entirely when missing — never invent.
    */
   ean?: string | null;
   priceCurrency: string;
@@ -89,7 +107,7 @@ export function buildProductPdpJsonLd(input: ProductJsonLdInput) {
     typeof input.sku === "string" && input.sku.trim().length > 0
       ? input.sku.trim()
       : undefined;
-  const gtin13 = normalizeWineGtin13(input.ean) ?? undefined;
+  const gtin = normalizeWineGtin(input.ean);
 
   const additionalProperty = input.wineEnrichment
     ? [
@@ -137,7 +155,7 @@ export function buildProductPdpJsonLd(input: ProductJsonLdInput) {
     image: input.imageUrl,
     url: input.productUrl,
     ...(sku ? { sku } : {}),
-    ...(gtin13 ? { gtin13 } : {}),
+    ...(gtin ?? {}),
     brand: {
       "@type": "Brand",
       name: input.brandName,
@@ -163,4 +181,36 @@ export function buildProductPdpJsonLd(input: ProductJsonLdInput) {
       ? { additionalProperty }
       : {}),
   };
+}
+
+/**
+ * Parse a Product JSON-LD document the same way a crawler would after
+ * reading a single `<script type="application/ld+json">` block.
+ */
+export function parseProductJsonLd(serialized: string): {
+  product: Record<string, unknown>;
+  offers: Record<string, unknown> | Record<string, unknown>[];
+} {
+  const product = JSON.parse(serialized) as Record<string, unknown>;
+  if (product["@type"] !== "Product") {
+    throw new Error(`Expected @type Product, got ${String(product["@type"])}`);
+  }
+  const offers = product.offers;
+  if (offers == null || typeof offers !== "object") {
+    throw new Error("Product JSON-LD is missing offers");
+  }
+  return {
+    product,
+    offers: offers as Record<string, unknown> | Record<string, unknown>[],
+  };
+}
+
+/** Count Offer nodes (object or array) — used to assert no duplicated offers. */
+export function countOfferNodes(
+  offers: Record<string, unknown> | Record<string, unknown>[],
+): number {
+  if (Array.isArray(offers)) {
+    return offers.filter((o) => o && o["@type"] === "Offer").length;
+  }
+  return offers["@type"] === "Offer" ? 1 : 0;
 }

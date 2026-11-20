@@ -12,16 +12,16 @@ describe("stripe seller display + Payment Element Geist", () => {
     expect(stripePaymentElementBusinessName()).toBe("EURPACT OÜ");
   });
 
-  it("PE fonts use absolute Geist Sans woff2 + matching family", () => {
+  it("omits PE custom font when src would contain @ (Stripe rejects those)", () => {
     expect(STRIPE_GEIST_FONT_FAMILY).toBe("Geist Sans");
-    expect(STRIPE_GEIST_SANS_WOFF2).toMatch(/geist-sans-latin-400-normal\.woff2$/);
+    expect(STRIPE_GEIST_SANS_WOFF2).toBeNull();
     const peSrc = readFileSync(
       resolve(process.cwd(), "components/checkout/stripe-payment-section.tsx"),
       "utf8",
     );
     expect(peSrc).toMatch(/STRIPE_GEIST_SANS_WOFF2/);
     expect(peSrc).toMatch(/STRIPE_GEIST_FONT_FAMILY/);
-    expect(peSrc).toMatch(/family:\s*STRIPE_GEIST_FONT_FAMILY/);
+    expect(peSrc).not.toMatch(/@fontsource/);
     expect(peSrc).toMatch(/billing_details/);
     expect(peSrc).toMatch(/country:\s*[\"']never[\"']/);
     expect(peSrc).toMatch(/business:\s*\{\s*name:/);
