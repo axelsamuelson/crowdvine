@@ -94,15 +94,16 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     expect(sv).toContain("Frakt 149 kr per låda om 6 flaskor");
     expect(sv).toContain("5–10 arbetsdagar");
     expect(sv).toContain(
-      "Vi kontrollerar att du har fyllt 20 år när vinet lämnas över.",
+      "Leveransen lämnas bara ut mot legitimation till någon som fyllt 20.",
     );
-    expect(sv).not.toContain("Vid leverans kontrolleras");
+    expect(sv).not.toMatch(/kontrollerar|kontrollerad|verifierad/i);
     expect(en).toContain("Your card is charged 100 SEK now.");
     expect(en).toContain("SEK 149 per box of 6 bottles");
     expect(en).toContain("5–10 working days");
     expect(en).toContain(
-      "We check that you are 20 or older when the wine is handed over.",
+      "Delivery is only handed over against ID to someone aged 20 or older.",
     );
+    expect(en).not.toMatch(/\b(check|checked|verified)\b/i);
     expect(en).not.toContain("Proof of age");
     expect(sv).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
     expect(en).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
@@ -115,11 +116,13 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     const sv = dualOfferMsg("sv", "dualOfferAgeCheckLine");
     const en = dualOfferMsg("en", "dualOfferAgeCheckLine");
     expect(sv).toBe(
-      "Vi kontrollerar att du har fyllt 20 år när vinet lämnas över.",
+      "Leveransen lämnas bara ut mot legitimation till någon som fyllt 20.",
     );
     expect(en).toBe(
-      "We check that you are 20 or older when the wine is handed over.",
+      "Delivery is only handed over against ID to someone aged 20 or older.",
     );
+    expect(sv).not.toMatch(/kontrollerar|kontrollerad|verifierad/i);
+    expect(en).not.toMatch(/\b(check|checked|verified)\b/i);
     expect(sv).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
     expect(en).not.toMatch(/UPS|Budbee|Instabee|BankID/i);
   });

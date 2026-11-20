@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
+    <title>Checkout DOB mobile fixture</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        padding: 24px;
+      }
+      input {
+        font-size: 16px;
+        width: 100%;
+        max-width: 280px;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <label for="age-dob">Födelsedatum</label>
+    <input
+      id="age-dob"
+      data-testid="age-dob"
+      type="text"
+      inputmode="numeric"
+      autocomplete="bday"
+      maxlength="10"
+      placeholder="ÅÅÅÅ-MM-DD"
+    />
+    <script>
+      /**
+       * Inlined from lib/checkout/date-of-birth-input.ts so keydown can call
+       * preventDefault synchronously (exposeFunction is async and races).
+       * Kept in lockstep with production helpers; Vitest also unit-tests those.
+       */
+      function maskIsoDateDigits(raw) {
+        const digits = String(raw ?? "")
+          .replace(/\D/g, "")
+          .slice(0, 8);
+        if (digits.length <= 4) return digits;
+        if (digits.length <= 6) {
+          return digits.slice(0, 4) + "-" + digits.slice(4);
+        }
+        return (
+          digits.slice(0, 4) +
+          "-" +
+          digits.slice(4, 6) +
+          "-" +
+          digits.slice(6)
+        );
+      }
+
+      function digitCountBefore(value, caret) {
+        const end = Math.max(0, Math.min(caret, value.length));
+        let n = 0;
+        for (let i = 0; i < end; i += 1) {
+          if (/\d/.test(value[i])) n += 1;
+        }
+        return n;
+      }
+
+      function caretAfterDigitCount(formatted, digitIndex) {
+        if (digitIndex <= 0) return 0;
+        let seen = 0;
+        for (let i = 0; i < formatted.length; i += 1) {
+          if (/\d/.test(formatted[i])) {
+            seen += 1;
+            if (seen >= digitIndex) return i + 1;
+          }
+        }
+        return formatted.length;
+      }
+
+      function formatDobInputChange(raw, selectionStart) {
+        const prevCaret =
+          typeof selectionStart === "number" && Number.isFinite(selectionStart)
+            ? selectionStart
+            : raw.length;
+        const digitsBefore = digitCountBefore(raw, prevCaret);
+        const value = maskIsoDateDigits(raw);
+        const caret = caretAfterDigitCount(value, digitsBefore);
+        return { value, caret };
+      }
+
+      function applyBackspaceOverHyphen(value, selectionStart, selectionEnd) {
+        if (selectionStart !== selectionEnd) return null;
+        if (selectionStart <= 0) return null;
+        const hyphenIndex = selectionStart - 1;
+        if (value[hyphenIndex] !== "-") return null;
+        const digitIndex = hyphenIndex - 1;
+        if (digitIndex < 0 || !/\d/.test(value[digitIndex])) return null;
+        const withoutDigit =
+          value.slice(0, digitIndex) + value.slice(digitIndex + 1);
+        const digitsBefore = digitCountBefore(value, digitIndex);
+        const next = maskIsoDateDigits(withoutDigit);
+        const caret = caretAfterDigitCount(next, digitsBefore);
+        return { value: next, caret };
+      }
+
+      window.__dobHelpers = {
+        maskIsoDateDigits,
+        formatDobInputChange,
+        applyBackspaceOverHyphen,
+      };
+
+      (function () {
+        const input = document.getElementById("age-dob");
+
+        function apply(value, caret) {
+          input.value = value;
+          try {
+            input.setSelectionRange(caret, caret);
+          } catch (_) {
+            /* ignore */
+          }
+        }
+
+        input.addEventListener("input", (e) => {
+          const raw = e.target.value;
+          const selectionStart = e.target.selectionStart;
+          const result = formatDobInputChange(raw, selectionStart);
+          apply(result.value, result.caret);
+        });
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key !== "Backspace") return;
+          const start = input.selectionStart ?? 0;
+          const end = input.selectionEnd ?? 0;
+          const special = applyBackspaceOverHyphen(input.value, start, end);
+          if (!special) return;
+          e.preventDefault();
+          apply(special.value, special.caret);
+        });
+      })();
+    </script>
+  </body>
+</html>
