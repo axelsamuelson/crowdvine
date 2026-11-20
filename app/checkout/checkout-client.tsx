@@ -1893,9 +1893,10 @@ function CheckoutContent({
     ].join("|");
     if (stripePrefetchKeyRef.current === key) return;
     stripePrefetchKeyRef.current = key;
-    setPrefetchedStripeIntent(null);
+    // Keep any prior clientSecret mounted while the new intent loads — clearing
+    // here remounted StripePaymentSection and aborted in-flight PI (guest PE empty).
 
-    const controller = new AbortController();
+    let cancelled = false;
     void (async () => {
       try {
         const res = await fetch("/api/checkout/payment-intent", {
@@ -1904,6 +1905,7 @@ function CheckoutContent({
           body: JSON.stringify({
             pallet_id: selectedPallet.id,
             pact_points_redeem: redeemPoints,
+            fulfillment_channel: fulfillmentChannel,
             dateOfBirth: legalGatePayload.dateOfBirth,
             ...(legalGatePayload.acceptedTermsVersion
               ? {
@@ -1913,9 +1915,9 @@ function CheckoutContent({
             ...(promoSek > 0 ? { promo_discount_sek: promoSek } : {}),
             ...(isUsConditional ? { us_conditional_ack: true } : {}),
           }),
-          signal: controller.signal,
         });
         const data: unknown = await res.json().catch(() => null);
+        if (cancelled) return;
         if (!res.ok || !data || typeof data !== "object") {
           if (res.status === 403) {
             handleLegalGateError({ status: 403 });
@@ -1996,8 +1998,7 @@ function CheckoutContent({
           quote,
         });
       } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        if (e instanceof Error && e.name === "AbortError") return;
+        if (cancelled) return;
         if (stripePrefetchKeyRef.current === key) {
           stripePrefetchKeyRef.current = null;
         }
@@ -2005,7 +2006,7 @@ function CheckoutContent({
     })();
 
     return () => {
-      controller.abort();
+      cancelled = true;
     };
   }, [
     legacySharedPalletPaymentAllowed,
@@ -2020,6 +2021,7 @@ function CheckoutContent({
     isUsConditional,
     usConditionalAck,
     handleLegalGateError,
+    fulfillmentChannel,
   ]);
 
   // If age/terms become incomplete again, collapse payment.
@@ -5577,6 +5579,7 @@ function CheckoutContent({
                             legalGate={legalGatePayload}
                             onLegalGateError={handleLegalGateError}
                             prefetchedIntent={prefetchedStripeIntent}
+                            fulfillmentChannel={fulfillmentChannel}
                             cardOnly
                             billingCountryCode={ageCountryCode}
                             onPaymentElementComplete={setPaymentElementComplete}

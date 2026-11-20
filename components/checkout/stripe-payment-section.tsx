@@ -160,6 +160,11 @@ type Props = {
   billingCountryCode?: string | null;
   /** Fires when Stripe reports the Payment Element complete/incomplete. */
   onPaymentElementComplete?: (complete: boolean) => void;
+  /**
+   * Mode-scoped payment-intent body. direct_box must be sent explicitly so the
+   * server never falls through to shared-pallet SetupIntent + pact rates.
+   */
+  fulfillmentChannel?: "shared_pallet" | "direct_box";
 };
 
 const publishableKey =
@@ -535,6 +540,7 @@ export function StripePaymentSection({
   cardOnly = false,
   billingCountryCode = null,
   onPaymentElementComplete,
+  fulfillmentChannel = "shared_pallet",
 }: Props) {
   const shoppingCtx = useShoppingContextOptional();
   const t = shoppingCtx?.t ?? ((key: string) => key);
@@ -567,8 +573,9 @@ export function StripePaymentSection({
     prefetchedIntent?.intentId ?? null,
   );
 
-  /** When cart / pallet / points change, allow a fresh payment-intent fetch. */
+  /** When cart / pallet / points / channel change, allow a fresh payment-intent fetch. */
   const fetchedRef = useRef(Boolean(prefetchedIntent?.clientSecret));
+  const prefetchedIntentId = prefetchedIntent?.intentId ?? null;
   useEffect(() => {
     fetchedRef.current = false;
     appliedPrefetchIdRef.current = null;
@@ -580,6 +587,7 @@ export function StripePaymentSection({
     usConditionalAck,
     legalGate?.dateOfBirth,
     legalGate?.acceptedTermsVersion,
+    fulfillmentChannel,
   ]);
 
   useEffect(() => {
@@ -647,7 +655,10 @@ export function StripePaymentSection({
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
-    const controller = new AbortController();
+    // Do NOT AbortController-cancel in-flight payment-intent: the route often
+    // takes several seconds, and remount/StrictMode/prefetch races were
+    // aborting successful 200s before Payment Element could mount (guest PE empty).
+    let cancelled = false;
 
     async function fetchIntent() {
       setLoading(true);
@@ -660,9 +671,10 @@ export function StripePaymentSection({
           body: JSON.stringify({
             pallet_id: palletId,
             pact_points_redeem: pactPointsRedeem,
-            dateOfBirth: legalGate.dateOfBirth,
-            ...(legalGate.acceptedTermsVersion
-              ? { acceptedTermsVersion: legalGate.acceptedTermsVersion }
+            fulfillment_channel: fulfillmentChannel,
+            dateOfBirth: legalGate!.dateOfBirth,
+            ...(legalGate!.acceptedTermsVersion
+              ? { acceptedTermsVersion: legalGate!.acceptedTermsVersion }
               : {}),
             ...(promoDiscountSek > 0
               ? { promo_discount_sek: promoDiscountSek }
@@ -673,10 +685,10 @@ export function StripePaymentSection({
                 }
               : {}),
           }),
-          signal: controller.signal,
         });
 
         const data: unknown = await res.json().catch(() => null);
+        if (cancelled) return;
         if (!res.ok || !data || typeof data !== "object") {
           if (res.status === 403) {
             onLegalGateError?.({ status: 403 });
@@ -749,14 +761,7 @@ export function StripePaymentSection({
           bottlesFilled: filled,
         });
       } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") {
-          fetchedRef.current = false;
-          return;
-        }
-        if (e instanceof Error && e.name === "AbortError") {
-          fetchedRef.current = false;
-          return;
-        }
+        if (cancelled) return;
         const msg =
           e instanceof Error ? e.message : "Failed to create payment intent";
         fetchedRef.current = false;
@@ -766,14 +771,15 @@ export function StripePaymentSection({
         setIntentId(null);
         setAmountInOre(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     void fetchIntent();
 
     return () => {
-      controller.abort();
+      cancelled = true;
+      // Allow a remount/re-run to fetch again if this run never applied a secret.
       fetchedRef.current = false;
     };
   }, [
@@ -785,7 +791,13 @@ export function StripePaymentSection({
     usConditionalAck,
     legalGate?.dateOfBirth,
     legalGate?.acceptedTermsVersion,
-    prefetchedIntent,
+    prefetchedIntentId,
+    prefetchedIntent?.clientSecret,
+    prefetchedIntent?.paymentMode,
+    prefetchedIntent?.amountInOre,
+    prefetchedIntent?.bottlesFilled,
+    prefetchedIntent?.quote,
+    fulfillmentChannel,
     onLegalGateError,
   ]);
 
