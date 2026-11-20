@@ -333,14 +333,14 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_step_blocked",
     category: "checkout",
     description:
-      "Kassasteg visades låst trots föregående stegdata, eller Fortsätt gick inte att använda. Metadata: step (postal|delivery|age_terms|payment|continue), reason (short code e.g. missing_phone, quote_missing, delivery_not_selected). Deduped once per checkout session+step+reason. Never PII.",
+      "Shopper tried to advance a locked checkout step (Fortsätt / locked step / blocked CTA). Metadata: step (postal|delivery|age_terms|payment), reason (short code e.g. missing_phone, quote_missing, quote_stale, auth_required). Deduped once per checkout session+step+reason. Never PII. Not emitted on passive field status.",
     sources: ["client"],
   },
   {
     eventType: "shipping_quote_failed",
     category: "checkout",
     description:
-      "Fraktpris kunde inte beräknas. Metadata: delivery_type (shared_pallet|direct_box), reason (short code). Deduped once per session+delivery_type+reason. Never PII.",
+      "Fraktpris kunde inte beräknas. Metadata: delivery_type (shared_pallet|direct_box), reason (short code e.g. quote_error, quote_timeout, auth_required). Deduped once per session+delivery_type+reason. Never PII. Guest 401 before session is auth_required (not quote_error).",
     sources: ["client"],
   },
   {

@@ -6,12 +6,12 @@
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { emitOnce, getCheckoutSessionId } from "@/lib/analytics/emit-once";
 
+/** Must match analytics_checkout_step() — never "continue" (maps to NULL). */
 export type CheckoutBlockedStep =
   | "postal"
   | "delivery"
   | "age_terms"
-  | "payment"
-  | "continue";
+  | "payment";
 
 /** Short machine codes only — never free-text user input. */
 export type CheckoutBlockReason =
@@ -23,7 +23,10 @@ export type CheckoutBlockReason =
   | "delivery_not_selected"
   | "quote_missing"
   | "quote_loading"
+  | "quote_stale"
+  | "quote_timeout"
   | "quote_error"
+  | "auth_required"
   | "quote_channel_mismatch"
   | "direct_box_shipping_pending"
   | "direct_box_shipping_unquoted"
@@ -50,13 +53,12 @@ export function shippingQuoteFailedEmitKey(
 }
 
 /**
- * Emit once per checkout session + step + reason when a step stays locked
- * despite prior-step data, or Fortsätt cannot run with filled fields.
+ * Emit once per checkout session + step + reason when the shopper actually
+ * tries to advance (Fortsätt / locked step / blocked CTA) — not on field status.
  */
 export function trackCheckoutStepBlocked(input: {
   step: CheckoutBlockedStep;
   reason: CheckoutBlockReason;
-  extra?: Record<string, string | number | boolean | null>;
 }): boolean {
   return emitOnce(checkoutStepBlockedEmitKey(input.step, input.reason), () => {
     void AnalyticsTracker.trackEvent({
@@ -65,7 +67,6 @@ export function trackCheckoutStepBlocked(input: {
       metadata: {
         step: input.step,
         reason: input.reason,
-        ...(input.extra ?? {}),
       },
     });
   });

@@ -1121,12 +1121,8 @@ function CheckoutContent({
     emitCheckoutStepCompleted("delivery");
   }, [deliveryComplete, cart]);
 
-  // Age step shown locked despite postal (and often partial address) filled.
-  useEffect(() => {
-    if (!hasPostalCode || deliveryComplete) return;
-    if (!cart || cart.totalQuantity <= 0) return;
-
-    let reason: CheckoutBlockReason | null = null;
+  // Resolve why age/delivery is still locked (for attempt-time analytics only).
+  const resolveAgeTermsBlockReason = useCallback((): CheckoutBlockReason => {
     if (!hasZoneDeliveryReady) {
       const contactReason = checkoutContactBlockReason({
         fullName:
@@ -1145,39 +1141,27 @@ function CheckoutContent({
           profile?.phone ??
           null,
       });
-      if (contactReason) {
-        reason = contactReason;
-      } else if (
+      if (contactReason) return contactReason;
+      if (
         !(
           effectiveDelivery?.street?.trim() ||
           deliveryDraft?.street?.trim()
         )
       ) {
-        reason = "address_not_persisted";
-      } else {
-        reason = "zone_required";
+        return "address_not_persisted";
       }
-    } else if (hasProducerItems && !selectedPallet) {
-      reason = "pallet_required";
-    } else if (!deliveryZoneReady) {
-      reason = "zone_required";
-    } else if (
+      return "zone_required";
+    }
+    if (hasProducerItems && !selectedPallet) return "pallet_required";
+    if (!deliveryZoneReady) return "zone_required";
+    if (
       fulfillmentChannel === "direct_box" &&
       !directBoxAvailability.deliverySelectable
     ) {
-      reason = "direct_box_carrier_unconfigured";
-    } else {
-      reason = "delivery_not_selected";
+      return "direct_box_carrier_unconfigured";
     }
-
-    trackCheckoutStepBlocked({
-      step: "age_terms",
-      reason,
-    });
+    return "delivery_not_selected";
   }, [
-    hasPostalCode,
-    deliveryComplete,
-    cart,
     hasZoneDeliveryReady,
     hasProducerItems,
     selectedPallet,
@@ -1191,36 +1175,16 @@ function CheckoutContent({
     profile?.phone,
   ]);
 
-  // Fortsätt / purchase blocked by quote after delivery is otherwise ready.
-  useEffect(() => {
-    if (!deliveryComplete || !purchaseBlockedByQuote) return;
-    if (!cart || cart.totalQuantity <= 0) return;
-    const gate = shouldBlockCheckoutOnQuote({
-      fulfillmentChannel,
-      quote: serverQuote,
-      quoteStatus,
-    });
-    const reason = (gate.reason ?? "quote_missing") as CheckoutBlockReason;
-    trackCheckoutStepBlocked({
-      step: "continue",
-      reason: /^[a-z0-9_]+$/i.test(reason) ? reason : "purchase_disabled",
-    });
-  }, [
-    deliveryComplete,
-    purchaseBlockedByQuote,
-    cart,
-    fulfillmentChannel,
-    serverQuote,
-    quoteStatus,
-  ]);
+  const quoteFailReasonRef = useRef<string | null>(null);
 
-  // Shipping quote failure (no PII).
+  // Shipping quote failure (no PII). auth_required is tracked inline on 401
+  // without setting quoteStatus to error.
   useEffect(() => {
     if (quoteStatus !== "error") return;
     trackShippingQuoteFailed({
       deliveryType:
         fulfillmentChannel === "direct_box" ? "direct_box" : "shared_pallet",
-      reason: "quote_error",
+      reason: quoteFailReasonRef.current ?? "quote_error",
     });
   }, [quoteStatus, fulfillmentChannel]);
 
@@ -1930,8 +1894,41 @@ function CheckoutContent({
   }, [dualOfferReviewActive, dualOfferCardStepUnlocked]);
 
   const handleContinueToPayment = useCallback(() => {
-    if (!complianceComplete) return;
-    if (!legacySharedPalletPaymentAllowed) return;
+    // Attempt-time analytics only (never on passive field status).
+    if (!deliveryComplete) {
+      trackCheckoutStepBlocked({
+        step: "age_terms",
+        reason: resolveAgeTermsBlockReason(),
+      });
+      return;
+    }
+    if (!complianceComplete) {
+      trackCheckoutStepBlocked({
+        step: "age_terms",
+        reason: "purchase_disabled",
+      });
+      return;
+    }
+    if (purchaseBlockedByQuote) {
+      const gate = shouldBlockCheckoutOnQuote({
+        fulfillmentChannel,
+        quote: serverQuote,
+        quoteStatus,
+      });
+      const raw = gate.reason ?? "quote_missing";
+      const reason = (
+        /^[a-z0-9_]+$/i.test(raw) ? raw : "purchase_disabled"
+      ) as CheckoutBlockReason;
+      trackCheckoutStepBlocked({ step: "payment", reason });
+      return;
+    }
+    if (!legacySharedPalletPaymentAllowed) {
+      trackCheckoutStepBlocked({
+        step: "payment",
+        reason: "purchase_disabled",
+      });
+      return;
+    }
     setPaymentCardRevealed(true);
     window.setTimeout(() => {
       paymentSectionRef.current?.scrollIntoView({
@@ -1939,7 +1936,24 @@ function CheckoutContent({
         block: "start",
       });
     }, 80);
-  }, [complianceComplete, legacySharedPalletPaymentAllowed]);
+  }, [
+    deliveryComplete,
+    complianceComplete,
+    purchaseBlockedByQuote,
+    fulfillmentChannel,
+    serverQuote,
+    quoteStatus,
+    legacySharedPalletPaymentAllowed,
+    resolveAgeTermsBlockReason,
+  ]);
+
+  const handleLockedAgeStepAttempt = useCallback(() => {
+    if (deliveryComplete) return;
+    trackCheckoutStepBlocked({
+      step: "age_terms",
+      reason: resolveAgeTermsBlockReason(),
+    });
+  }, [deliveryComplete, resolveAgeTermsBlockReason]);
 
   const handleSharedPalletCardStepRequest = useCallback(() => {
     // Blocked carts must never unlock Payment Element / SetupIntent create.
@@ -3257,8 +3271,15 @@ function CheckoutContent({
   const promoDiscountSek = appliedDiscount?.discount_amount_sek ?? 0;
 
   // Authoritative breakdown for display (same mode-scoped math as payment-intent).
+  // Wait for authReady/ensure-session — guests get 401 before that and must not
+  // mark the UI as quote_error (that flooded shipping_quote_failed + blocked CTAs).
   useEffect(() => {
     if (!cart?.lines?.length) {
+      setServerQuote(null);
+      setQuoteStatus("idle");
+      return;
+    }
+    if (!authReady) {
       setServerQuote(null);
       setQuoteStatus("idle");
       return;
@@ -3266,9 +3287,18 @@ function CheckoutContent({
     // Channel switch / dep change → invalidate immediately (no stale pact totals).
     setServerQuote(null);
     setQuoteStatus("loading");
+    quoteFailReasonRef.current = null;
     const controller = new AbortController();
+    let alive = true;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 15_000);
     const timer = window.setTimeout(() => {
       void (async () => {
+        const deliveryType =
+          fulfillmentChannel === "direct_box" ? "direct_box" : "shared_pallet";
         try {
           const res = await fetch("/api/checkout/quote", {
             method: "POST",
@@ -3284,12 +3314,25 @@ function CheckoutContent({
             ),
             signal: controller.signal,
           });
+          if (!alive) return;
+          if (res.status === 401) {
+            // Session still missing — never treat as quote_error UI failure.
+            trackShippingQuoteFailed({
+              deliveryType,
+              reason: "auth_required",
+            });
+            setServerQuote(null);
+            setQuoteStatus("idle");
+            return;
+          }
           if (!res.ok) {
+            quoteFailReasonRef.current = "quote_error";
             setServerQuote(null);
             setQuoteStatus("error");
             return;
           }
           const data: unknown = await res.json().catch(() => null);
+          if (!alive) return;
           if (
             data &&
             typeof data === "object" &&
@@ -3314,6 +3357,7 @@ function CheckoutContent({
                 gate.reason === "direct_box_shipping_pending" ||
                 gate.reason === "direct_box_shipping_unquoted")
             ) {
+              quoteFailReasonRef.current = gate.reason;
               setServerQuote(null);
               setQuoteStatus("error");
               return;
@@ -3321,20 +3365,36 @@ function CheckoutContent({
             setServerQuote(next);
             setQuoteStatus("ready");
           } else {
+            quoteFailReasonRef.current = "quote_error";
             setServerQuote(null);
             setQuoteStatus("error");
           }
         } catch (e) {
-          if (e instanceof DOMException && e.name === "AbortError") return;
-          if (e instanceof Error && e.name === "AbortError") return;
+          if (!alive) return;
+          const isAbort =
+            (e instanceof DOMException && e.name === "AbortError") ||
+            (e instanceof Error && e.name === "AbortError");
+          if (isAbort) {
+            if (timedOut) {
+              quoteFailReasonRef.current = "quote_timeout";
+              setServerQuote(null);
+              setQuoteStatus("error");
+            }
+            return;
+          }
+          quoteFailReasonRef.current = "quote_error";
           setServerQuote(null);
           setQuoteStatus("error");
+        } finally {
+          window.clearTimeout(timeoutId);
         }
       })();
     }, 150);
     return () => {
+      alive = false;
       controller.abort();
       window.clearTimeout(timer);
+      window.clearTimeout(timeoutId);
     };
   }, [
     cart?.id,
@@ -3345,7 +3405,7 @@ function CheckoutContent({
     promoDiscountSek,
     ageCountryCode,
     fulfillmentChannel,
-    // Guests get 401 until ensure-session; refetch once auth is ready.
+    // Guests: fetch only after ensure-session; refetch when authReady flips true.
     authReady,
   ]);
 
@@ -5218,9 +5278,13 @@ function CheckoutContent({
                 </h2>
 
                 {!deliveryComplete ? (
-                  <p className="text-sm text-muted-foreground">
+                  <button
+                    type="button"
+                    className="text-left text-sm text-muted-foreground"
+                    onClick={handleLockedAgeStepAttempt}
+                  >
                     {t("checkout.stepComplianceLocked")}
-                  </p>
+                  </button>
                 ) : !complianceStepRevealed ? (
                   <p className="text-sm text-muted-foreground animate-in fade-in-0 duration-300">
                     {t("checkout.openingCompliance")}
@@ -5338,8 +5402,11 @@ function CheckoutContent({
                         !dualOfferCardStepUnlocked ? (
                           <Button
                             type="button"
-                            className="w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
-                            disabled={!complianceComplete}
+                            className={cn(
+                              "w-full border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40",
+                              !complianceComplete && "opacity-50",
+                            )}
+                            aria-disabled={!complianceComplete}
                             onClick={handleContinueToPayment}
                           >
                             {t("checkout.continueToPayment")}

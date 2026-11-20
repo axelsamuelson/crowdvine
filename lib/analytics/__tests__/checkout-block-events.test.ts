@@ -110,6 +110,32 @@ describe("checkout block / shipping quote analytics", () => {
     });
   });
 
+  it("accepts auth_required / quote_timeout / quote_stale reason codes", () => {
+    expect(
+      trackShippingQuoteFailed({
+        deliveryType: "shared_pallet",
+        reason: "auth_required",
+      }),
+    ).toBe(true);
+    expect(
+      trackShippingQuoteFailed({
+        deliveryType: "shared_pallet",
+        reason: "quote_timeout",
+      }),
+    ).toBe(true);
+    expect(
+      trackCheckoutStepBlocked({
+        step: "payment",
+        reason: "quote_stale",
+      }),
+    ).toBe(true);
+    expect(trackEvent.mock.calls.map((c) => c[0].metadata.reason)).toEqual([
+      "auth_required",
+      "quote_timeout",
+      "quote_stale",
+    ]);
+  });
+
   it("sanitizes free-text reason to unknown (no PII)", () => {
     trackShippingQuoteFailed({
       deliveryType: "shared_pallet",
