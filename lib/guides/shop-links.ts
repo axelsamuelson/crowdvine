@@ -17,10 +17,10 @@ export const GUIDE_SHOP_LINKS_HEADING = {
   en: "Natural wines at PACT",
 } as const;
 
-/** CMO final lead-in (neutral, Sweden-only delivery, no buying prompts). */
+/** Lead-in (Inès 2026-11-20: shared pallet or direct home; no buying prompts). */
 export const GUIDE_SHOP_LINKS_LEAD = {
-  sv: "Vi säljer naturvin från Frankrike på delade pallar, med leverans inom Sverige.",
-  en: "PACT sells natural wine from France on shared pallets, delivered within Sweden.",
+  sv: "Vi säljer naturvin från Frankrike med leverans i hela Sverige, på delad pall eller direkt hem.",
+  en: "We sell natural wine from France with delivery across Sweden, on a shared pallet or directly to your door.",
 } as const;
 
 /**

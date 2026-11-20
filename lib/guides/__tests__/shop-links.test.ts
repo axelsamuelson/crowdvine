@@ -83,12 +83,12 @@ describe("guide shop links config", () => {
     ]);
   });
 
-  it("uses CMO final lead-in copy without buying prompts", () => {
+  it("uses Inès lead-in copy without buying prompts", () => {
     expect(GUIDE_SHOP_LINKS_LEAD.sv).toBe(
-      "Vi säljer naturvin från Frankrike på delade pallar, med leverans inom Sverige.",
+      "Vi säljer naturvin från Frankrike med leverans i hela Sverige, på delad pall eller direkt hem.",
     );
     expect(GUIDE_SHOP_LINKS_LEAD.en).toBe(
-      "PACT sells natural wine from France on shared pallets, delivered within Sweden.",
+      "We sell natural wine from France with delivery across Sweden, on a shared pallet or directly to your door.",
     );
     const banned = /\b(köp|shoppa|buy|shop)\b/i;
     expect(GUIDE_SHOP_LINKS_LEAD.sv).not.toMatch(banned);
