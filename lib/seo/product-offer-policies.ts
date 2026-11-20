@@ -3,10 +3,11 @@ import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 /**
  * Shared B2C MerchantReturnPolicy for Product Offer JSON-LD (pactwines.com).
  *
- * Grounded ONLY in published purchase terms (`content/legal/source/kopvillkor.sv.md`
- * §8–§9 and `kopvillkor.en.md` §8–§9):
- * - 14-day right of withdrawal from the day after delivery
- * - Customer pays actual return shipping (no mark-up)
+ * Confirmed against published purchase terms version 2026-11-13
+ * (`content/legal/source/kopvillkor.sv.md` / `kopvillkor.en.md` §8–§10):
+ * - §9: 14-day right of withdrawal from the day after delivery
+ * - §8: Customer pays actual return shipping (no mark-up) — no fixed amount
+ * - §9: Full refund including original standard delivery cost
  * - applicableCountry SE (Sweden delivery market)
  *
  * Do not attach this to Dirty Wine (B2B) pages — those are not covered by
@@ -19,9 +20,14 @@ export const PACT_B2C_MERCHANT_RETURN_POLICY = {
     "https://schema.org/MerchantReturnFiniteReturnWindow",
   merchantReturnDays: 14,
   returnMethod: "https://schema.org/ReturnByMail",
-  returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
+  // Actual return shipping paid by the customer — no fixed fee amount.
+  returnFees: "https://schema.org/ReturnShippingFees",
   refundType: "https://schema.org/FullRefund",
 } as const;
+
+/** Public terms URL used as merchantReturnLink on B2C Offers. */
+export const PACT_B2C_MERCHANT_RETURN_LINK =
+  `${PACT_PUBLIC_ORIGIN}/villkor` as const;
 
 /** Direct-delivery shipping rate stated in purchase terms (149 kr / box of 6). */
 export const PACT_SE_DIRECT_SHIPPING_PRICE = "149.00";
@@ -48,7 +54,8 @@ export function productOfferCommerceFields(options?: {
    */
   directDelivery?: boolean;
 }) {
-  const termsUrl = options?.termsUrl ?? `${PACT_PUBLIC_ORIGIN}/villkor`;
+  const termsUrl =
+    options?.termsUrl ?? PACT_B2C_MERCHANT_RETURN_LINK;
   const includeReturnPolicy = options?.includeReturnPolicy ?? true;
   const directDelivery = options?.directDelivery ?? false;
 
@@ -81,6 +88,7 @@ export function productOfferCommerceFields(options?: {
       ? {
           hasMerchantReturnPolicy: {
             ...PACT_B2C_MERCHANT_RETURN_POLICY,
+            merchantReturnLink: termsUrl,
             url: termsUrl,
           },
         }

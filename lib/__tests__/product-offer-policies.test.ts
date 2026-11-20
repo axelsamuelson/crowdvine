@@ -9,6 +9,7 @@ import {
   resolveProductOfferAvailability,
 } from "@/lib/seo/product-json-ld";
 import {
+  PACT_B2C_MERCHANT_RETURN_LINK,
   PACT_B2C_MERCHANT_RETURN_POLICY,
   PACT_SE_DIRECT_SHIPPING_PRICE,
   productOfferCommerceFields,
@@ -23,9 +24,15 @@ describe("PACT_B2C_MERCHANT_RETURN_POLICY", () => {
         "https://schema.org/MerchantReturnFiniteReturnWindow",
       merchantReturnDays: 14,
       returnMethod: "https://schema.org/ReturnByMail",
-      returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
+      returnFees: "https://schema.org/ReturnShippingFees",
       refundType: "https://schema.org/FullRefund",
     });
+    expect(PACT_B2C_MERCHANT_RETURN_POLICY).not.toHaveProperty(
+      "returnShippingFeesAmount",
+    );
+    expect(PACT_B2C_MERCHANT_RETURN_LINK).toBe(
+      "https://pactwines.com/villkor",
+    );
   });
 });
 
@@ -40,6 +47,9 @@ describe("productOfferCommerceFields", () => {
     expect(fields.shippingDetails).not.toHaveProperty("deliveryTime");
     expect(fields.hasMerchantReturnPolicy).toMatchObject(
       PACT_B2C_MERCHANT_RETURN_POLICY,
+    );
+    expect(fields.hasMerchantReturnPolicy.merchantReturnLink).toBe(
+      PACT_B2C_MERCHANT_RETURN_LINK,
     );
     expect(fields.hasMerchantReturnPolicy.url).toBe(
       "https://pactwines.com/villkor",
@@ -224,16 +234,24 @@ describe("buildProductPdpJsonLd", () => {
     expect(jsonLd.offers.hasMerchantReturnPolicy).toMatchObject(
       PACT_B2C_MERCHANT_RETURN_POLICY,
     );
+    expect(jsonLd.offers.hasMerchantReturnPolicy.merchantReturnLink).toBe(
+      PACT_B2C_MERCHANT_RETURN_LINK,
+    );
     expect(jsonLd.offers.hasMerchantReturnPolicy.url).toBe(
       "https://pactwines.com/villkor",
     );
     expect(jsonLd.offers.hasMerchantReturnPolicy.applicableCountry).toBe("SE");
     expect(jsonLd.offers.hasMerchantReturnPolicy.merchantReturnDays).toBe(14);
     expect(jsonLd.offers.hasMerchantReturnPolicy.returnFees).toBe(
-      "https://schema.org/ReturnFeesCustomerResponsibility",
+      "https://schema.org/ReturnShippingFees",
+    );
+    expect(jsonLd.offers.hasMerchantReturnPolicy).not.toHaveProperty(
+      "returnShippingFeesAmount",
     );
     expect(serialized).toContain("MerchantReturnFiniteReturnWindow");
     expect(serialized).toContain('"merchantReturnDays":14');
+    expect(serialized).toContain("ReturnShippingFees");
+    expect(serialized).toContain("merchantReturnLink");
     expect(serialized).toContain("PreOrder");
   });
 
