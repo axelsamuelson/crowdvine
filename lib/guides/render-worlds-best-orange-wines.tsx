@@ -10,6 +10,7 @@ import {
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import { buildGuideFaqPageJsonLd } from "@/lib/guides/guide-json-ld";
 import { countryLabel, regionLabel } from "@/lib/guides/guide-labels";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
@@ -111,21 +112,9 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
     })),
   };
 
+  /** FAQ section is EN-only on this guide — no FAQPage for SV. */
   const faqJsonLd =
-    locale === "en"
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: guide.faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: faq.answer,
-            },
-          })),
-        }
-      : null;
+    locale === "en" ? buildGuideFaqPageJsonLd(guide.faqs) : null;
 
   const h2Class = "mb-4 border-b border-border pb-3 text-xl font-semibold";
 

@@ -26,6 +26,12 @@ import {
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import {
+  buildGuideAuthorPersonJsonLd,
+  buildGuideFaqPageJsonLd,
+  guideArticleAuthorRef,
+  guideAuthorPersonId,
+} from "@/lib/guides/guide-json-ld";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import {
   defaultOpenGraphImages,
@@ -85,16 +91,14 @@ export async function renderNaturalVsOrganicGuidePage() {
   const pageUrl = `${seoBaseUrl}${NATURAL_VS_ORGANIC_PATH}`;
   const hubPath = "/guides";
 
-  const authorPerson = {
-    "@type": "Person" as const,
-    name: naturalVsOrganicAuthor.name,
-    jobTitle: naturalVsOrganicAuthor.jobTitle,
-    worksFor: {
-      "@type": "Organization" as const,
-      name: "PACT",
-      url: seoBaseUrl,
-    },
-  };
+  const authorPerson = buildGuideAuthorPersonJsonLd(
+    naturalVsOrganicAuthor,
+    seoBaseUrl,
+  );
+  const authorPersonId = guideAuthorPersonId(
+    naturalVsOrganicAuthor.name,
+    seoBaseUrl,
+  );
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -109,25 +113,14 @@ export async function renderNaturalVsOrganicGuidePage() {
       name: "PACT",
       url: seoBaseUrl,
     },
-    author: authorPerson,
+    author: guideArticleAuthorRef(authorPersonId),
     about: {
       "@type": "Thing",
       name: "Natural, organic and biodynamic wine labels",
     },
   };
 
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: naturalVsOrganicFaqs.map((faq) => ({
-      "@type": "Question",
-      name: faq.question,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: faq.answer,
-      },
-    })),
-  };
+  const faqJsonLd = buildGuideFaqPageJsonLd(naturalVsOrganicFaqs)!;
 
   const breadcrumbCrumbs = [
     { label: copy.home, href: homePathForLocale("en") },
@@ -163,6 +156,10 @@ export async function renderNaturalVsOrganicGuidePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(authorPerson) }}
       />
 
       <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16 font-sans">

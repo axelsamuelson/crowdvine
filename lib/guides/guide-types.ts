@@ -19,6 +19,16 @@ export type GuideArticleAuthor = {
   jobTitle?: string;
   /** Visible byline under the H1 (locale-specific). */
   byline: LocalizedString;
+  /**
+   * Optional author profile / bio page URL for Person schema `url`.
+   * Omit when unknown — never invent.
+   */
+  url?: string;
+  /**
+   * Optional sameAs profile URLs for Person schema.
+   * Omit when unknown — never invent.
+   */
+  sameAs?: readonly string[];
 };
 
 export type GuideArticleSection = {
