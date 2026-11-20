@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildProductPdpJsonLd,
+  countOfferNodes,
+  normalizeWineGtin,
   normalizeWineGtin13,
+  parseProductJsonLd,
   resolveProductOfferAvailability,
 } from "@/lib/seo/product-json-ld";
 import {
@@ -75,13 +78,13 @@ describe("resolveProductOfferAvailability", () => {
     ).toBe("https://schema.org/PreOrder");
   });
 
-  it("uses InStock only when direct delivery can fulfill now", () => {
+  it("uses PreOrder even when direct delivery is selectable (still delayed ship)", () => {
     expect(
       resolveProductOfferAvailability({
         availableForSale: true,
         directDeliveryAvailable: true,
       }),
-    ).toBe("https://schema.org/InStock");
+    ).toBe("https://schema.org/PreOrder");
   });
 
   it("uses OutOfStock when the wine is sold out", () => {
@@ -97,18 +100,29 @@ describe("resolveProductOfferAvailability", () => {
   });
 });
 
-describe("normalizeWineGtin13", () => {
+describe("normalizeWineGtin / normalizeWineGtin13", () => {
   it("returns null when EAN is missing or inventable garbage", () => {
+    expect(normalizeWineGtin(null)).toBeNull();
+    expect(normalizeWineGtin(undefined)).toBeNull();
+    expect(normalizeWineGtin("")).toBeNull();
+    expect(normalizeWineGtin("123")).toBeNull();
+    expect(normalizeWineGtin("not-an-ean")).toBeNull();
     expect(normalizeWineGtin13(null)).toBeNull();
-    expect(normalizeWineGtin13(undefined)).toBeNull();
-    expect(normalizeWineGtin13("")).toBeNull();
     expect(normalizeWineGtin13("123")).toBeNull();
-    expect(normalizeWineGtin13("not-an-ean")).toBeNull();
   });
 
-  it("accepts a real 13-digit EAN", () => {
+  it("accepts a real 13-digit EAN as gtin13", () => {
+    expect(normalizeWineGtin("4006381333931")).toEqual({
+      gtin13: "4006381333931",
+    });
+    expect(normalizeWineGtin("4006 3813 3393 1")).toEqual({
+      gtin13: "4006381333931",
+    });
     expect(normalizeWineGtin13("4006381333931")).toBe("4006381333931");
-    expect(normalizeWineGtin13("4006 3813 3393 1")).toBe("4006381333931");
+  });
+
+  it("accepts a real 8-digit EAN as gtin8", () => {
+    expect(normalizeWineGtin("12345670")).toEqual({ gtin8: "12345670" });
   });
 });
 
@@ -137,17 +151,18 @@ describe("buildProductPdpJsonLd", () => {
     expect(jsonLd.sku).toBe("l-2023");
     expect(jsonLd.offers.sku).toBe("l-2023");
     expect(jsonLd).not.toHaveProperty("gtin13");
+    expect(jsonLd).not.toHaveProperty("gtin8");
     expect(jsonLd).not.toHaveProperty("gtin");
   });
 
-  it("uses InStock when direct delivery is available", () => {
+  it("uses PreOrder when direct delivery is available (not InStock)", () => {
     const jsonLd = buildProductPdpJsonLd({
       ...baseInput,
       directDeliveryAvailable: true,
       includeB2cReturnPolicy: true,
     });
 
-    expect(jsonLd.offers.availability).toBe("https://schema.org/InStock");
+    expect(jsonLd.offers.availability).toBe("https://schema.org/PreOrder");
     expect(jsonLd.offers.shippingDetails.shippingRate.value).toBe("149.00");
   });
 
@@ -170,6 +185,7 @@ describe("buildProductPdpJsonLd", () => {
     const serialized = JSON.stringify(jsonLd);
 
     expect(jsonLd).not.toHaveProperty("gtin13");
+    expect(jsonLd).not.toHaveProperty("gtin8");
     expect(jsonLd).not.toHaveProperty("gtin");
     expect(serialized).not.toContain("gtin");
   });
@@ -182,6 +198,18 @@ describe("buildProductPdpJsonLd", () => {
     });
 
     expect(jsonLd.gtin13).toBe("4006381333931");
+    expect(jsonLd).not.toHaveProperty("gtin8");
+  });
+
+  it("emits gtin8 only when a real EAN-8 is provided", () => {
+    const jsonLd = buildProductPdpJsonLd({
+      ...baseInput,
+      ean: "12345670",
+      includeB2cReturnPolicy: true,
+    });
+
+    expect(jsonLd.gtin8).toBe("12345670");
+    expect(jsonLd).not.toHaveProperty("gtin13");
   });
 
   it("embeds the shared B2C MerchantReturnPolicy in Offer JSON-LD", () => {
@@ -243,7 +271,7 @@ describe("buildProductPdpJsonLd", () => {
     expect(jsonLd.offers.priceCurrency).toBe("SEK");
     expect(String(jsonLd.offers.price)).toMatch(/^\d+(\.\d+)?$/);
     expect(jsonLd.offers.availability).toMatch(
-      /^https:\/\/schema\.org\/(PreOrder|InStock|OutOfStock)$/,
+      /^https:\/\/schema\.org\/(PreOrder|OutOfStock)$/,
     );
     expect(jsonLd.offers.url).toMatch(/^https:\/\//);
     expect(jsonLd.offers.hasMerchantReturnPolicy["@type"]).toBe(
@@ -258,5 +286,47 @@ describe("buildProductPdpJsonLd", () => {
     // No invented identifiers
     expect(jsonLd).not.toHaveProperty("gtin");
     expect(jsonLd).not.toHaveProperty("gtin13");
+    expect(jsonLd).not.toHaveProperty("gtin8");
+  });
+
+  it("parses available and sold-out Product JSON-LD with a single Offer each", () => {
+    const availableSerialized = JSON.stringify(
+      buildProductPdpJsonLd({
+        ...baseInput,
+        availableForSale: true,
+        includeB2cReturnPolicy: true,
+      }),
+    );
+    const soldOutSerialized = JSON.stringify(
+      buildProductPdpJsonLd({
+        ...baseInput,
+        availableForSale: false,
+        includeB2cReturnPolicy: true,
+      }),
+    );
+
+    const available = parseProductJsonLd(availableSerialized);
+    const soldOut = parseProductJsonLd(soldOutSerialized);
+
+    expect(countOfferNodes(available.offers)).toBe(1);
+    expect(countOfferNodes(soldOut.offers)).toBe(1);
+    expect(Array.isArray(available.offers)).toBe(false);
+    expect(Array.isArray(soldOut.offers)).toBe(false);
+
+    const availableOffer = available.offers as Record<string, unknown>;
+    const soldOutOffer = soldOut.offers as Record<string, unknown>;
+
+    expect(availableOffer["@type"]).toBe("Offer");
+    expect(soldOutOffer["@type"]).toBe("Offer");
+    expect(availableOffer.availability).toBe("https://schema.org/PreOrder");
+    expect(soldOutOffer.availability).toBe("https://schema.org/OutOfStock");
+    expect(available.product.sku).toBe("l-2023");
+    expect(soldOut.product.sku).toBe("l-2023");
+    expect(available.product).not.toHaveProperty("gtin13");
+    expect(soldOut.product).not.toHaveProperty("gtin13");
+
+    // Offer must not be duplicated as both Product.offers and a nested array.
+    expect(availableSerialized.match(/"@type":"Offer"/g)?.length).toBe(1);
+    expect(soldOutSerialized.match(/"@type":"Offer"/g)?.length).toBe(1);
   });
 });

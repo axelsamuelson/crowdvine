@@ -130,8 +130,9 @@ export async function renderProductPdpPage(options: {
 
   const productUrl = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
   const includeB2cReturnPolicy = !isB2BHost(host);
-  // InStock only when direct delivery is actually selectable for SE;
-  // otherwise shared-pallet wines use PreOrder (delivery after pallet closes).
+  // Direct delivery may be selectable in checkout UI, but Offer.availability
+  // stays PreOrder: neither shared pallet nor direct box ships immediately.
+  // See resolveProductOfferAvailability in lib/seo/product-json-ld.ts.
   const directDeliveryAvailable =
     includeB2cReturnPolicy &&
     buildDirectBoxUiAvailability({ countryCode: "SE" }).deliverySelectable;
@@ -151,7 +152,8 @@ export async function renderProductPdpPage(options: {
     availableForSale: product.availableForSale,
     directDeliveryAvailable,
     sku: product.handle || product.id,
-    // No wines.ean / gtin column in the schema today — omit rather than invent.
+    // TEST DB (msdfjrrokcmjifetuwgc): no wines.ean/gtin/barcode column —
+    // all 66 wines lack EAN. Omit rather than invent.
     ean: null,
     priceCurrency: product.currencyCode,
     price: product.priceRange.minVariantPrice.amount,
