@@ -4,6 +4,7 @@ import {
   resolveFulfillmentPostalAvailability,
   shouldHardBlockNoDeliveryZone,
 } from "@/lib/commerce/fulfillment-postal-availability";
+import { isLikelyStockholmAreaPostal } from "@/lib/zone-matching";
 
 /** Representative postals from the product brief. */
 const KIRUNA = "98131";
@@ -83,6 +84,14 @@ describe("fulfillment postal availability (Kiruna / Stockholm)", () => {
     expect(result.sharedUnavailableReason).toBe("budbee_unavailable");
     expect(result.preferredChannel).toBe("direct_box");
     expect(result.shouldLogPostalOutOfZone).toBe(false);
+  });
+});
+
+describe("Stockholm-area postal heuristic (geocode-down fallback)", () => {
+  it("treats 11151 as Stockholm-area and 98131 as not", () => {
+    expect(isLikelyStockholmAreaPostal(STOCKHOLM)).toBe(true);
+    expect(isLikelyStockholmAreaPostal(KIRUNA)).toBe(false);
+    expect(isLikelyStockholmAreaPostal("11 151")).toBe(true);
   });
 });
 

@@ -2332,10 +2332,11 @@ function CheckoutContent({
             countryCode: ccGuess,
           };
         } else if (postalOk && ccGuess.length === 2) {
-          // City missing (e.g. guest / geo not loaded) — still geocode via postcode.
+          // City missing (e.g. guest / geo not loaded) — geocode via postcode only.
+          // Never invent Stockholm: that falsely matched the SE delivery zone.
           deliveryAddress = {
             postcode: postalOnly,
-            city: ccGuess === "SE" ? "Stockholm" : postalOnly,
+            city: postalOnly,
             countryCode: ccGuess,
           };
         } else {
@@ -4169,11 +4170,12 @@ function CheckoutContent({
       activeShop?.countryCode ||
       checkoutMarketCountry ||
       "SE";
+    // Do not invent Stockholm as city for every SE postal — that made Kiruna
+    // look in-zone when geocoding was unavailable. Keep known city; else blank.
     const city =
       deliveryDraft?.city?.trim() ||
       activeShop?.city?.trim() ||
-      (countryCode === "SE" ? "Stockholm" : "") ||
-      "Stockholm";
+      "";
 
     const lines: ZoneDeliveryLines = {
       street: deliveryDraft?.street ?? "",
