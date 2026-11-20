@@ -77,6 +77,13 @@ describe("checkout age-gate / address wiring (hotfix)", () => {
     expect(checkoutSrc).toMatch(/directBoxLineMarkupNote/);
   });
 
+  it("Direktleverans subtitle uses per-box rate; hides Hemleverans trailing amount when dual radios show", () => {
+    expect(checkoutSrc).toMatch(/directPerBoxShippingSek/);
+    expect(checkoutSrc).toMatch(/showHemleveransTrailingAmount/);
+    expect(checkoutSrc).toMatch(/min-h-\[2\.75rem\]/);
+    expect(checkoutSrc).toMatch(/dualOfferInclVat/);
+  });
+
   it("persists guest address after auth without waiting for payment card", () => {
     expect(checkoutSrc).toMatch(
       /After guest ensure-session: persist draft to DB/,
