@@ -3189,6 +3189,28 @@ function CheckoutContent({
     ? parseFloat(cart.cost.totalAmount.amount)
     : 0;
 
+  // Client preview of direct_box bottle subtotal (catalog × markup) so order
+  // summary lines and Delsumma match before / while quote is loading.
+  const directBoxClientSubtotalSek = useMemo(() => {
+    if (!cart?.lines?.length) return 0;
+    const markupPct = getDirectBoxPriceMarkupPercent();
+    let sum = 0;
+    for (const line of cart.lines) {
+      const totalForLine = parseFloat(line.cost.totalAmount.amount) || 0;
+      const stampedUnit = parseFloat(
+        line.merchandise.product.priceRange?.minVariantPrice?.amount ?? "",
+      );
+      const catalogUnit =
+        Number.isFinite(stampedUnit) && stampedUnit > 0
+          ? stampedUnit
+          : line.quantity > 0
+            ? totalForLine / line.quantity
+            : totalForLine;
+      sum += directBoxLineTotalSek(catalogUnit, line.quantity, markupPct);
+    }
+    return sum;
+  }, [cart?.lines]);
+
   const { boostedLineTotal, nonBoostedLineTotal } = useMemo(() => {
     if (!cart?.lines?.length) {
       return { boostedLineTotal: 0, nonBoostedLineTotal: 0 };
@@ -3322,7 +3344,11 @@ function CheckoutContent({
     authReady,
   ]);
 
-  const displaySubtotal = serverQuote?.subtotal_sek ?? bottleCost;
+  const displaySubtotal =
+    serverQuote?.subtotal_sek ??
+    (fulfillmentChannel === "direct_box"
+      ? directBoxClientSubtotalSek
+      : bottleCost);
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
 
