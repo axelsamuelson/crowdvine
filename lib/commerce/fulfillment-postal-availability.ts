@@ -165,3 +165,44 @@ export function requiresDeliveryZoneIdForChannel(
 ): boolean {
   return channel === "shared_pallet";
 }
+
+/**
+ * Shared-pallet producer carts need a matched pallet / shipping region.
+ * direct_box never does — no pickup zone, no pallet region, no selectedPallet.
+ */
+export function requiresPickupOrPalletForChannel(
+  channel: FulfillmentChannel,
+): boolean {
+  return channel === "shared_pallet";
+}
+
+/**
+ * User-visible `no_pickup_for_cart` / fraktregion blocker.
+ * Must stay false for direct_box even when zone match yields no pallets
+ * (Kiruna out-of-zone is an expected direct-only path).
+ */
+export function shouldShowNoPickupForCart(input: {
+  fulfillmentChannel: FulfillmentChannel;
+  hasProducerItems: boolean;
+  hasSelectedPallet: boolean;
+  palletCount: number;
+  /** Delivery/pickup zone labels present without a selectable pallet. */
+  hasZoneWithoutPallet: boolean;
+  zoneError: "NO_DELIVERY_ZONE" | "UNSUPPORTED_COUNTRY" | null | undefined;
+}): boolean {
+  if (!requiresPickupOrPalletForChannel(input.fulfillmentChannel)) {
+    return false;
+  }
+  if (!input.hasProducerItems) return false;
+  if (input.hasSelectedPallet) return false;
+  if (input.palletCount > 0) return false;
+  if (input.zoneError != null) return false;
+  return input.hasZoneWithoutPallet;
+}
+
+/** Age/compliance + card step may open without a pallet for direct_box. */
+export function mayOpenComplianceWithoutPallet(
+  channel: FulfillmentChannel,
+): boolean {
+  return channel === "direct_box";
+}

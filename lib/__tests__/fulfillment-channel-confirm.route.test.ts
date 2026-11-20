@@ -838,6 +838,47 @@ describe("WIRED POST /api/checkout/confirm (direct_box + shared_pallet)", () => 
     expect(store.reservationInserts[0]!.pallet_id).toBeNull();
   });
 
+  it("POST confirm: Kiruna + direct_box without pallet region / selectedPalletId", async () => {
+    process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
+    loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);
+    resolveAndChargeCheckoutShipping.mockResolvedValue(DIRECT_RATE);
+    determineZones.mockResolvedValue({
+      pickupZoneId: null,
+      deliveryZoneId: null,
+      noDeliveryZone: {
+        error: "NO_DELIVERY_ZONE",
+        message: "We don't deliver to your area yet.",
+      },
+    });
+    paymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_direct_ok",
+      status: "succeeded",
+      amount: DIRECT_AMOUNT_ORE,
+      customer: "cus_test",
+      payment_method: "pm_test",
+      metadata: directPiMetadata(),
+    });
+
+    const res = await postConfirm({
+      address: {
+        ...baseAddress,
+        postcode: "98131",
+        city: "Kiruna",
+      },
+      fulfillment_channel: "direct_box",
+      // No selectedPalletId — direct must not require pallet region.
+      stripe_intent_id: "pi_direct_ok",
+      stripe_intent_type: "payment_intent",
+    });
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.success).toBe(true);
+    expect(store.reservationInserts).toHaveLength(1);
+    expect(store.reservationInserts[0]!.fulfillment_channel).toBe("direct_box");
+    expect(store.reservationInserts[0]!.pallet_id).toBeNull();
+    expect(store.reservationInserts[0]!.delivery_zone_id).toBeNull();
+  });
+
   it("POST confirm: Kiruna out-of-zone + shared_pallet still blocked", async () => {
     process.env.DIRECT_BOX_CHECKOUT_ENABLED = "true";
     loadDirectBoxCarrierConfigFromEnv.mockReturnValue(DIRECT_CARRIER);

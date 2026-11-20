@@ -140,10 +140,15 @@ import {
 } from "@/lib/commerce/direct-box-delivery";
 import {
   defaultFulfillmentChannel,
+  requiresSelectedPallet,
   type FulfillmentChannel,
 } from "@/lib/commerce/fulfillment-channel";
 import type { DirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
-import { resolveFulfillmentPostalAvailability } from "@/lib/commerce/fulfillment-postal-availability";
+import {
+  mayOpenComplianceWithoutPallet,
+  resolveFulfillmentPostalAvailability,
+  shouldShowNoPickupForCart,
+} from "@/lib/commerce/fulfillment-postal-availability";
 import { DirectBoxDeliveryPromise } from "@/components/commerce/direct-box-delivery-promise";
 import type { ProducerValidation } from "@/lib/checkout-validation";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -740,15 +745,20 @@ function CheckoutContent({
       return;
     }
     const { wineIds, producerIds } = cartIdsForCheckoutError();
-    const noPickupForCart =
-      hasProducerItems &&
-      !selectedPallet &&
-      (zoneInfo.pallets?.length ?? 0) === 0 &&
-      (Boolean(zoneInfo.deliveryZone) ||
+    const noPickupForCart = shouldShowNoPickupForCart({
+      fulfillmentChannel,
+      hasProducerItems,
+      hasSelectedPallet: Boolean(selectedPallet),
+      palletCount: zoneInfo.pallets?.length ?? 0,
+      hasZoneWithoutPallet:
+        Boolean(zoneInfo.deliveryZone) ||
         zoneInfo.selectedDeliveryZoneId != null ||
-        Boolean(zoneInfo.pickupZone)) &&
-      zoneInfo.zoneError == null;
+        Boolean(zoneInfo.pickupZone),
+      zoneError: zoneInfo.zoneError ?? null,
+    });
+    // direct_box never needs a pickup zone label — skip legacy no_pickup_zone.
     const noPickupZone =
+      fulfillmentChannel === "shared_pallet" &&
       !zoneInfo.pickupZone &&
       !zoneInfo.deliveryZone &&
       !zoneInfo.selectedDeliveryZoneId &&
@@ -790,6 +800,7 @@ function CheckoutContent({
     hasPostalCode,
     hasProducerItems,
     selectedPallet,
+    fulfillmentChannel,
     zoneInfo.pallets,
     zoneInfo.deliveryZone,
     zoneInfo.selectedDeliveryZoneId,
@@ -1967,7 +1978,11 @@ function CheckoutContent({
       stripePrefetchKeyRef.current = null;
       return;
     }
-    if (!paymentCardRevealed || !authReady || !selectedPallet?.id) {
+    if (
+      !paymentCardRevealed ||
+      !authReady ||
+      (requiresSelectedPallet(fulfillmentChannel) && !selectedPallet?.id)
+    ) {
       return;
     }
     if (!complianceComplete || !legalGatePayload) {
@@ -1992,6 +2007,7 @@ function CheckoutContent({
     legalGatePayload,
     authReady,
     selectedPallet?.id,
+    fulfillmentChannel,
     isUsConditional,
     usConditionalAck,
   ]);
@@ -3089,7 +3105,10 @@ function CheckoutContent({
       releaseSubmit();
       return;
     }
-    if (!selectedPallet?.id) {
+    if (
+      requiresSelectedPallet(fulfillmentChannel) &&
+      !selectedPallet?.id
+    ) {
       toast.error(t("checkout.selectPalletContinue"));
       releaseSubmit();
       return;
@@ -5147,13 +5166,17 @@ function CheckoutContent({
                     {!zoneLoading &&
                     zoneFetchCompleted &&
                     hasPostalCode &&
-                    hasProducerItems &&
-                    !selectedPallet &&
-                    (zoneInfo.pallets?.length ?? 0) === 0 &&
-                    (Boolean(zoneInfo.deliveryZone) ||
-                      zoneInfo.selectedDeliveryZoneId != null ||
-                      Boolean(zoneInfo.pickupZone)) &&
-                    zoneInfo.zoneError == null ? (
+                    shouldShowNoPickupForCart({
+                      fulfillmentChannel,
+                      hasProducerItems,
+                      hasSelectedPallet: Boolean(selectedPallet),
+                      palletCount: zoneInfo.pallets?.length ?? 0,
+                      hasZoneWithoutPallet:
+                        Boolean(zoneInfo.deliveryZone) ||
+                        zoneInfo.selectedDeliveryZoneId != null ||
+                        Boolean(zoneInfo.pickupZone),
+                      zoneError: zoneInfo.zoneError ?? null,
+                    }) ? (
                       <p className="text-sm text-destructive">
                         {t("checkout.noPickupForCart")}
                       </p>
@@ -5162,6 +5185,7 @@ function CheckoutContent({
                     {!zoneLoading &&
                     zoneFetchCompleted &&
                     hasPostalCode &&
+                    fulfillmentChannel === "shared_pallet" &&
                     !zoneInfo.pickupZone &&
                     !zoneInfo.deliveryZone &&
                     !zoneInfo.selectedDeliveryZoneId &&
@@ -5787,7 +5811,10 @@ function CheckoutContent({
                   </p>
                 ) : (
                   <div className="space-y-3 animate-in fade-in-0 slide-in-from-bottom-1 duration-500 fill-mode-both">
-                    {hasProducerItems && selectedPallet ? (
+                    {(hasProducerItems && selectedPallet) ||
+                    (hasProducerItems &&
+                      mayOpenComplianceWithoutPallet(fulfillmentChannel)) ||
+                    (!hasProducerItems && hasWarehouseItems) ? (
                       <>
                         {isUsConditional ? (
                           <div className="space-y-3 rounded-md border border-border bg-background p-4">
@@ -5926,7 +5953,9 @@ function CheckoutContent({
                           </p>
                         ) : null}
                       </>
-                    ) : hasProducerItems && !selectedPallet ? (
+                    ) : hasProducerItems &&
+                      !selectedPallet &&
+                      !mayOpenComplianceWithoutPallet(fulfillmentChannel) ? (
                       <p className="text-sm text-destructive">
                         {t("checkout.noPickupForCart")}
                       </p>
@@ -6064,7 +6093,9 @@ function CheckoutContent({
                       </div>
                     ) : null}
 
-                    {hasProducerItems && selectedPallet ? (
+                    {hasProducerItems &&
+                    (selectedPallet ||
+                      mayOpenComplianceWithoutPallet(fulfillmentChannel)) ? (
                       <>
                         {authChecked && !authReady && !platformOpen ? (
                           <CheckoutEmailAuth
@@ -6133,8 +6164,8 @@ function CheckoutContent({
                         ) : null}
                         {authReady && legacySharedPalletPaymentAllowed ? (
                           <StripePaymentSection
-                            key={`stripe-${selectedPallet.id}`}
-                            palletId={selectedPallet.id}
+                            key={`stripe-${fulfillmentChannel}-${selectedPallet?.id ?? "direct"}`}
+                            palletId={selectedPallet?.id ?? ""}
                             pactPointsRedeem={redeemPoints}
                             promoDiscountSek={
                               appliedDiscount?.discount_amount_sek ?? 0

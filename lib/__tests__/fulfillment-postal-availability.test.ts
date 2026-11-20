@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  mayOpenComplianceWithoutPallet,
   requiresDeliveryZoneIdForChannel,
+  requiresPickupOrPalletForChannel,
   resolveFulfillmentPostalAvailability,
   shouldHardBlockNoDeliveryZone,
+  shouldShowNoPickupForCart,
 } from "@/lib/commerce/fulfillment-postal-availability";
 import { isLikelyStockholmAreaPostal } from "@/lib/zone-matching";
 
@@ -135,5 +138,47 @@ describe("shouldHardBlockNoDeliveryZone + requiresDeliveryZoneId", () => {
   it("requires delivery zone only for shared_pallet", () => {
     expect(requiresDeliveryZoneIdForChannel("shared_pallet")).toBe(true);
     expect(requiresDeliveryZoneIdForChannel("direct_box")).toBe(false);
+  });
+});
+
+describe("no_pickup_for_cart / pallet region (Kiruna direct)", () => {
+  it("never shows no_pickup_for_cart for direct_box (Kiruna, no pallet region)", () => {
+    expect(requiresPickupOrPalletForChannel("direct_box")).toBe(false);
+    expect(mayOpenComplianceWithoutPallet("direct_box")).toBe(true);
+    expect(
+      shouldShowNoPickupForCart({
+        fulfillmentChannel: "direct_box",
+        hasProducerItems: true,
+        hasSelectedPallet: false,
+        palletCount: 0,
+        hasZoneWithoutPallet: true,
+        zoneError: "NO_DELIVERY_ZONE",
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowNoPickupForCart({
+        fulfillmentChannel: "direct_box",
+        hasProducerItems: true,
+        hasSelectedPallet: false,
+        palletCount: 0,
+        hasZoneWithoutPallet: true,
+        zoneError: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("still shows no_pickup_for_cart for shared_pallet without pallet", () => {
+    expect(requiresPickupOrPalletForChannel("shared_pallet")).toBe(true);
+    expect(mayOpenComplianceWithoutPallet("shared_pallet")).toBe(false);
+    expect(
+      shouldShowNoPickupForCart({
+        fulfillmentChannel: "shared_pallet",
+        hasProducerItems: true,
+        hasSelectedPallet: false,
+        palletCount: 0,
+        hasZoneWithoutPallet: true,
+        zoneError: null,
+      }),
+    ).toBe(true);
   });
 });

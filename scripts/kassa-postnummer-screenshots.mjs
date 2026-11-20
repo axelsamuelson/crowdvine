@@ -4,8 +4,10 @@
  * Never commit. TEST only — msdfjrrokcmjifetuwgc via .env.local.
  *
  * node scripts/kassa-postnummer-screenshots.mjs
+ *
+ * Output roots use artifacts/kassa-postnummer/v2/ (existing basenames kept).
  */
-import { chromium, devices } from "playwright";
+import { chromium } from "playwright";
 import {
   mkdirSync,
   writeFileSync,
@@ -21,9 +23,9 @@ import { join } from "node:path";
 const BASE = process.env.APP_URL || "http://localhost:3000";
 const WINE_ID =
   process.env.KASSA_TEST_WINE_ID || "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
-const OUT_REPO = join(process.cwd(), "artifacts", "kassa-postnummer");
-const OUT_OPT = "/opt/cursor/artifacts/kassa-postnummer";
-const OUT_STORE = "/cursor/stores/self/artifacts/kassa-postnummer";
+const OUT_REPO = join(process.cwd(), "artifacts", "kassa-postnummer", "v2");
+const OUT_OPT = "/opt/cursor/artifacts/kassa-postnummer/v2";
+const OUT_STORE = "/cursor/stores/self/artifacts/kassa-postnummer/v2";
 for (const d of [OUT_REPO, OUT_OPT, OUT_STORE]) mkdirSync(d, { recursive: true });
 
 function freshEmail(prefix) {
@@ -55,7 +57,6 @@ async function seedCart(context) {
 async function fillPostalAndWait(page, postal) {
   const input = page.locator("#checkout-postal");
   if ((await input.count()) === 0 || !(await input.isVisible().catch(() => false))) {
-    // Locked postal display → click Redigera
     const edit = page.getByRole("button", { name: /Ändra|Redigera|Edit/i }).first();
     if (await edit.count()) {
       await edit.click();
@@ -78,6 +79,159 @@ async function fillContact(page, city) {
   await page.waitForTimeout(1500);
 }
 
+async function acceptTerms(page) {
+  await page.evaluate(() => {
+    const el = document.querySelector("#terms-accept");
+    if (!el) return;
+    el.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  await page.waitForTimeout(200);
+  const state = await page
+    .locator("#terms-accept")
+    .getAttribute("data-state")
+    .catch(() => null);
+  if (state !== "checked") {
+    await page.locator("#terms-accept").click({ force: true }).catch(() => {});
+    await page
+      .locator('label[for="terms-accept"]')
+      .click({ force: true })
+      .catch(() => {});
+  }
+  await page.waitForTimeout(200);
+}
+
+async function fillDob(page) {
+  const dob = page.locator("#age-dob");
+  await dob.waitFor({ state: "visible", timeout: 25000 });
+  await dob.fill("");
+  await dob.pressSequentially("19900115", { delay: 20 });
+  await dob.blur();
+  await page.waitForTimeout(300);
+}
+
+async function fill4242(page) {
+  for (const frame of page.frames()) {
+    const num = frame.locator(
+      'input[name="number"], input[autocomplete="cc-number"]',
+    );
+    if ((await num.count()) === 0) continue;
+    await num.first().fill("4242424242424242");
+    const exp = frame.locator(
+      'input[name="expiry"], input[autocomplete="cc-exp"]',
+    );
+    if (await exp.count()) await exp.first().fill("1234");
+    const cvc = frame.locator(
+      'input[name="cvc"], input[autocomplete="cc-csc"]',
+    );
+    if (await cvc.count()) await cvc.first().fill("123");
+    return true;
+  }
+  return false;
+}
+
+async function waitPe(page) {
+  for (let i = 0; i < 45; i++) {
+    const t = await page.locator("body").innerText();
+    const err = /leverantör av betaltjänster|Unacceptable TLS|kunde inte laddas/i.test(
+      t,
+    );
+    let card = false;
+    for (const f of page.frames()) {
+      if (
+        (await f
+          .locator('input[name="number"], input[autocomplete="cc-number"]')
+          .count()
+          .catch(() => 0)) > 0
+      ) {
+        card = true;
+        break;
+      }
+    }
+    if (card) return { ok: true, err: false };
+    if (err && i > 8) return { ok: false, err: true };
+    await page.waitForTimeout(1000);
+  }
+  return { ok: false, err: false };
+}
+
+async function reachKirunaPayment(page, label) {
+  await fillPostalAndWait(page, "98131");
+  await fillContact(page, "Kiruna");
+  try {
+    await page.waitForFunction(
+      () => {
+        const t = document.body?.innerText || "";
+        return (
+          /Direktleverans/i.test(t) &&
+          !/saknar fraktregion|noPickupForCart|Kontakta support/i.test(t)
+        );
+      },
+      { timeout: 25000 },
+    );
+  } catch {
+    console.warn(label, "kiruna delivery clean wait soft-fail");
+  }
+
+  // Age / terms → Fortsätt till betalkort
+  try {
+    await fillDob(page);
+    await acceptTerms(page);
+  } catch (e) {
+    console.warn(label, "dob/terms soft-fail", String(e).slice(0, 120));
+  }
+
+  const cont = page.getByRole("button", {
+    name: /Fortsätt till betalkort|Continue to payment/i,
+  });
+  for (let i = 0; i < 25 && !(await cont.isEnabled().catch(() => false)); i++) {
+    await acceptTerms(page);
+    await page.waitForTimeout(250);
+  }
+  if (await cont.count()) {
+    await cont.click({ force: true }).catch(() => {});
+  }
+
+  try {
+    await page.waitForFunction(
+      () => {
+        const t = document.body?.innerText || "";
+        return (
+          /Kortnummer|Card number|Betalkort/i.test(t) &&
+          !/Bekräfta ålder och tryck fortsätt/i.test(t) &&
+          !/saknar fraktregion/i.test(t)
+        );
+      },
+      { timeout: 25000 },
+    );
+  } catch {
+    console.warn(label, "PE unlock wait soft-fail");
+  }
+
+  const pe = await waitPe(page);
+  console.log(label, "pe", pe);
+  if (pe.ok) {
+    await fill4242(page);
+    await page.waitForTimeout(1200);
+  }
+
+  // Card step in lower half of viewport
+  await page
+    .locator("text=Betalkort")
+    .first()
+    .scrollIntoViewIfNeeded()
+    .catch(() => {});
+  await page.evaluate(() => {
+    const el = Array.from(document.querySelectorAll("h2,h3,p,span")).find((n) =>
+      /Betalkort/i.test(n.textContent || ""),
+    );
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo(0, Math.max(0, y));
+    }
+  });
+  await page.waitForTimeout(400);
+}
+
 async function runViewport(label, viewport) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -85,6 +239,7 @@ async function runViewport(label, viewport) {
     colorScheme: "light",
     viewport,
     deviceScaleFactor: 1,
+    ignoreHTTPSErrors: true,
   });
   await seedCart(context);
   const page = await context.newPage();
@@ -111,14 +266,13 @@ async function runViewport(label, viewport) {
   }
   await shot(page, `${label}-kiruna-steg1.png`);
 
-  // Stockholm step 1 — both options (wait until zone loading finishes)
+  // Stockholm step 1 — both options
   await fillPostalAndWait(page, "11151");
   try {
     await page.waitForFunction(
       () => {
         const t = document.body?.innerText || "";
         if (/Uppdaterar leverans/i.test(t)) return false;
-        // Shared must be selectable again (not the out-of-zone explanation).
         return (
           /Delad pall/i.test(t) &&
           /Direktleverans/i.test(t) &&
@@ -134,10 +288,9 @@ async function runViewport(label, viewport) {
   await page.waitForTimeout(800);
   await shot(page, `${label}-stockholm-steg1.png`);
 
-  // Kiruna summary with direct selected
+  // Kiruna summary with direct selected (no red fraktregion)
   await fillPostalAndWait(page, "98131");
   await fillContact(page, "Kiruna");
-  // Expand order summary on mobile
   const toggle = page.locator('[data-testid="checkout-order-summary-toggle"]');
   if (await toggle.count()) {
     const expanded = await page
@@ -150,20 +303,26 @@ async function runViewport(label, viewport) {
     await page.waitForFunction(
       () => {
         const t = document.body?.innerText || "";
-        return /Direktleverans|5–10 arbetsdagar|149/i.test(t);
+        return (
+          /Direktleverans|5–10 arbetsdagar|149/i.test(t) &&
+          !/saknar fraktregion/i.test(t)
+        );
       },
       { timeout: 20000 },
     );
   } catch {
     console.warn(label, "kiruna summary wait soft-fail");
   }
-  // Scroll summary into view if present
   await page
     .locator('[data-testid="checkout-order-summary-body"]')
     .first()
     .scrollIntoViewIfNeeded()
     .catch(() => {});
   await shot(page, `${label}-kiruna-sammanfattning.png`);
+
+  // Kiruna step 4 — Betalkort with card field + filled 4242
+  await reachKirunaPayment(page, label);
+  await shot(page, `${label}-kiruna-betalkort.png`);
 
   await browser.close();
 }
@@ -173,7 +332,7 @@ async function main() {
   await runViewport("1440", { width: 1440, height: 900 });
   writeFileSync(
     join(OUT_REPO, "README.txt"),
-    "Screenshots for PR postal×fulfillment. Do not commit.\n",
+    "Screenshots for PR postal×fulfillment v2. Do not commit.\n",
   );
   console.log("done →", OUT_REPO);
 }

@@ -61,6 +61,18 @@ describe("deliveryComplete age unlock vs quote gate", () => {
     ).toBe(false);
   });
 
+  it("Kiruna-style: direct_box unlocks age without delivery zone or pallet", () => {
+    expect(
+      computeDeliveryCompleteForAgeUnlock({
+        ...base,
+        directBoxCheckoutEnabled: true,
+        fulfillmentChannel: "direct_box",
+        selectedPallet: null,
+        deliveryZoneReady: false,
+      }),
+    ).toBe(true);
+  });
+
   it("blocks purchase on missing/loading quote when DIRECT_BOX is on", () => {
     expect(
       isCheckoutPurchaseBlockedByQuote({
