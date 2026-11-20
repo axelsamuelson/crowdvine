@@ -5202,7 +5202,9 @@ function CheckoutContent({
                               className="text-xs text-muted-foreground"
                               data-testid="age-dob-helper"
                             >
-                              {t("checkout.ageDeliveryIdHint")}
+                              {t("checkout.ageDeliveryIdHint", {
+                                age: String(requiredAge),
+                              })}
                             </p>
                             <Input
                               ref={ageDobInputRef}

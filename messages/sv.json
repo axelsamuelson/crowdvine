@@ -580,7 +580,7 @@
     "zoneConfigCustomerMessage": "Kontrollera orten i leveransadressen. Om felet kvarstår, kontakta support.",
     "sellingEntity": "Säljare: EURPACT OÜ (reg. 17538270), Estland",
     "ageConfirm": "Jag bekräftar att jag är {age} år eller äldre.",
-    "ageDeliveryIdHint": "Du måste ha fyllt 20 år. Leveransen lämnas bara ut mot legitimation till någon som fyllt 20.",
+    "ageDeliveryIdHint": "Du måste ha fyllt {age} år. Leveransen lämnas bara ut mot legitimation till någon som fyllt {age}.",
     "ageGateBlocked": "Du måste ha fyllt {age} år för att beställa.",
     "shippingConfirmedBeforeCharge": "Frakt bekräftas innan du debiteras",
     "ageDateOfBirth": "Födelsedatum",

@@ -580,7 +580,7 @@
     "zoneConfigCustomerMessage": "Check the city in your delivery address. If the problem continues, contact support.",
     "sellingEntity": "Seller: EURPACT OÜ (reg. 17538270), Estonia",
     "ageConfirm": "I confirm that I am {age} years or older.",
-    "ageDeliveryIdHint": "You must be 20 or older. Delivery is only handed over against ID to someone aged 20 or older.",
+    "ageDeliveryIdHint": "You must be {age} or older. Delivery is only handed over against ID to someone aged {age} or older.",
     "ageGateBlocked": "You must be {age} or older to order.",
     "shippingConfirmedBeforeCharge": "Shipping confirmed before you are charged",
     "ageDateOfBirth": "Date of birth",
