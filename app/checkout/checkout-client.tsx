@@ -169,6 +169,7 @@ import {
 import {
   buildCheckoutQuoteRequestBody,
   checkoutHasShippingQuoteContext,
+  isQuoteBoundToChannel,
   shouldBlockCheckoutOnQuote,
   type QuoteUiStatus,
 } from "@/lib/commerce/direct-box-quote-ui-contract";
@@ -182,6 +183,12 @@ import {
   type CheckoutBlockReason,
 } from "@/lib/analytics/checkout-block-events";
 import { resolveDisplayShippingSek } from "@/lib/checkout/shipping-preview";
+import {
+  resolveChannelDisplaySubtotalSek,
+  resolveChannelDisplayTotalSek,
+  selectChannelBoundQuote,
+} from "@/lib/checkout/channel-display-totals";
+import { scrubCheckoutDobFromBrowserStorage } from "@/lib/checkout/scrub-checkout-dob-storage";
 
 
 interface UserProfile {
@@ -1380,6 +1387,13 @@ function CheckoutContent({
       await fetchCart();
     }
   }, [fetchProfile, fetchCart]);
+
+  // Juliette: never keep DOB in local/session storage. Scrub legacy drafts on
+  // visit without clearing email/name/phone/address. Server profile DOB still
+  // prefills for signed-in accounts (fetchProfile).
+  useEffect(() => {
+    scrubCheckoutDobFromBrowserStorage();
+  }, []);
 
   // Open platform: silent session from delivery email — no mid-checkout login wall
   // for brand-new emails. Existing accounts get requiresLogin → OTP (CheckoutEmailAuth).
@@ -3420,13 +3434,33 @@ function CheckoutContent({
     authReady,
   ]);
 
-  const displaySubtotal =
-    serverQuote?.subtotal_sek ??
-    (fulfillmentChannel === "direct_box"
+  // Never paint another channel's quote (Camille: Delsumma 2976 vs lines 6×521).
+  const channelBoundQuote = selectChannelBoundQuote(
+    serverQuote,
+    fulfillmentChannel,
+  );
+  const quoteReadyForChannel =
+    quoteStatus === "ready" && channelBoundQuote != null;
+
+  const channelClientSubtotalSek =
+    fulfillmentChannel === "direct_box"
       ? directBoxClientSubtotalSek
-      : bottleCost);
-  const displayShippingSek = serverQuote?.shipping_sek;
-  const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
+      : bottleCost;
+  const displaySubtotal = resolveChannelDisplaySubtotalSek({
+    channel: fulfillmentChannel,
+    boundQuote: channelBoundQuote,
+    sharedClientSubtotalSek: bottleCost,
+    directClientSubtotalSek: directBoxClientSubtotalSek,
+  });
+  const displayShippingSek = channelBoundQuote?.shipping_sek;
+  const displayPactOff =
+    channelBoundQuote?.pact_points_sek ?? pactPointsSekOff;
+  /** True while we must not show a wrong/stale money figure for this channel. */
+  const channelTotalsPending =
+    quoteStatus === "loading" ||
+    (quoteStatus === "ready" &&
+      serverQuote != null &&
+      !isQuoteBoundToChannel(serverQuote, fulfillmentChannel));
 
   // Public rate preview as soon as postal/country + cart bottles are known.
   useEffect(() => {
@@ -3528,18 +3562,22 @@ function CheckoutContent({
 
   useEffect(() => {
     if (
-      quoteStatus === "ready" &&
-      serverQuote &&
-      typeof serverQuote.shipping_sek === "number" &&
-      Number.isFinite(serverQuote.shipping_sek) &&
-      !serverQuote.shipping_pending
+      quoteReadyForChannel &&
+      channelBoundQuote &&
+      typeof channelBoundQuote.shipping_sek === "number" &&
+      Number.isFinite(channelBoundQuote.shipping_sek) &&
+      !channelBoundQuote.shipping_pending
     ) {
       setShippingByChannel((prev) => ({
         ...prev,
-        [fulfillmentChannel]: serverQuote.shipping_sek,
+        [fulfillmentChannel]: channelBoundQuote.shipping_sek,
       }));
     }
-  }, [quoteStatus, serverQuote, fulfillmentChannel]);
+  }, [
+    quoteReadyForChannel,
+    channelBoundQuote,
+    fulfillmentChannel,
+  ]);
   useEffect(() => {
     const dual = dualOfferSession?.dual;
     if (!dual) return;
@@ -3571,18 +3609,17 @@ function CheckoutContent({
     () =>
       resolveDisplayShippingSek({
         fulfillmentChannel,
-        quoteShippingSek: serverQuote?.shipping_sek,
+        quoteShippingSek: channelBoundQuote?.shipping_sek,
         quoteReady:
-          quoteStatus === "ready" &&
-          !!serverQuote &&
-          serverQuote.shipping_pending !== true,
+          quoteReadyForChannel &&
+          channelBoundQuote?.shipping_pending !== true,
         previewSharedSek: sharedShippingSek,
         previewDirectSek: directShippingSek,
       }),
     [
       fulfillmentChannel,
-      serverQuote,
-      quoteStatus,
+      channelBoundQuote,
+      quoteReadyForChannel,
       sharedShippingSek,
       directShippingSek,
     ],
@@ -3592,7 +3629,8 @@ function CheckoutContent({
     channelDisplayShippingSek == null &&
     (shippingPreviewStatus === "loading" ||
       shippingPreviewStatus === "idle" ||
-      quoteStatus === "loading");
+      quoteStatus === "loading" ||
+      channelTotalsPending);
 
   const conversionCouponHalfCapReduced = useMemo(() => {
     if (!appliedDiscount) return false;
@@ -3645,39 +3683,32 @@ function CheckoutContent({
       formatSek,
     },
   );
-  // Prefer quote total; else merchandise + display shipping (preview or quote).
-  const displayTotalSek = useMemo(() => {
-    if (quoteStatus === "ready" && serverQuote) {
-      return serverQuote.total_sek;
-    }
-    const sub =
-      fulfillmentChannel === "direct_box"
-        ? (serverQuote?.subtotal_sek ?? directBoxClientSubtotalSek)
-        : (serverQuote?.subtotal_sek ?? bottleCost);
-    if (channelDisplayShippingSek == null) return null;
-    return Math.max(
-      0,
-      sub + channelDisplayShippingSek - pactPointsSekOff - promoDiscountSek,
-    );
-  }, [
-    quoteStatus,
-    serverQuote,
-    fulfillmentChannel,
-    directBoxClientSubtotalSek,
-    bottleCost,
-    channelDisplayShippingSek,
-    pactPointsSekOff,
-    promoDiscountSek,
-  ]);
-  /** Purchase CTA still uses quote-gated displayTotal; UI uses displayTotalSek. */
-  const displayTotal =
-    quoteStatus === "ready" && serverQuote
-      ? serverQuote.total_sek
-      : fulfillmentChannel === "direct_box"
-        ? displayTotalSek
-        : (displayTotalSek ??
-          Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek));
-  const collapsedOrderTotalSek = displayTotalSek ?? displayTotal;
+  // Prefer channel-bound quote total; else same-channel client subtotal + shipping.
+  const displayTotalSek = useMemo(
+    () =>
+      resolveChannelDisplayTotalSek({
+        boundQuote: channelBoundQuote,
+        subtotalSek: displaySubtotal,
+        shippingSek: channelDisplayShippingSek,
+        pactPointsSekOff,
+        promoDiscountSek,
+      }),
+    [
+      channelBoundQuote,
+      displaySubtotal,
+      channelDisplayShippingSek,
+      pactPointsSekOff,
+      promoDiscountSek,
+    ],
+  );
+  /** Purchase CTA / summary: never invent a total without channel shipping. */
+  const displayTotal = displayTotalSek;
+  const collapsedOrderTotalSek = displayTotalSek;
+  const showSubtotalSkeleton =
+    channelTotalsPending && channelClientSubtotalSek <= 0;
+  const showTotalSkeleton =
+    displayTotalSek == null &&
+    (shippingDisplayPending || channelTotalsPending);
   const commitAppliedDiscount = (data: {
     code: string;
     discount_code_id: string;
@@ -4066,6 +4097,8 @@ function CheckoutContent({
     B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim() ||
     t("checkout.dualOfferDirectDeliveryFact");
 
+  const directBoxMarkupPercent = getDirectBoxPriceMarkupPercent();
+
   const handleSelectPallet = useCallback(
     (palletId: string) => {
       const p = zoneInfo.pallets?.find((x) => x.id === palletId);
@@ -4317,6 +4350,14 @@ function CheckoutContent({
                 data-testid="checkout-order-summary-body"
               >
               <div>{orderLines.map(renderCartLineRow)}</div>
+              {fulfillmentChannel === "direct_box" &&
+              orderLines.length > 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("checkout.directBoxLineMarkupNote", {
+                    percent: String(directBoxMarkupPercent),
+                  })}
+                </p>
+              ) : null}
               <div className="space-y-2 border-t border-border pt-4 mt-4 text-sm">
                 {dualOfferReviewActive &&
                 dualOfferSelectedQuote &&
@@ -4338,7 +4379,14 @@ function CheckoutContent({
                     {t("checkout.subtotal")}
                   </span>
                   <span className="tabular-nums text-foreground">
-                    {formatChargedAmount(displaySubtotal)}
+                    {showSubtotalSkeleton ? (
+                      <span
+                        className="inline-block h-4 w-14 animate-pulse rounded bg-muted"
+                        aria-hidden
+                      />
+                    ) : (
+                      formatChargedAmount(displaySubtotal)
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -4531,13 +4579,13 @@ function CheckoutContent({
                 <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
                   <span>{t("checkout.total")}</span>
                   <span className="tabular-nums text-foreground">
-                    {displayTotal != null ? (
-                      formatChargedAmount(displayTotal)
-                    ) : (
+                    {showTotalSkeleton || displayTotal == null ? (
                       <span
                         className="inline-block h-5 w-16 animate-pulse rounded bg-muted"
                         aria-hidden
                       />
+                    ) : (
+                      formatChargedAmount(displayTotal)
                     )}
                   </span>
                 </div>
@@ -4751,9 +4799,11 @@ function CheckoutContent({
                                       checked={
                                         fulfillmentChannel === "shared_pallet"
                                       }
-                                      onChange={() =>
-                                        setFulfillmentChannel("shared_pallet")
-                                      }
+                                      onChange={() => {
+                                        setServerQuote(null);
+                                        setQuoteStatus("loading");
+                                        setFulfillmentChannel("shared_pallet");
+                                      }}
                                     />
                                     <span className="min-w-0">
                                       <span className="block font-medium">
@@ -4795,10 +4845,13 @@ function CheckoutContent({
                                       }
                                       onChange={() => {
                                         if (
-                                          directBoxAvailability.deliverySelectable
+                                          !directBoxAvailability.deliverySelectable
                                         ) {
-                                          setFulfillmentChannel("direct_box");
+                                          return;
                                         }
+                                        setServerQuote(null);
+                                        setQuoteStatus("loading");
+                                        setFulfillmentChannel("direct_box");
                                       }}
                                     />
                                     <span className="min-w-0">
@@ -4815,6 +4868,9 @@ function CheckoutContent({
                                                   directShippingSek,
                                                 ),
                                               estimate: directBoxEtaLabel,
+                                              percent: String(
+                                                directBoxMarkupPercent,
+                                              ),
                                             },
                                           )}
                                         </span>
@@ -4845,16 +4901,19 @@ function CheckoutContent({
                             <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
                               {chargedShippingLabel ? (
                                 chargedShippingLabel
+                              ) : channelDisplayShippingSek != null ? (
+                                formatChargedAmount(channelDisplayShippingSek)
+                              ) : shippingDisplayPending || hasPostalCode ? (
+                                <span
+                                  className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
+                                  aria-hidden
+                                  data-testid="checkout-shipping-skeleton"
+                                />
                               ) : lowestShippingSek != null ? (
                                 t("checkout.shippingFromAmount", {
                                   amount:
                                     formatChargedAmount(lowestShippingSek),
                                 })
-                              ) : shippingDisplayPending || hasPostalCode ? (
-                                <span
-                                  className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
-                                  aria-hidden
-                                />
                               ) : null}
                             </span>
                           </div>
@@ -5564,7 +5623,10 @@ function CheckoutContent({
                               id="age-dob"
                               type="text"
                               inputMode="numeric"
-                              autoComplete="bday"
+                              // Juliette: require an active age answer each visit;
+                              // never seed DOB from browser autofill / local draft.
+                              // Server profile.date_of_birth still prefills when set.
+                              autoComplete="off"
                               placeholder={t("checkout.dobPlaceholder")}
                               value={dateOfBirth}
                               onChange={(e) =>
