@@ -1,9 +1,10 @@
 -- Migration 291: Guest checkout identity markers on profiles
 --
--- Guest shared-pallet checkout (GUEST_CHECKOUT_ENABLED) creates a real
--- auth.users + profiles row via /api/checkout/ensure-session so Stripe
--- SetupIntent, off_session pallet-close charging, order emails, and admin
--- views keep working unchanged (order_reservations.user_id → profiles).
+-- Guest checkout (GUEST_CHECKOUT_ENABLED) for shared pallet AND direct
+-- delivery creates a real auth.users + profiles row via
+-- /api/checkout/ensure-session so Stripe SetupIntent / PaymentIntent,
+-- off_session pallet-close charging, order emails, and admin views keep
+-- working unchanged (order_reservations.user_id → profiles).
 --
 -- guest_checkout_at: set when the silent guest path created/used this profile.
 -- account_claimed_at: set when the shopper optionally claims an account on

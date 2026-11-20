@@ -1,6 +1,7 @@
 /**
- * Pure helpers for shared-pallet guest checkout auth UX.
+ * Pure helpers for guest checkout auth UX (shared pallet + direct delivery).
  * Kept free of React / Next so unit tests can pin flag × platformOpen × SE.
+ * Offer/channel-agnostic: the same path applies to both fulfillment methods.
  */
 
 export function isSwedishGuestCheckoutMarket(
@@ -21,7 +22,8 @@ export type GuestCheckoutAuthPath = {
 };
 
 /**
- * Decide mid-checkout auth UX for shared-pallet producer items.
+ * Decide mid-checkout auth UX for anonymous SE guests on either offer
+ * (shared pallet or direct delivery). Direct delivery must not show a login wall.
  *
  * Flag OFF → unchanged: wall when !platformOpen; ensure-session when platformOpen.
  * Flag ON + SE → never show login wall; always use ensure-session when anonymous.

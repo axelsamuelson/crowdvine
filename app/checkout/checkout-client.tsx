@@ -272,6 +272,9 @@ function CheckoutContent({
   );
   /** Existing account: show OTP login instead of auto-session. */
   const [guestRequiresLogin, setGuestRequiresLogin] = useState(false);
+  /** Mid-checkout email-field marketing opt-in (saved independently of account). */
+  const [emailMarketingOptIn, setEmailMarketingOptIn] = useState(false);
+  const [emailMarketingSaving, setEmailMarketingSaving] = useState(false);
   const [guestSessionPending, setGuestSessionPending] = useState(false);
   const [guestRetryNonce, setGuestRetryNonce] = useState(0);
   const guestEnsureAttemptedRef = useRef<string | null>(null);
@@ -5062,6 +5065,65 @@ function CheckoutContent({
                                   <p className="text-xs text-muted-foreground">
                                     {t("checkout.phoneDeliveryHint")}
                                   </p>
+                                ) : null}
+                                {field.id === "email" &&
+                                guestCheckoutEnabled ? (
+                                  <div
+                                    className="flex items-start gap-3 pt-1"
+                                    data-testid="checkout-email-marketing-consent"
+                                  >
+                                    <Checkbox
+                                      id="checkout-email-marketing-consent"
+                                      checked={emailMarketingOptIn}
+                                      disabled={
+                                        emailMarketingSaving ||
+                                        !(deliveryDraft.email ?? "").includes(
+                                          "@",
+                                        )
+                                      }
+                                      onCheckedChange={(v) => {
+                                        const next = v === true;
+                                        setEmailMarketingOptIn(next);
+                                        setEmailMarketingSaving(true);
+                                        void fetch("/api/marketing/consent", {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                          },
+                                          credentials: "include",
+                                          body: JSON.stringify({
+                                            optedIn: next,
+                                            email: (
+                                              deliveryDraft.email ?? ""
+                                            )
+                                              .trim()
+                                              .toLowerCase(),
+                                          }),
+                                        })
+                                          .then((res) => {
+                                            if (!res.ok) {
+                                              setEmailMarketingOptIn(!next);
+                                            }
+                                          })
+                                          .catch(() => {
+                                            setEmailMarketingOptIn(!next);
+                                          })
+                                          .finally(() => {
+                                            setEmailMarketingSaving(false);
+                                          });
+                                      }}
+                                      className="mt-0.5"
+                                    />
+                                    <label
+                                      htmlFor="checkout-email-marketing-consent"
+                                      className="text-xs leading-snug text-muted-foreground"
+                                      data-axel-copy-pending="true"
+                                    >
+                                      {t(
+                                        "checkout.emailMarketingConsentPending",
+                                      )}
+                                    </label>
+                                  </div>
                                 ) : null}
                                 {showInlineError ? (
                                   <p

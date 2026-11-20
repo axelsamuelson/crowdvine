@@ -15,7 +15,9 @@ describe("GuestAccountOffer consent default", () => {
     expect(src).toMatch(/useState\(false\)/);
     expect(src).toMatch(/const \[consentChecked, setConsentChecked\] = useState\(false\)/);
     expect(src).not.toMatch(/useState\(true\)/);
-    expect(src).toMatch(/marketingOptIn: consentChecked === true/);
+    // Consent is persisted via /api/marketing/consent, not gated on claim.
+    expect(src).toContain('"/api/marketing/consent"');
+    expect(src).toMatch(/marketingOptIn:\s*false/);
   });
 
   it("emits account_offered_on_confirmation on mount", () => {
@@ -39,6 +41,37 @@ describe("GuestAccountOffer consent default", () => {
       /data-testid="guest-account-create"[\s\S]*?disabled=\{submitting\}/,
     );
     expect(src).not.toMatch(/disabled=\{submitting \|\| !consentChecked\}/);
+  });
+
+  it("consent copy keys are Axel placeholders mentioning unsubscribe", () => {
+    const sv = JSON.parse(
+      readFileSync(join(process.cwd(), "messages/sv.json"), "utf8"),
+    ) as {
+      checkout: {
+        guestAccountConsent: string;
+        emailMarketingConsentPending: string;
+      };
+    };
+    const en = JSON.parse(
+      readFileSync(join(process.cwd(), "messages/en.json"), "utf8"),
+    ) as {
+      checkout: {
+        guestAccountConsent: string;
+        emailMarketingConsentPending: string;
+      };
+    };
+    for (const loc of [sv, en]) {
+      expect(loc.checkout.guestAccountConsent).toContain("AXEL_COPY_PENDING");
+      expect(loc.checkout.emailMarketingConsentPending).toContain(
+        "AXEL_COPY_PENDING",
+      );
+    }
+    expect(sv.checkout.guestAccountConsent.toLowerCase()).toMatch(
+      /avregistr/,
+    );
+    expect(en.checkout.guestAccountConsent.toLowerCase()).toContain(
+      "unsubscribe",
+    );
   });
 });
 

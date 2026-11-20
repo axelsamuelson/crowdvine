@@ -8,7 +8,9 @@ import { useShoppingContextOptional } from "@/lib/context/shopping-context-provi
 
 /**
  * Optional post-purchase account claim for guest checkout.
- * Consent checkbox is never pre-checked.
+ * Marketing consent is saved independently of account claim (jurist): toggling
+ * the checkbox posts to /api/marketing/consent and does not gate Create.
+ * Consent copy is an Axel-pending i18n placeholder — do not invent final wording.
  */
 export function GuestAccountOffer(props: {
   email: string | null | undefined;
@@ -19,6 +21,7 @@ export function GuestAccountOffer(props: {
   const shopping = useShoppingContextOptional();
   const t = shopping?.t ?? ((k: string) => k);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [consentSaving, setConsentSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [skipped, setSkipped] = useState(false);
@@ -56,6 +59,32 @@ export function GuestAccountOffer(props: {
     );
   }
 
+  const saveConsent = async (next: boolean) => {
+    setConsentChecked(next);
+    setConsentSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/marketing/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          optedIn: next,
+          email: props.email ?? undefined,
+        }),
+      });
+      if (!res.ok) {
+        setConsentChecked(!next);
+        setError(t("checkout.guestAccountFailed"));
+      }
+    } catch {
+      setConsentChecked(!next);
+      setError(t("checkout.guestAccountFailed"));
+    } finally {
+      setConsentSaving(false);
+    }
+  };
+
   const claim = async () => {
     setSubmitting(true);
     setError(null);
@@ -65,7 +94,8 @@ export function GuestAccountOffer(props: {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          marketingOptIn: consentChecked === true,
+          // Consent already persisted independently via /api/marketing/consent.
+          marketingOptIn: false,
           reservationId: props.reservationId ?? undefined,
         }),
       });
@@ -106,13 +136,15 @@ export function GuestAccountOffer(props: {
         <Checkbox
           id="guest-account-consent"
           checked={consentChecked}
-          onCheckedChange={(v) => setConsentChecked(v === true)}
+          disabled={consentSaving || submitting}
+          onCheckedChange={(v) => void saveConsent(v === true)}
           data-testid="guest-account-consent"
           className="mt-0.5"
         />
         <label
           htmlFor="guest-account-consent"
           className="text-sm leading-snug text-gray-800"
+          data-axel-copy-pending="true"
         >
           {t("checkout.guestAccountConsent")}
         </label>

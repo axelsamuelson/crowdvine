@@ -1,6 +1,7 @@
 /**
  * Shared-pallet guest checkout (anonymous SE visitors).
  * Default OFF — set GUEST_CHECKOUT_ENABLED=true to enable.
+ * When ON (SE), covers shared pallet and direct delivery; no mid-checkout login wall.
  *
  * When ON (and market is SE): mid-checkout OTP wall is skipped; a silent
  * ensure-session creates the Stripe/profile identity needed for off_session

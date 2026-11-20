@@ -40,7 +40,7 @@ describe("resolveGuestCheckoutAuthPath", () => {
     expect(path.skipLoginWall).toBe(true);
   });
 
-  it("flag ON + SE + platformOpen false → no login wall, ensure-session", () => {
+  it("flag ON + SE + platformOpen false → no login wall, ensure-session (shared pallet + direct delivery)", () => {
     const path = resolveGuestCheckoutAuthPath({
       guestCheckoutEnabled: true,
       platformOpen: false,
@@ -50,6 +50,7 @@ describe("resolveGuestCheckoutAuthPath", () => {
     expect(path.showLoginWall).toBe(false);
     expect(path.useEnsureSession).toBe(true);
     expect(path.skipLoginWall).toBe(true);
+    // Offer-agnostic: same path for direct delivery (no login wall).
   });
 
   it("flag ON + SE + platformOpen true → no login wall, ensure-session", () => {
