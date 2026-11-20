@@ -82,6 +82,19 @@ async function waitPreview(page, mode) {
   );
 }
 
+async function expandMobileOrder(page, label) {
+  if (!label.startsWith("390")) return;
+  const toggle = page.getByTestId("checkout-order-summary-toggle");
+  if (!(await toggle.count())) return;
+  const visible = await toggle.isVisible().catch(() => false);
+  if (!visible) return;
+  const expanded = await toggle.getAttribute("aria-expanded");
+  if (expanded !== "true") {
+    await toggle.click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(300);
+  }
+}
+
 async function run(label, browserType, launchOpts) {
   const browser = await browserType.launch({
     ...launchOpts,
@@ -106,13 +119,7 @@ async function run(label, browserType, launchOpts) {
   } catch {
     notes.push(`${label}: shared preview wait soft-fail`);
   }
-  // Expand mobile order summary so Frakt/Totalt are visible.
-  const toggle = page.getByTestId("checkout-order-summary-toggle");
-  if (await toggle.count()) {
-    const expanded = await toggle.getAttribute("aria-expanded");
-    if (expanded !== "true") await toggle.click();
-    await page.waitForTimeout(300);
-  }
+  await expandMobileOrder(page, label);
   await shot(page, `${label}-shared_pallet.png`);
 
   await selectMode(page, "direct_box");
@@ -121,18 +128,13 @@ async function run(label, browserType, launchOpts) {
   } catch {
     notes.push(`${label}: direct preview wait soft-fail`);
   }
-  if (await toggle.count()) {
-    const expanded = await toggle.getAttribute("aria-expanded");
-    if (expanded !== "true") await toggle.click();
-    await page.waitForTimeout(300);
-  }
+  await expandMobileOrder(page, label);
   await shot(page, `${label}-direct_box.png`);
 
-  // Extra mobile proof if order body still collapsed/hidden somehow.
-  if (label.startsWith("390") && (await toggle.count())) {
-    await toggle.click().catch(() => {});
-    await page.waitForTimeout(200);
-    await shot(page, `${label}-order-summary.png`);
+  // Optional 7th mobile proof with order body forced open.
+  if (label === "390-chromium") {
+    await expandMobileOrder(page, label);
+    await shot(page, `390-chromium-order-summary.png`);
   }
 
   await browser.close();
