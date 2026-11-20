@@ -4,6 +4,7 @@ import {
   ArticleGuideShell,
   type ArticleGuideShellBlock,
 } from "@/lib/guides/article-guide-shell";
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { ArticleShopCta } from "@/lib/guides/article-shop-cta";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
 import {
@@ -17,6 +18,10 @@ import {
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
+import {
+  getGuideShopLinks,
+  shouldShowGuideShopCta,
+} from "@/lib/guides/shop-links";
 import {
   articleLinkText,
   articleParagraphs,
@@ -39,6 +44,7 @@ function resolveArticleShopHref(
   content: GuideArticleContent,
   locale: AppLocale,
 ): string | null {
+  if (!shouldShowGuideShopCta(content.slug[locale])) return null;
   if (content.shopCta === null) return null;
   if (content.shopCta?.href[locale]) return content.shopCta.href[locale];
 
@@ -124,15 +130,34 @@ export async function renderArticleGuidePage(
   const shopHref = resolveArticleShopHref(content, locale);
   const shopLabel =
     content.shopCta?.label?.[locale]?.trim() || copy.shopNaturalWine;
+  const shopCtaProps =
+    shopHref === null
+      ? null
+      : {
+          href: shopHref,
+          lead: copy.shopCtaLead,
+        };
 
-  const shopCta =
-    shopHref === null ? null : (
-      <ArticleShopCta
-        href={shopHref}
-        label={shopLabel}
-        lead={copy.shopCtaLead}
-      />
-    );
+  const shopLinks = getGuideShopLinks(pagePath);
+
+  /**
+   * Shop-links card (+ black primary button when CTA is allowed).
+   * Systembolaget / shopCta:null → pillista only. NONE / no links → legacy CTA.
+   */
+  const afterBody = shopLinks ? (
+    <GuideShopLinksBlock
+      guidePath={pagePath}
+      locale={locale}
+      links={shopLinks}
+      cta={shopCtaProps}
+    />
+  ) : shopCtaProps ? (
+    <ArticleShopCta
+      href={shopCtaProps.href}
+      label={shopLabel}
+      lead={shopCtaProps.lead}
+    />
+  ) : undefined;
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -306,13 +331,7 @@ export async function renderArticleGuidePage(
             blocks: shellBlocks(section, locale),
           }),
         )}
-        afterFirstSection={
-          articleVisibleForLocale(content.sections, locale).length >= 2 &&
-          shopCta
-            ? shopCta
-            : undefined
-        }
-        afterSections={shopCta ?? undefined}
+        afterSections={afterBody}
         faqs={faqs}
         faqHeading={locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
         furtherReadingHeading={content.furtherReadingHeading[locale]}

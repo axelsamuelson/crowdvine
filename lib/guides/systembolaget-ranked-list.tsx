@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { SystembolagetBottleImage } from "@/components/guides/systembolaget-bottle-image";
 import { SystembolagetRankStatusBadge } from "@/components/guides/systembolaget-rank-status-badge";
 import { Footer } from "@/components/layout/footer";
@@ -1158,6 +1159,8 @@ export async function renderSystembolagetRankedListPage(
                 ) : null}
               </section>
             ))}
+
+            <GuideShopLinksBlock guidePath={pagePath} locale={locale} />
 
             {faqs.length > 0 ? (
               <section>
