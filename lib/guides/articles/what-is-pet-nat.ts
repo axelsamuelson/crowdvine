@@ -435,6 +435,16 @@ export const whatIsPetNatArticle: GuideArticleContent = {
         sv: "/guider/varldens-basta-naturvinsproducenter",
       },
     },
+    {
+      label: {
+        en: "Pet nat in the shop →",
+        sv: "Pet nat i shopen →",
+      },
+      href: {
+        en: "/wine/pet-nat",
+        sv: "/vin/pet-nat",
+      },
+    },
   ],
   jsonLdAbout: {
     type: "Thing",

@@ -33,8 +33,75 @@ function startForInclusiveDays(endIso: string, days: number): string {
   return addDaysUTC(endIso, -(days - 1));
 }
 
+function inclusiveDayCount(startIso: string, endIso: string): number {
+  const start = new Date(`${startIso}T00:00:00.000Z`).getTime();
+  const end = new Date(`${endIso}T00:00:00.000Z`).getTime();
+  return Math.round((end - start) / 86_400_000) + 1;
+}
+
 function defaultEndDate(): string {
   return isoDateUTC(new Date());
+}
+
+/** GSC final data lags a few days; probe a week and take the newest date key. */
+const DATA_LAG_PROBE_DAYS = 7;
+
+const COUNTRY_CODE = /^[a-z]{3}$/;
+
+type DimensionFilter = {
+  dimension: "page" | "country" | "query";
+  operator: "contains" | "equals";
+  expression: string;
+};
+
+export type GscFilterInput = {
+  page_filter?: string;
+  country?: string;
+  query_filter?: string;
+  query_exact?: boolean;
+};
+
+function normalizeCountry(country?: string): string | undefined {
+  if (country == null) return undefined;
+  const value = country.trim().toLowerCase();
+  if (!value) return undefined;
+  if (!COUNTRY_CODE.test(value)) {
+    throw new Error(
+      `country must be an ISO 3166-1 alpha-3 code in lowercase (e.g. swe), got "${country}"`,
+    );
+  }
+  return value;
+}
+
+/** One filter group: every set filter is ANDed. Omitted filters are left out. */
+function buildDimensionFilterGroups(input: GscFilterInput) {
+  const filters: DimensionFilter[] = [];
+  const page = input.page_filter?.trim();
+  if (page) {
+    filters.push({
+      dimension: "page",
+      operator: "contains",
+      expression: page,
+    });
+  }
+  const country = normalizeCountry(input.country);
+  if (country) {
+    filters.push({
+      dimension: "country",
+      operator: "equals",
+      expression: country,
+    });
+  }
+  const query = input.query_filter?.trim();
+  if (query) {
+    filters.push({
+      dimension: "query",
+      operator: input.query_exact ? "equals" : "contains",
+      expression: query,
+    });
+  }
+  if (filters.length === 0) return undefined;
+  return [{ filters }];
 }
 
 function getStatusCode(err: unknown): number | undefined {
@@ -96,23 +163,12 @@ async function querySearchAnalytics(params: {
   endDate: string;
   dimensions?: string[];
   rowLimit?: number;
-  pageFilter?: string;
+  filters?: GscFilterInput;
 }): Promise<{ property: string; rows: GscApiRow[] }> {
   const property = GSC_SITE_PROPERTIES[params.site];
   const client = getSearchConsoleClient();
-
-  const dimensionFilterGroups = params.pageFilter?.trim()
-    ? [
-        {
-          filters: [
-            {
-              dimension: "page",
-              operator: "contains",
-              expression: params.pageFilter.trim(),
-            },
-          ],
-        },
-      ]
+  const dimensionFilterGroups = params.filters
+    ? buildDimensionFilterGroups(params.filters)
     : undefined;
 
   try {
@@ -130,6 +186,30 @@ async function querySearchAnalytics(params: {
   } catch (err) {
     throw new Error(mapGscError(err, params.site, property));
   }
+}
+
+/**
+ * Latest date key in the last 7 days. The probe is always unfiltered so it
+ * measures the property's data freshness, not a country, query, or page slice.
+ * An empty probe falls back to UTC today minus 3 days.
+ */
+async function fetchLastDataDate(site: GscSite): Promise<string> {
+  const end = defaultEndDate();
+  const start = startForInclusiveDays(end, DATA_LAG_PROBE_DAYS);
+  const { rows } = await querySearchAnalytics({
+    site,
+    startDate: start,
+    endDate: end,
+    dimensions: ["date"],
+    rowLimit: DATA_LAG_PROBE_DAYS,
+  });
+  let last: string | undefined;
+  for (const row of rows) {
+    const key = row.keys?.[0];
+    if (!key) continue;
+    if (!last || key > last) last = key;
+  }
+  return last ?? addDaysUTC(end, -3);
 }
 
 function mapPerformanceRows(rows: GscApiRow[]) {
@@ -170,37 +250,48 @@ function sumTotals(rows: GscApiRow[]) {
   };
 }
 
-export async function fetchGscPerformance(input: {
-  site?: GscSite;
-  start_date?: string;
-  end_date?: string;
-  dimension?: "query" | "page" | "date" | "country" | "device";
-  limit?: number;
-  page_filter?: string;
-}) {
+export async function fetchGscPerformance(
+  input: {
+    site?: GscSite;
+    start_date?: string;
+    end_date?: string;
+    dimension?: "query" | "page" | "date" | "country" | "device";
+    limit?: number;
+  } & GscFilterInput,
+) {
   const site = input.site ?? "pact";
-  const end_date = input.end_date ?? defaultEndDate();
-  const start_date =
-    input.start_date ?? startForInclusiveDays(end_date, 28);
+  const filters: GscFilterInput = {
+    page_filter: input.page_filter,
+    country: input.country,
+    query_filter: input.query_filter,
+    query_exact: input.query_exact,
+  };
+  // Validate before any Search Console call.
+  normalizeCountry(filters.country);
+
+  const lastDataPromise = fetchLastDataDate(site);
+  const end_date = input.end_date ?? (await lastDataPromise);
+  const start_date = input.start_date ?? startForInclusiveDays(end_date, 28);
   const dimension = input.dimension ?? "query";
   const limit = Math.min(Math.max(input.limit ?? 25, 1), 250);
 
-  const [dimensioned, totalsRaw] = await Promise.all([
+  const [dimensioned, totalsRaw, last_data_date] = await Promise.all([
     querySearchAnalytics({
       site,
       startDate: start_date,
       endDate: end_date,
       dimensions: [dimension],
       rowLimit: limit,
-      pageFilter: input.page_filter,
+      filters,
     }),
     querySearchAnalytics({
       site,
       startDate: start_date,
       endDate: end_date,
       rowLimit: 1,
-      pageFilter: input.page_filter,
+      filters,
     }),
+    lastDataPromise,
   ]);
 
   const rows = mapPerformanceRows(dimensioned.rows).slice(0, limit);
@@ -214,27 +305,45 @@ export async function fetchGscPerformance(input: {
     property: dimensioned.property,
     start_date,
     end_date,
+    last_data_date,
     dimension,
     totals,
     rows,
   };
 }
 
-export async function fetchGscCompare(input: {
-  site?: GscSite;
-  dimension?: "query" | "page";
-  period_days?: number;
-  limit?: number;
-}) {
+export async function fetchGscCompare(
+  input: {
+    site?: GscSite;
+    dimension?: "query" | "page";
+    period_days?: number;
+    limit?: number;
+  } & GscFilterInput,
+) {
   const site = input.site ?? "pact";
   const dimension = input.dimension ?? "query";
   const period_days = Math.max(input.period_days ?? 28, 1);
   const limit = Math.min(Math.max(input.limit ?? 25, 1), 250);
+  const filters: GscFilterInput = {
+    page_filter: input.page_filter,
+    country: input.country,
+    query_filter: input.query_filter,
+    query_exact: input.query_exact,
+  };
+  normalizeCountry(filters.country);
 
-  const current_end = defaultEndDate();
+  const last_data_date = await fetchLastDataDate(site);
+  const current_end = last_data_date;
   const current_start = startForInclusiveDays(current_end, period_days);
   const previous_end = addDaysUTC(current_start, -1);
   const previous_start = startForInclusiveDays(previous_end, period_days);
+  const currentDays = inclusiveDayCount(current_start, current_end);
+  const previousDays = inclusiveDayCount(previous_start, previous_end);
+  if (currentDays !== previousDays) {
+    throw new Error(
+      `GSC compare periods differ in length (${currentDays} vs ${previousDays} days)`,
+    );
+  }
 
   // Fetch more than limit so deltas aren't biased by top-N-only each side
   const fetchLimit = Math.min(limit * 4, 250);
@@ -246,6 +355,7 @@ export async function fetchGscCompare(input: {
       endDate: current_end,
       dimensions: [dimension],
       rowLimit: fetchLimit,
+      filters,
     }),
     querySearchAnalytics({
       site,
@@ -253,6 +363,7 @@ export async function fetchGscCompare(input: {
       endDate: previous_end,
       dimensions: [dimension],
       rowLimit: fetchLimit,
+      filters,
     }),
   ]);
 
@@ -325,9 +436,9 @@ export async function fetchGscCompare(input: {
     property: current.property,
     dimension,
     period_days,
+    last_data_date,
     current: { start_date: current_start, end_date: current_end },
     previous: { start_date: previous_start, end_date: previous_end },
     rows,
   };
 }
-

@@ -40,6 +40,56 @@
 }
 
 @layer utilities {
+  /*
+   * Soft admin skeleton shimmer (muted token). Avoid hard vertical edges from
+   * abrupt gradient stops; disabled under prefers-reduced-motion.
+   */
+  .admin-skel {
+    background-color: hsl(var(--muted));
+    background-image: linear-gradient(
+      105deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted)) 38%,
+      hsl(var(--muted-foreground) / 0.12) 50%,
+      hsl(var(--muted)) 62%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 220% 100%;
+    animation: admin-skel-shimmer 1.6s ease-in-out infinite;
+  }
+
+  /*
+   * Admin dark does not redefine --muted on .dark (root stays light ~88%).
+   * Force damped zinc tones so blocks stay ~#1c1c1e–#27272a on black chrome.
+   */
+  .dark .admin-skel {
+    background-color: #27272a;
+    background-image: linear-gradient(
+      105deg,
+      #1c1c1e 0%,
+      #1c1c1e 38%,
+      #3f3f46 50%,
+      #1c1c1e 62%,
+      #1c1c1e 100%
+    );
+  }
+
+  @keyframes admin-skel-shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .admin-skel {
+      animation: none;
+      background-image: none;
+    }
+  }
+
   /* Admin form fields: utilities layer + ! so we beat bg-background on Textarea etc. */
   .admin-form-fields
     input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(

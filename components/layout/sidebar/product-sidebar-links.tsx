@@ -37,20 +37,29 @@ interface SidebarLinksProps {
   className?: string;
   invert?: boolean;
   size?: "sm" | "base";
+  /** When true, omit mailto rows (e.g. PACT footer company line already shows email). */
+  omitMailto?: boolean;
 }
 
-export function SidebarLinks({ className, invert, size }: SidebarLinksProps) {
+export function SidebarLinks({
+  className,
+  invert,
+  size,
+  omitMailto = false,
+}: SidebarLinksProps) {
   const isDirtyWine = useB2BModeServerHint();
-  const links = isDirtyWine
-    ? CONTACT_LINKS.map((link) =>
-        link.href.startsWith("mailto:")
-          ? {
-              label: DIRTYWINE_CONTACT_EMAIL,
-              href: `mailto:${DIRTYWINE_CONTACT_EMAIL}`,
-            }
-          : link,
-      )
-    : CONTACT_LINKS;
+  const links = (
+    isDirtyWine
+      ? CONTACT_LINKS.map((link) =>
+          link.href.startsWith("mailto:")
+            ? {
+                label: DIRTYWINE_CONTACT_EMAIL,
+                href: `mailto:${DIRTYWINE_CONTACT_EMAIL}`,
+              }
+            : link,
+        )
+      : CONTACT_LINKS
+  ).filter((link) => !(omitMailto && link.href.startsWith("mailto:")));
 
   return (
     <ul className={cn("flex flex-row gap-2 justify-between", className)}>

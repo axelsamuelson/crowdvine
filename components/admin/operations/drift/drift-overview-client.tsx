@@ -2,51 +2,46 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
 import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
-import { createPortal } from "react-dom"
-import {
+  ArrowLeft,
   ChevronDown,
   ChevronRight,
-  Inbox,
-  Loader2,
-  SlidersHorizontal,
+  UserRound,
   X,
 } from "lucide-react"
-import {
-  ADMIN_FORM_FIELDS_CLASS,
-  ADMIN_OUTLINE_BUTTON_CLASS,
-} from "@/lib/admin-form-styles"
 import { formatQueueDeadlineLabel } from "@/lib/operations/drift/build-overview"
+import {
+  focusKlarSummarySuffix,
+  type FocusPeriodKind,
+} from "@/lib/operations/drift/focus-period"
 import type {
-  DriftBotRow,
   DriftCompanyFilter,
+  DriftFocusData,
+  DriftMalObjective,
   DriftOverviewData,
-  DriftPagarBotGroup,
-  DriftPipelineProject,
+  DriftPagarTask,
+  DriftPipelineObjective,
   DriftPipelineTaskCard,
   DriftQueueItem,
   DriftTab,
   DriftTaskDetail,
+  DriftUnprioritizedTask,
+  DriftWeekItem,
 } from "@/lib/operations/drift/types"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { DriftDetailPanel } from "./drift-detail-panel"
+import { FokusTab } from "./fokus-tab"
 
 const OPEN_LINK_CLASS =
-  "shrink-0 pt-0.5 text-sm font-medium text-gray-900 underline underline-offset-2 decoration-gray-300 hover:text-gray-700 dark:text-zinc-100 dark:decoration-zinc-500 dark:hover:text-zinc-200"
+  "shrink-0 text-sm font-medium text-gray-900 underline underline-offset-2 decoration-gray-300 hover:text-gray-700 dark:text-zinc-100 dark:decoration-zinc-500 dark:hover:text-zinc-200"
 
-const SOURCE_BADGE_CLASS =
-  "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+const CHIP_CLASS =
+  "inline-flex max-w-full items-center gap-1 rounded-md border border-gray-200 bg-transparent px-2 py-0.5 text-xs text-gray-700 dark:border-zinc-600 dark:text-zinc-300"
 
-const PROJECT_TAG_CLASS =
-  "inline-flex items-center rounded-md border border-gray-200 bg-transparent px-2 py-0.5 text-xs font-medium text-gray-700 dark:border-zinc-600 dark:text-zinc-300"
+/** Raised contrast vs v6 (~2.4:1 → ≥4.5:1 on white / dark chrome). */
+const INIT_TAG_CLASS =
+  "inline-flex max-w-full items-center gap-1 text-xs text-gray-700 dark:text-zinc-300"
 
 const WAIT_YOU_BADGE_CLASS =
   "inline-flex items-center rounded-md border border-gray-900 px-2 py-0.5 text-xs font-medium text-gray-900 dark:border-zinc-200 dark:text-zinc-100"
@@ -54,1323 +49,1201 @@ const WAIT_YOU_BADGE_CLASS =
 const WAIT_REVIEW_BADGE_CLASS =
   "inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-zinc-800 dark:text-zinc-400"
 
-const PAUSED_BADGE_CLASS =
-  "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300"
+const YELLOW_BADGE =
+  "inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
 
-const ARCHIVED_BADGE_CLASS =
-  "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300"
+const RED_BADGE =
+  "inline-flex items-center rounded-md border border-red-300 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
 
-type CompanyOption = DriftCompanyFilter
+const TITLE_BREAK =
+  "break-words [overflow-wrap:anywhere] [word-break:normal] [hyphens:manual]"
 
 interface Props {
   initialData: DriftOverviewData
-  company: CompanyOption
+  focusData: DriftFocusData | null
+  company: DriftCompanyFilter
   owner: string | null
-  projectId: string | null
   tab: DriftTab
   godkannande: string | null
-}
-
-function sourceBadgeLabel(source: "pr" | "ops_agent_log" | null): string | null {
-  if (source === "pr") return "PR"
-  if (source === "ops_agent_log") return "Logg"
-  return null
+  period: FocusPeriodKind
+  periodAnchor: string | null
+  listFilter: "utan-poang" | null
+  focusExpandId?: string | null
+  focusHelpOpen?: boolean
 }
 
 function buildQuery(opts: {
-  company: CompanyOption
+  company: DriftCompanyFilter
   owner: string | null
-  projectId: string | null
   tab: DriftTab
   godkannande?: string | null
+  period?: FocusPeriodKind
+  periodAnchor?: string | null
+  filter?: "utan-poang" | null
 }): string {
   const params = new URLSearchParams()
-  if (opts.company !== "both") params.set("company", opts.company)
+  if (opts.company !== "pact") params.set("company", opts.company)
   if (opts.owner) params.set("owner", opts.owner)
-  if (opts.projectId) params.set("project", opts.projectId)
   if (opts.tab !== "oversikt") params.set("tab", opts.tab)
   if (opts.godkannande) params.set("godkannande", opts.godkannande)
+  if (opts.tab === "fokus" && opts.period === "month") {
+    params.set("period", "month")
+  }
+  if (opts.tab === "fokus" && opts.periodAnchor) {
+    params.set("periodAnchor", opts.periodAnchor)
+  }
+  if (opts.filter === "utan-poang") params.set("filter", "utan-poang")
   const qs = params.toString()
   return qs ? `?${qs}` : ""
 }
 
-function projectCountsLine(p: DriftPipelineProject): string {
-  const parts = [
-    `Pågår ${p.counts.pagar}`,
-    `På gång ${p.counts.pagang}`,
-    `Backlog ${p.counts.backlog}`,
-    `Klart ${p.counts.klartWeek} den här veckan`,
-  ]
-  if (p.counts.older > 0) parts.push(`+${p.counts.older} äldre`)
-  if (p.counts.cancelled > 0) parts.push(`Avbrutna ${p.counts.cancelled}`)
-  return parts.join(" · ")
+function BadgeForTask({
+  badge,
+}: {
+  badge: "waiting_for_you" | "waiting_for_review" | null
+}) {
+  if (badge === "waiting_for_you") {
+    return <span className={WAIT_YOU_BADGE_CLASS}>Väntar på dig</span>
+  }
+  if (badge === "waiting_for_review") {
+    return <span className={WAIT_REVIEW_BADGE_CLASS}>Väntar på granskning</span>
+  }
+  return null
 }
 
-function TaskCard({ card }: { card: DriftPipelineTaskCard }) {
-  const badge = sourceBadgeLabel(card.source)
+function ObjectiveChip({
+  objective,
+}: {
+  objective: NonNullable<DriftPagarTask["objective"]>
+}) {
   return (
-    <article className="rounded-lg border border-gray-200 bg-white px-3 py-3 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-      <Link
-        href={card.href}
-        className="block text-sm font-medium leading-snug text-gray-900 line-clamp-2 hover:underline dark:text-zinc-100"
-        title={card.heading}
-      >
-        {card.heading}
-      </Link>
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-        {card.owner ? (
-          <span className="text-xs text-gray-600 dark:text-zinc-400">
-            {card.owner}
-          </span>
-        ) : null}
-        {badge ? <span className={SOURCE_BADGE_CLASS}>{badge}</span> : null}
-        {card.paused ? <span className={PAUSED_BADGE_CLASS}>Pausad</span> : null}
-        {card.atLabel ? (
-          <span className="text-xs text-gray-500 dark:text-zinc-400">
-            {card.atLabel}
-          </span>
-        ) : null}
-      </div>
-    </article>
+    <span className={CHIP_CLASS} title={objective.title}>
+      <span className="font-medium tabular-nums">{objective.rank}</span>
+      <span className={cn("truncate", TITLE_BREAK)}>{objective.shortLabel}</span>
+    </span>
   )
 }
 
-function PipelineColumn({
-  title,
-  titleClass,
-  cards,
-  older,
-  showOlder,
-  onToggleOlder,
+function InitiativeTag({
+  initiative,
 }: {
-  title: string
-  titleClass: string
-  cards: DriftPipelineTaskCard[]
-  older?: DriftPipelineTaskCard[]
-  showOlder?: boolean
-  onToggleOlder?: () => void
+  initiative: NonNullable<DriftPagarTask["initiative"]>
 }) {
-  const [showMore, setShowMore] = useState(false)
-  const visible = showMore ? cards : cards.slice(0, 4)
-  const rest = cards.length - visible.length
-
   return (
-    <div className="min-w-0">
-      <h4 className={cn("mb-3 text-xs font-medium", titleClass)}>
-        {title} ({cards.length})
-      </h4>
-      <div className="space-y-2">
-        {cards.length === 0 ? (
-          <p className="px-0.5 py-4 text-xs text-gray-500 dark:text-zinc-500">
-            Inget just nu
-          </p>
-        ) : (
-          visible.map((c) => <TaskCard key={c.id} card={c} />)
-        )}
-        {rest > 0 ? (
-          <button
-            type="button"
-            className="w-full rounded-lg px-2 py-2 text-left text-xs font-medium text-gray-600 hover:bg-gray-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            onClick={() => setShowMore(true)}
-          >
-            Visa {rest} till
-          </button>
-        ) : null}
-        {older && older.length > 0 ? (
-          <>
-            {showOlder
-              ? older.map((c) => <TaskCard key={c.id} card={c} />)
-              : null}
-            <button
-              type="button"
-              className="w-full rounded-lg px-2 py-2 text-left text-xs font-medium text-gray-600 hover:bg-gray-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              onClick={onToggleOlder}
-            >
-              {showOlder
-                ? "Dölj äldre"
-                : `Visa äldre (${older.length}), upp till 30 dagar`}
-            </button>
-          </>
-        ) : null}
-      </div>
-    </div>
+    <span className={INIT_TAG_CLASS} title={initiative.title}>
+      <span className="font-medium text-gray-500 dark:text-zinc-500">
+        {initiative.key}
+      </span>
+      <span className={cn("truncate", TITLE_BREAK)}>{initiative.title}</span>
+    </span>
   )
 }
 
 function QueueRow({
   item,
-  highlighted,
-  defaultExpanded,
+  onOpen,
 }: {
   item: DriftQueueItem
-  highlighted: boolean
-  defaultExpanded: boolean
+  onOpen: () => void
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded)
-  const deadlineLabel = formatQueueDeadlineLabel(item.deadline, item.overdue)
-
   return (
-    <article
-      id={`godkannande-${item.id}`}
-      className={cn(
-        "px-5 py-4",
-        highlighted &&
-          "bg-amber-50/60 dark:bg-amber-950/20 ring-1 ring-inset ring-amber-200 dark:ring-amber-900/40",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className={cn(
-            "mt-2 h-1.5 w-1.5 shrink-0 rounded-full",
-            item.overdue
-              ? "bg-red-500"
-              : "bg-gray-300 dark:bg-zinc-600",
-          )}
-          aria-hidden="true"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <button
-              type="button"
-              className="min-w-0 flex-1 text-left"
-              aria-expanded={expanded}
-              onClick={() => setExpanded((v) => !v)}
-            >
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                {item.title}
-              </h3>
-            </button>
-            <Link href={item.openHref} className={OPEN_LINK_CLASS}>
-              Öppna rad
-            </Link>
-          </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
-            {item.agent}
-            {deadlineLabel ? (
-              <>
-                {" · "}
-                <span
-                  className={cn(
-                    "text-xs",
-                    item.overdue
-                      ? "font-medium text-red-600 dark:text-red-400"
-                      : "text-gray-500 dark:text-zinc-400",
-                  )}
-                >
-                  {deadlineLabel}
-                </span>
-              </>
-            ) : null}
-          </p>
-          {!expanded && item.question ? (
-            <p className="mt-1 truncate text-sm text-gray-600 dark:text-zinc-400">
-              {item.question}
-            </p>
-          ) : null}
-          {expanded ? (
-            <div className="mt-3">
-              {item.question ? (
-                <p className="text-sm leading-relaxed text-gray-700 dark:text-zinc-300">
-                  {item.question}
-                </p>
-              ) : null}
-              {item.recommendation ? (
-                <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">
-                  <span className="font-medium text-gray-800 dark:text-zinc-200">
-                    Rekommendation.
-                  </span>{" "}
-                  {item.recommendation}
-                </p>
-              ) : null}
-            </div>
+    <article className="flex items-start justify-between gap-3 border-b border-gray-100 py-3 last:border-b-0 dark:border-zinc-800">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
+              item.overdue ? "bg-red-500" : "bg-gray-300 dark:bg-zinc-600",
+            )}
+            aria-hidden
+          />
+          <h3 className={cn("text-sm font-medium text-gray-900 dark:text-zinc-100", TITLE_BREAK)}>
+            {item.title}
+          </h3>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 pl-3.5 text-xs text-gray-500 dark:text-zinc-400">
+          <span>{item.agent}</span>
+          {item.deadline ? (
+            <span className={item.overdue ? "font-medium text-red-600 dark:text-red-400" : ""}>
+              {formatQueueDeadlineLabel(item.deadline, item.overdue)}
+            </span>
           ) : null}
         </div>
+        {item.question ? (
+          <p className="mt-1 line-clamp-2 pl-3.5 text-xs text-gray-600 dark:text-zinc-400">
+            {item.question}
+          </p>
+        ) : null}
       </div>
+      <button type="button" className={OPEN_LINK_CLASS} onClick={onOpen}>
+        Öppna rad
+      </button>
     </article>
   )
 }
 
-function BotVantarCell({ bot }: { bot: DriftBotRow }) {
-  if (bot.vantarTone === "none") {
-    return (
-      <span className="whitespace-nowrap text-left text-xs text-gray-400 dark:text-zinc-500">
-        —
-      </span>
-    )
-  }
-  if (bot.vantarTone === "red") {
-    return (
-      <span className="whitespace-nowrap text-left text-xs font-medium text-red-600 dark:text-red-400">
-        {bot.vantarPa}
-      </span>
-    )
-  }
+function PagarRow({
+  task,
+  onOpen,
+}: {
+  task: DriftPagarTask
+  onOpen: () => void
+}) {
   return (
-    <span className="whitespace-nowrap text-left text-xs font-medium text-gray-700 dark:text-zinc-300">
-      {bot.vantarPa}
-    </span>
+    <article
+      className={cn(
+        "rounded-lg border px-4 py-3",
+        task.startedWithoutInitiative
+          ? "border-red-300 bg-red-50/60 dark:border-red-800 dark:bg-red-950/20"
+          : "border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]",
+      )}
+    >
+      <button type="button" className="w-full text-left" onClick={onOpen}>
+        <h3
+          className={cn(
+            "text-sm font-semibold text-gray-900 dark:text-zinc-100",
+            TITLE_BREAK,
+          )}
+        >
+          {task.heading}
+        </h3>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {task.owner ? (
+            <span className="text-xs text-gray-600 dark:text-zinc-400">
+              {task.owner}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-400">Utan utförare</span>
+          )}
+          {task.objective ? <ObjectiveChip objective={task.objective} /> : null}
+          {task.initiative ? (
+            <InitiativeTag initiative={task.initiative} />
+          ) : null}
+          {task.belowRankLabel ? (
+            <span className="text-xs text-gray-500 dark:text-zinc-500">
+              {task.belowRankLabel}
+            </span>
+          ) : null}
+          <BadgeForTask badge={task.badge} />
+          {task.startedWithoutInitiative ? (
+            <span className={RED_BADGE}>Påbörjad utan initiativ</span>
+          ) : task.unprioritized ? (
+            <span className={YELLOW_BADGE}>Ej prioriterad</span>
+          ) : null}
+        </div>
+        {task.startedWithoutInitiative ? (
+          <p className="mt-2 text-xs text-red-700 dark:text-red-300">
+            Påbörjad utan initiativ. Välj initiativ eller pausa uppgiften.
+          </p>
+        ) : null}
+      </button>
+    </article>
+  )
+}
+
+function WeekRow({
+  item,
+  onOpen,
+}: {
+  item: DriftWeekItem
+  onOpen: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className="flex w-full items-start justify-between gap-3 border-b border-gray-100 py-3 text-left last:border-b-0 dark:border-zinc-800"
+      onClick={onOpen}
+    >
+      <div className="min-w-0 flex-1">
+        <h3
+          className={cn(
+            "text-sm font-medium text-gray-900 dark:text-zinc-100",
+            TITLE_BREAK,
+          )}
+        >
+          {item.heading}
+        </h3>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+          {item.objective ? <ObjectiveChip objective={item.objective} /> : null}
+          {item.initiative ? (
+            <InitiativeTag initiative={item.initiative} />
+          ) : null}
+          {item.unprioritized ? (
+            <span className={YELLOW_BADGE}>Ej prioriterad</span>
+          ) : null}
+        </div>
+      </div>
+      <span className="shrink-0 text-xs text-gray-500 dark:text-zinc-400">
+        {item.atLabel}
+      </span>
+    </button>
+  )
+}
+
+function PipelineCard({
+  card,
+  onOpen,
+}: {
+  card: DriftPipelineTaskCard
+  onOpen: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        "w-full rounded-lg border px-3 py-3 text-left",
+        card.startedWithoutInitiative
+          ? "border-red-300 bg-red-50/70 dark:border-red-800 dark:bg-red-950/30"
+          : card.unprioritized
+            ? "border-amber-300 bg-amber-50/50 dark:border-amber-700 dark:bg-amber-950/20"
+            : "border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]",
+      )}
+    >
+      <p
+        className={cn(
+          "text-sm font-medium leading-snug text-gray-900 dark:text-zinc-100",
+          TITLE_BREAK,
+        )}
+      >
+        {card.heading}
+      </p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+        {card.owner ? (
+          <span className="text-xs text-gray-600 dark:text-zinc-400">
+            {card.owner}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">Utan utförare</span>
+        )}
+        {card.startedWithoutInitiative ? (
+          <span className={RED_BADGE}>Ej prioriterad</span>
+        ) : card.unprioritized ? (
+          <span className={YELLOW_BADGE}>Ej prioriterad</span>
+        ) : null}
+        {card.belowRank ? (
+          <span className="text-xs text-gray-500">↑ Pågår under rang</span>
+        ) : null}
+        <BadgeForTask badge={card.badge} />
+        {card.atLabel ? (
+          <span
+            className={cn(
+              "text-xs",
+              card.atIsDone
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-gray-500 dark:text-zinc-400",
+            )}
+          >
+            {card.atLabel}
+          </span>
+        ) : null}
+      </div>
+    </button>
+  )
+}
+
+function PipelineColumnBoard({
+  columns,
+  onOpen,
+  emptyLabel = "Inget just nu",
+}: {
+  columns: {
+    pagar: DriftPipelineTaskCard[]
+    pagang: DriftPipelineTaskCard[]
+    klart: DriftPipelineTaskCard[]
+  }
+  onOpen: (card: DriftPipelineTaskCard) => void
+  emptyLabel?: string
+}) {
+  const total =
+    columns.pagar.length + columns.pagang.length + columns.klart.length
+  if (total === 0) {
+    return (
+      <p className="text-sm text-gray-500 dark:text-zinc-400">{emptyLabel}</p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-4 md:grid md:grid-cols-3">
+      {(
+        [
+          ["Pågår", columns.pagar, "text-blue-600"],
+          ["Nästa", columns.pagang, "text-gray-600"],
+          ["Klart", columns.klart, "text-emerald-600"],
+        ] as const
+      ).map(([title, cards, titleClass]) => (
+        <div key={title}>
+          <h4 className={cn("mb-2 text-xs font-medium", titleClass)}>
+            {title} ({cards.length})
+          </h4>
+          <div className="space-y-2">
+            {cards.length === 0 ? (
+              <p className="text-xs text-gray-500">Inget just nu</p>
+            ) : (
+              cards.map((card) => (
+                <PipelineCard
+                  key={card.id}
+                  card={card}
+                  onOpen={() => onOpen(card)}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ProgressBar({ done, total }: { done: number; total: number }) {
+  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+  return (
+    <div className="w-28">
+      <p className="mb-1 text-right text-xs text-gray-500 dark:text-zinc-400">
+        Klart {done} av {total}
+      </p>
+      <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-zinc-800">
+        <div
+          className="h-full rounded-full bg-emerald-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function MalObjectiveCard({
+  objective,
+  botFilter,
+  onOpenTask,
+}: {
+  objective: DriftMalObjective
+  botFilter: string | null
+  onOpenTask: (detail: DriftTaskDetail) => void
+}) {
+  const [expanded, setExpanded] = useState(objective.defaultExpanded)
+  const [showAllByInit, setShowAllByInit] = useState<Record<string, boolean>>(
+    {},
+  )
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+      <button
+        type="button"
+        className="flex w-full items-start gap-3 px-4 py-4 text-left sm:px-5"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-sm font-semibold tabular-nums text-gray-800 dark:bg-zinc-800 dark:text-zinc-100">
+          {objective.rank}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3
+            className={cn(
+              "text-base font-semibold text-gray-900 dark:text-white",
+              TITLE_BREAK,
+            )}
+          >
+            {objective.title}
+          </h3>
+          <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+            {objective.priorityLabel}
+            {" · "}
+            {objective.initiativeCount} initiativ
+            {objective.pagarCount > 0
+              ? ` · ${objective.pagarCount} pågår`
+              : ""}
+            {botFilter ? ` · filter ${botFilter}` : ""}
+          </p>
+        </div>
+        <ProgressBar done={objective.doneCount} total={objective.totalCount} />
+        {expanded ? (
+          <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-gray-400" />
+        ) : (
+          <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-gray-400" />
+        )}
+      </button>
+
+      {expanded ? (
+        <div className="space-y-4 border-t border-gray-100 px-4 py-4 sm:px-5 dark:border-zinc-800">
+          {objective.emptyForFilter ? (
+            <p className="text-sm text-gray-500 dark:text-zinc-400">
+              Inget för {botFilter} i det här målet.
+            </p>
+          ) : (
+            <>
+            {objective.initiatives.map((init) => {
+              const showAll = showAllByInit[init.id]
+              const rows = showAll ? init.allTasks : init.visibleTasks
+              return (
+                <div key={init.id} className="space-y-2">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                      <span className="text-gray-700 dark:text-zinc-300">
+                        {init.key}
+                      </span>{" "}
+                      {init.title}
+                    </h4>
+                    <p className="mt-0.5 text-xs text-gray-600 dark:text-zinc-400">
+                      Ansvarig {init.ownerAgent}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-zinc-500">
+                    {init.pagarCount} pågår · {init.nastaCount} nästa ·{" "}
+                    {init.klartWeekCount} klart
+                  </p>
+                  <ul className="space-y-2">
+                    {rows.map((row) => (
+                      <li key={row.id}>
+                        <button
+                          type="button"
+                          className="flex w-full items-start gap-2 text-left"
+                          onClick={() => onOpenTask(row.detail)}
+                        >
+                          <span className="mt-0.5 w-4 shrink-0 text-xs tabular-nums text-gray-400">
+                            {row.place}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className={cn(
+                                "text-sm text-gray-900 dark:text-zinc-100",
+                                TITLE_BREAK,
+                              )}
+                            >
+                              {row.heading}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <span
+                                className={cn(
+                                  "text-xs",
+                                  row.status === "pagar"
+                                    ? "text-blue-600 dark:text-blue-400"
+                                    : "text-gray-500 dark:text-zinc-400",
+                                )}
+                              >
+                                <span
+                                  className={cn(
+                                    "mr-1.5 inline-block h-1.5 w-1.5 rounded-full",
+                                    row.status === "pagar"
+                                      ? "bg-blue-500"
+                                      : "bg-gray-300 dark:bg-zinc-600",
+                                  )}
+                                />
+                                {row.statusLabel}
+                                {row.owner ? ` · ${row.owner}` : ""}
+                              </span>
+                              <BadgeForTask badge={row.badge} />
+                              {row.belowRank ? (
+                                <span className="text-xs text-gray-500">
+                                  ↑ Pågår under rang
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {init.hiddenTaskCount > 0 && !showAll ? (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-gray-600 underline dark:text-zinc-400"
+                      onClick={() =>
+                        setShowAllByInit((s) => ({ ...s, [init.id]: true }))
+                      }
+                    >
+                      Visa alla {init.allTasks.length} uppgifter
+                    </button>
+                  ) : null}
+                  {init.pausedCount > 0 ? (
+                    <p className="text-xs text-gray-500">
+                      Visa {init.pausedCount} pausade
+                    </p>
+                  ) : null}
+                  {init.klartWeekCount > 0 ? (
+                    <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      {init.klartWeekCount} klar
+                      {init.klartWeekCount === 1 ? "" : "a"} den här veckan
+                    </p>
+                  ) : null}
+                </div>
+              )
+            })}
+            {botFilter && objective.hiddenInitiativesCount > 0 ? (
+              <p className="text-sm text-gray-500 dark:text-zinc-400">
+                +{objective.hiddenInitiativesCount} initiativ utan {botFilter}
+              </p>
+            ) : null}
+            </>
+          )}
+        </div>
+      ) : null}
+    </section>
   )
 }
 
 export function DriftOverviewClient({
   initialData,
+  focusData,
   company,
   owner,
-  projectId,
-  tab: initialTab,
+  tab,
   godkannande,
+  period,
+  periodAnchor,
+  listFilter,
+  focusExpandId = null,
+  focusHelpOpen = false,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const data = initialData
-  const [tab, setTab] = useState<DriftTab>(initialTab)
-  const [showAllQueue, setShowAllQueue] = useState(false)
-  const [showSilentBots, setShowSilentBots] = useState(false)
-  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(
-    () => projectId,
-  )
-  const [showOlderByProject, setShowOlderByProject] = useState<
-    Record<string, boolean>
-  >({})
-  const [filterOpen, setFilterOpen] = useState(false)
-  const [draftOwner, setDraftOwner] = useState(owner ?? "")
-  const [draftProject, setDraftProject] = useState(projectId ?? "")
-  const [navigating, setNavigating] = useState(false)
-  const [filterPortalReady, setFilterPortalReady] = useState(false)
   const [detail, setDetail] = useState<DriftTaskDetail | null>(null)
-  const [collapsedPagarOwners, setCollapsedPagarOwners] = useState<
-    Record<string, boolean>
-  >({})
-  const weekRef = useRef<HTMLHeadingElement | null>(null)
-  const projectSectionRefs = useRef<Record<string, HTMLElement | null>>({})
-  const filterTitleId = useId()
-  const filtersActive = Boolean(owner || projectId)
+  const [botMenuOpen, setBotMenuOpen] = useState(false)
+  // Stable id — avoid useId() hydration mismatch on aria-controls across SSR/CSR.
+  const botMenuId = "drift-bot-menu"
 
-  useEffect(() => {
-    setFilterPortalReady(true)
-  }, [])
-
-  useEffect(() => {
-    setTab(initialTab)
-  }, [initialTab])
-
-  useEffect(() => {
-    setDraftOwner(owner ?? "")
-    setDraftProject(projectId ?? "")
-  }, [owner, projectId])
-
-  useEffect(() => {
-    setNavigating(false)
-  }, [company, owner, projectId, initialTab, data.generatedAtLabel])
-
-  useEffect(() => {
-    if (godkannande) {
-      setShowAllQueue(true)
-      const el = document.getElementById(`godkannande-${godkannande}`)
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" })
-      }
-    }
-  }, [godkannande])
-
-  // v4.1: expand only when ?project= is set — never default to alphabetical first.
-  useEffect(() => {
-    setExpandedProjectId(projectId)
-  }, [projectId])
-
-  useEffect(() => {
-    if (
-      expandedProjectId &&
-      !data.projects.some((p) => p.id === expandedProjectId)
-    ) {
-      setExpandedProjectId(null)
-    }
-  }, [data.projects, expandedProjectId])
-
-  useEffect(() => {
-    if (initialTab !== "pipeline" || !projectId) return
-    const el = projectSectionRefs.current[projectId]
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
-  }, [initialTab, projectId, data.projects])
-
-  const pushParams = useCallback(
-    (next: {
-      company?: CompanyOption
-      owner?: string | null
-      projectId?: string | null
-      tab?: DriftTab
-      godkannande?: string | null
-    }) => {
-      setNavigating(true)
-      const qs = buildQuery({
-        company: next.company ?? company,
-        owner: next.owner === undefined ? owner : next.owner,
-        projectId: next.projectId === undefined ? projectId : next.projectId,
-        tab: next.tab ?? tab,
-        godkannande:
-          next.godkannande === undefined ? godkannande : next.godkannande,
-      })
-      router.push(`${pathname}${qs}`)
-    },
-    [company, owner, projectId, tab, godkannande, pathname, router],
-  )
-
-  const selectTab = useCallback(
-    (next: DriftTab) => {
-      setTab(next)
-      pushParams({ tab: next })
-    },
-    [pushParams],
-  )
-
-  const openDetail = useCallback((next: DriftTaskDetail) => {
-    setDetail(next)
-  }, [])
-
-  const closeDetail = useCallback(() => {
-    setDetail(null)
-  }, [])
-
-  const showInPipeline = useCallback(
-    (nextProjectId: string | null) => {
-      setDetail(null)
-      setExpandedProjectId(nextProjectId)
-      pushParams({
-        tab: "pipeline",
-        projectId: nextProjectId,
-        godkannande: null,
-      })
-    },
-    [pushParams],
-  )
-
-  const togglePagarGroup = useCallback((ownerKey: string) => {
-    setCollapsedPagarOwners((prev) => ({
-      ...prev,
-      [ownerKey]: !prev[ownerKey],
-    }))
-  }, [])
-
-  const onSummaryClick = (target: "oversikt" | "pipeline" | "veckan") => {
-    if (target === "pipeline") {
-      selectTab("pipeline")
-      return
-    }
-    setTab("oversikt")
-    pushParams({ tab: "oversikt" })
-    if (target === "veckan") {
-      requestAnimationFrame(() => {
-        weekRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-      })
-    }
-  }
-
-  const activeBots = useMemo(
+  const [pipelineExpanded, setPipelineExpanded] = useState<Record<string, boolean>>(
     () =>
-      data.bots.filter((b) => {
-        if (!b.silent) return true
-        if (owner && b.name.toLowerCase() === owner.toLowerCase()) return true
-        return false
-      }),
-    [data.bots, owner],
-  )
-  const silentBots = useMemo(
-    () =>
-      data.bots.filter((b) => {
-        if (!b.silent) return false
-        if (owner && b.name.toLowerCase() === owner.toLowerCase()) return false
-        return true
-      }),
-    [data.bots, owner],
+      Object.fromEntries(
+        data.pipelineObjectives.map((o) => [o.id, o.defaultExpanded]),
+      ),
   )
 
-  const topQueue = data.queue.slice(0, 3)
-  const restQueue = data.queue.slice(3)
-
-  const ownerLabel =
-    owner === "__none__" ? "Utan ägare" : owner
-  const projectLabel = projectId
-    ? data.projectOptions.find((p) => p.id === projectId)?.name ??
-      (projectId === "__unassigned__" ? "Utan projektkoppling" : projectId)
-    : null
-
-  const applyFilters = () => {
-    setFilterOpen(false)
-    pushParams({
-      owner: draftOwner || null,
-      projectId: draftProject || null,
+  useEffect(() => {
+    if (!godkannande) return
+    const q = data.queue.find((item) => item.id === godkannande)
+    if (!q) return
+    setDetail({
+      id: q.id,
+      heading: q.title,
+      description: [q.question, q.recommendation]
+        .filter(Boolean)
+        .join("\n\n"),
+      owner: q.agent,
+      initiativeOwner: null,
+      objectiveId: null,
+      objectiveLabel: null,
+      initiativeId: null,
+      initiativeLabel: null,
+      priorityLabel: null,
+      sortOrderLabel: null,
+      statusLabel: q.overdue ? "Förfallen" : "Väntar",
+      dateLabel: q.deadline
+        ? formatQueueDeadlineLabel(q.deadline, q.overdue)
+        : "—",
+      prNumber: null,
+      prUrl: null,
+      unprioritized: false,
+      startedWithoutInitiative: false,
     })
+  }, [godkannande, data.queue])
+
+  function navigate(next: {
+    company?: DriftCompanyFilter
+    owner?: string | null
+    tab?: DriftTab
+    godkannande?: string | null
+    period?: FocusPeriodKind
+    periodAnchor?: string | null
+    filter?: "utan-poang" | null
+  }) {
+    const qs = buildQuery({
+      company: next.company ?? company,
+      owner: next.owner === undefined ? owner : next.owner,
+      tab: next.tab ?? tab,
+      godkannande: next.godkannande ?? null,
+      period: next.period ?? period,
+      periodAnchor:
+        next.periodAnchor === undefined ? periodAnchor : next.periodAnchor,
+      filter: next.filter === undefined ? listFilter : next.filter,
+    })
+    router.push(`${pathname}${qs}`)
   }
 
-  const clearFilters = () => {
-    setDraftOwner("")
-    setDraftProject("")
-    setFilterOpen(false)
-    pushParams({ owner: null, projectId: null })
-  }
+  const withoutPointsTasks = data.withoutPointsTasks
 
-  const companyButtons: { value: CompanyOption; label: string }[] = [
-    { value: "pact", label: "PACT" },
-    { value: "dirtywine", label: "Dirty Wine" },
-    { value: "both", label: "Båda" },
-  ]
+  const firstName = useMemo(() => {
+    // Display-only; queue section title uses Axel as in sketch when unknown.
+    return "Axel"
+  }, [])
 
-  const tabs: { id: DriftTab; label: string }[] = [
-    { id: "oversikt", label: "Översikt" },
-    { id: "botar", label: "Botar" },
-    { id: "pipeline", label: "Pipeline" },
-  ]
+  const unprioritizedPipelineCount =
+    data.pipelineUnprioritized.pagar.length +
+    data.pipelineUnprioritized.pagang.length +
+    data.pipelineUnprioritized.klart.length
 
   return (
-    <div className="space-y-8">
-      {navigating ? (
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-zinc-400">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-          Uppdaterar…
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Driftöversikt
-          </h1>
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 sm:flex-none">
-              <div
-                className="inline-flex w-full rounded-lg bg-gray-100 p-0.5 dark:bg-zinc-800 sm:w-auto"
-                role="group"
-                aria-label="Företag"
-              >
-                {companyButtons.map((c) => {
-                  const on = company === c.value
-                  return (
-                    <button
-                      key={c.value}
-                      type="button"
-                      aria-pressed={on}
-                      className={cn(
-                        "h-8 flex-1 px-3 text-sm font-medium sm:flex-none",
-                        on
-                          ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-900 dark:text-white"
-                          : "text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white",
-                      )}
-                      onClick={() => pushParams({ company: c.value })}
-                    >
-                      {c.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            <button
-              type="button"
-              className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
-              aria-haspopup="dialog"
-              aria-expanded={filterOpen}
-              onClick={() => setFilterOpen(true)}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
-              Filter
-            </button>
+    <div className="mx-auto w-full max-w-6xl space-y-6 pb-16">
+      <header className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              Driftöversikt
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
+              {data.companySubtitle}
+            </p>
           </div>
-        </div>
 
-        {(owner || projectId) && (
           <div className="flex flex-wrap items-center gap-2">
-            {owner ? (
+            <div
+              className="inline-flex rounded-lg border border-gray-200 p-0.5 dark:border-zinc-700"
+              role="group"
+              aria-label="Bolag"
+            >
+              {(
+                [
+                  ["pact", "PACT"],
+                  ["dirtywine", "Dirty Wine"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm font-medium",
+                    company === value
+                      ? "bg-gray-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      : "text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-zinc-800",
+                  )}
+                  onClick={() =>
+                    navigate({
+                      company: value,
+                      owner: null,
+                      periodAnchor: null,
+                      filter: null,
+                    })
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative inline-flex items-center gap-1">
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-zinc-800 dark:text-zinc-300"
-                onClick={() => pushParams({ owner: null })}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                aria-haspopup="listbox"
+                aria-expanded={botMenuOpen}
+                aria-controls={botMenuId}
+                onClick={() => setBotMenuOpen((v) => !v)}
               >
-                Ägare: {ownerLabel}
-                <X className="h-3 w-3" aria-hidden="true" />
+                <UserRound className="h-3.5 w-3.5" aria-hidden />
+                {owner ?? "Alla botar"}
               </button>
-            ) : null}
-            {projectId ? (
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-zinc-800 dark:text-zinc-300"
-                onClick={() => pushParams({ projectId: null })}
-              >
-                Projekt: {projectLabel}
-                <X className="h-3 w-3" aria-hidden="true" />
-              </button>
-            ) : null}
+              {owner ? (
+                <button
+                  type="button"
+                  aria-label="Rensa botfilter"
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-1.5 text-gray-800 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  onClick={() => {
+                    navigate({ owner: null })
+                    setBotMenuOpen(false)
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+              {botMenuOpen ? (
+                <ul
+                  id={botMenuId}
+                  role="listbox"
+                  className="absolute right-0 z-20 mt-1 max-h-64 w-48 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                >
+                  <li>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-zinc-800"
+                      onClick={() => {
+                        navigate({ owner: null })
+                        setBotMenuOpen(false)
+                      }}
+                    >
+                      Alla botar
+                    </button>
+                  </li>
+                  {data.ownerOptions.map((name) => (
+                    <li key={name}>
+                      <button
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-zinc-800"
+                        onClick={() => {
+                          navigate({ owner: name })
+                          setBotMenuOpen(false)
+                        }}
+                      >
+                        {name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-gray-700 dark:text-zinc-300">
+          <span>
+            <strong className="font-semibold">{data.summary.waiting}</strong>{" "}
+            väntar på dig
+          </span>
+          <span>
+            <strong className="font-semibold">{data.summary.pagar}</strong>{" "}
+            pågår
+          </span>
+          <span>
+            <strong className="font-semibold">{data.summary.pagang}</strong>{" "}
+            nästa
+          </span>
+          <span>
+            {tab === "fokus" && focusData ? (
+              <>
+                <strong className="font-semibold">
+                  {focusData.totalDoneTasks}
+                </strong>{" "}
+                {focusKlarSummarySuffix(focusData.period)}
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold">
+                  {data.summary.klartWeek}
+                </strong>{" "}
+                klart denna vecka
+              </>
+            )}
+          </span>
+          {data.summary.unprioritized > 0 ? (
+            <span>
+              {data.summary.unprioritized} ej prioriterade
+            </span>
+          ) : null}
+          {data.summary.withoutPoints > 0 ? (
             <button
               type="button"
-              className="text-xs font-medium text-gray-600 underline underline-offset-2 decoration-gray-300 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white"
-              onClick={clearFilters}
+              className="font-medium underline underline-offset-2 decoration-gray-400 hover:text-gray-900 dark:decoration-zinc-500 dark:hover:text-white"
+              onClick={() =>
+                navigate({ tab: "fokus", filter: "utan-poang" })
+              }
             >
-              Rensa
+              {data.summary.withoutPoints} utan poäng
             </button>
-          </div>
-        )}
-
-        <p
-          className="text-xs leading-relaxed text-gray-600 sm:text-sm dark:text-zinc-300"
-          aria-label="Sammanfattning"
-        >
-          <SummaryBtn
-            n={data.summary.waiting}
-            label="väntar på dig"
-            onClick={() => onSummaryClick("oversikt")}
-          />
-          <Sep />
-          <SummaryBtn
-            n={data.summary.pagar}
-            label="pågår"
-            onClick={() => onSummaryClick("pipeline")}
-          />
-          <Sep />
-          <SummaryBtn
-            n={data.summary.pagang}
-            label="på gång"
-            onClick={() => onSummaryClick("pipeline")}
-          />
-          {/* Mobile: Klart on its own line (wrap when the summary is tight at 390). */}
-          <span className="hidden text-gray-300 dark:text-zinc-600 sm:inline" aria-hidden="true">
-            {" · "}
-          </span>
-          <br className="sm:hidden" aria-hidden="true" />
-          <SummaryBtn
-            n={data.summary.klartWeek}
-            label="klart denna vecka"
-            onClick={() => onSummaryClick("veckan")}
-          />
+          ) : null}
         </p>
-      </div>
 
-      <div className="w-full sm:w-auto" role="tablist" aria-label="Avsnitt">
-        <div className="flex w-full rounded-lg bg-gray-100 p-1 dark:bg-zinc-800 sm:inline-flex sm:w-auto">
-          {tabs.map((t) => {
-            const on = tab === t.id
+        <nav
+          className="flex gap-6 border-b border-gray-200 dark:border-zinc-800"
+          aria-label="Driftflikar"
+        >
+          {(
+            [
+              ["oversikt", "Översikt"],
+              ["mal", "Mål"],
+              ["pipeline", "Pipeline"],
+              ["fokus", "Fokus"],
+            ] as const
+          ).map(([value, label]) => {
+            const active =
+              value === "fokus"
+                ? tab === "fokus" || listFilter === "utan-poang"
+                : tab === value && listFilter == null
             return (
               <button
-                key={t.id}
+                key={value}
                 type="button"
-                role="tab"
-                aria-selected={on}
-                id={`tab-${t.id}`}
-                aria-controls={`panel-${t.id}`}
                 className={cn(
-                  "inline-flex h-8 flex-1 items-center justify-center rounded-md px-3 text-sm font-medium sm:flex-none",
-                  on
-                    ? "bg-white text-gray-900 shadow-sm dark:bg-zinc-900 dark:text-white"
-                    : "text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white",
+                  "border-b-2 pb-2.5 text-sm font-medium",
+                  active
+                    ? "border-gray-900 text-gray-900 dark:border-zinc-100 dark:text-white"
+                    : "border-transparent text-gray-500 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-zinc-200",
                 )}
-                onClick={() => selectTab(t.id)}
+                onClick={() => navigate({ tab: value, filter: null })}
               >
-                {t.label}
+                {label}
               </button>
             )
           })}
-        </div>
-      </div>
+        </nav>
+      </header>
 
-      {tab === "oversikt" ? (
-        <div
-          id="panel-oversikt"
-          role="tabpanel"
-          aria-labelledby="tab-oversikt"
-          className="space-y-10"
-        >
-          <section aria-labelledby="vantan-heading">
-            <div className="mb-4">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2
-                  id="vantan-heading"
-                  className="text-lg font-bold text-gray-900 dark:text-white"
+      {listFilter === "utan-poang" ? (
+        <section className="space-y-4" aria-labelledby="utan-poang-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2
+              id="utan-poang-heading"
+              className="text-sm font-semibold text-gray-900 dark:text-white"
+            >
+              Uppgifter utan poäng ({withoutPointsTasks.length})
+            </h2>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-700 underline-offset-2 hover:underline dark:text-zinc-300"
+              onClick={() => navigate({ tab: "fokus", filter: null })}
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              Tillbaka till Fokus
+            </button>
+          </div>
+          <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-zinc-800 dark:border-zinc-800">
+            {withoutPointsTasks.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-900"
+                  onClick={() => setDetail(t.detail)}
                 >
-                  Väntar på Axel
-                </h2>
-                {data.summary.waiting > 0 ? (
-                  <p className="text-xs text-gray-500 dark:text-zinc-400">
-                    <span className="font-medium tabular-nums text-gray-800 dark:text-zinc-200">
-                      {data.summary.waiting}
-                    </span>{" "}
-                    {data.summary.waiting === 1 ? "fråga" : "frågor"}
-                    {data.summary.waitingOverdue > 0 ? (
-                      <>
-                        <span className="mx-1.5 text-gray-300 dark:text-zinc-600">
-                          ·
-                        </span>
-                        <span className="font-medium text-red-600 dark:text-red-400">
-                          {data.summary.waitingOverdue}{" "}
-                          {data.summary.waitingOverdue === 1
-                            ? "förfallen"
-                            : "förfallna"}
-                        </span>
-                      </>
-                    ) : null}
-                  </p>
-                ) : null}
-              </div>
-              {filtersActive ? (
-                <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
-                  Visar alla frågor, filtret gäller inte här
-                </p>
-              ) : null}
-            </div>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-gray-900 dark:text-white">
+                      {t.heading}
+                    </span>
+                    <span className="mt-1 block text-xs text-gray-600 dark:text-zinc-400">
+                      {[t.owner, t.statusLabel, t.objectiveLabel]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded border border-dashed border-gray-300 px-1.5 py-0.5 text-xs tabular-nums text-gray-600 dark:border-zinc-600 dark:text-zinc-400">
+                    – p
+                  </span>
+                </button>
+              </li>
+            ))}
+            {withoutPointsTasks.length === 0 ? (
+              <li className="px-4 py-6 text-sm text-gray-500 dark:text-zinc-400">
+                Inga uppgifter saknar poäng.
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
 
-            {data.queue.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-10 text-center dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-                <Inbox
-                  className="h-5 w-5 text-gray-400 dark:text-zinc-500"
-                  aria-hidden="true"
-                />
-                <p className="text-sm text-gray-600 dark:text-zinc-400">
-                  Inget väntar på Axel just nu.
+      {listFilter == null && tab === "oversikt" ? (
+        <div className="space-y-8">
+          {data.startedWithoutInitiativeCount > 0 &&
+          data.startedWithoutInitiativePreview ? (
+            <div className="flex flex-col gap-3 rounded-lg border border-red-300 bg-red-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-red-800 dark:bg-red-950/30">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-red-900 dark:text-red-100">
+                  {data.startedWithoutInitiativeCount} uppgift
+                  {data.startedWithoutInitiativeCount === 1 ? "" : "er"} pågår
+                  utan initiativ
+                </p>
+                <p className="mt-1 text-sm text-red-800 dark:text-red-200">
+                  {data.startedWithoutInitiativePreview.owner
+                    ? `${data.startedWithoutInitiativePreview.owner} · `
+                    : "Utan utförare · "}
+                  {data.startedWithoutInitiativePreview.heading}
+                  {data.startedWithoutInitiativePreview.objectiveLabel
+                    ? `. Målet är ${data.startedWithoutInitiativePreview.objectiveLabel}, men initiativ saknas.`
+                    : ". Initiativ saknas."}{" "}
+                  Inget ska påbörjas utan mål och initiativ.
                 </p>
               </div>
-            ) : (
-              <div className="rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-                <div className="divide-y divide-gray-200 dark:divide-[#1F1F23]">
-                  {topQueue.map((item) => (
-                    <QueueRow
-                      key={item.id}
-                      item={item}
-                      highlighted={godkannande === item.id}
-                      defaultExpanded={godkannande === item.id}
-                    />
-                  ))}
-                </div>
-                {showAllQueue && restQueue.length > 0 ? (
-                  <div className="divide-y divide-gray-200 border-t border-gray-200 dark:divide-[#1F1F23] dark:border-[#1F1F23]">
-                    {restQueue.map((item) => (
-                      <QueueRow
-                        key={item.id}
-                        item={item}
-                        highlighted={godkannande === item.id}
-                        defaultExpanded={godkannande === item.id}
-                      />
-                    ))}
-                  </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-900 dark:border-red-700 dark:bg-red-950 dark:text-red-100"
+                onClick={() => navigate({ tab: "mal" })}
+              >
+                Visa ej prioriterade ({data.summary.unprioritized})
+              </button>
+            </div>
+          ) : null}
+
+          <section>
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Väntar på {firstName}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-zinc-400">
+                {data.summary.waiting} frågor
+                {data.summary.waitingOverdue > 0 ? (
+                  <span className="ml-2 font-medium text-red-600 dark:text-red-400">
+                    {data.summary.waitingOverdue} förfallen
+                    {data.summary.waitingOverdue === 1 ? "" : "a"}
+                  </span>
                 ) : null}
-                {data.queue.length > 3 ? (
-                  <div className="border-t border-gray-200 px-5 py-3 dark:border-[#1F1F23]">
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-zinc-300 dark:hover:text-white"
-                      onClick={() => setShowAllQueue((v) => !v)}
-                    >
-                      {showAllQueue
-                        ? "Visa färre"
-                        : `Visa alla ${data.queue.length}`}
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            )}
-            <p className="mt-3 text-xs text-gray-500 dark:text-zinc-400">
+              </p>
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white px-4 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+              {data.queue.length === 0 ? (
+                <p className="py-6 text-sm text-gray-500">Inga öppna frågor.</p>
+              ) : (
+                data.queue.slice(0, 5).map((item) => (
+                  <QueueRow
+                    key={item.id}
+                    item={item}
+                    onOpen={() =>
+                      navigate({ godkannande: item.id, tab: "oversikt" })
+                    }
+                  />
+                ))
+              )}
+            </div>
+            {data.queue.length > 5 ? (
+              <p className="mt-2 text-sm text-gray-500">
+                Visa alla {data.queue.length}
+              </p>
+            ) : null}
+            <p className="mt-1 text-xs text-gray-500 dark:text-zinc-500">
               Svaras i chatten med Elsa.
             </p>
           </section>
 
-          <section aria-labelledby="pagar-heading">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <h2
-                id="pagar-heading"
-                className="text-lg font-bold text-gray-900 dark:text-white"
-              >
+          <section>
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Pågår
               </h2>
-              <p className="text-xs text-gray-500 dark:text-zinc-400">
-                <span className="font-medium tabular-nums text-gray-800 dark:text-zinc-200">
-                  {data.summary.pagar}
-                </span>{" "}
-                uppgifter
-              </p>
+              <p className="text-xs text-gray-500">Målordning</p>
             </div>
-            {data.pagarGroups.length === 0 ? (
-              <div className="rounded-xl border border-gray-200 bg-white px-5 py-8 text-center dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-                <p className="text-sm text-gray-500 dark:text-zinc-400">
-                  Inget pågår just nu.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {data.pagarGroups.map((group) => (
-                  <PagarBotGroup
-                    key={group.ownerKey}
-                    group={group}
-                    collapsed={!!collapsedPagarOwners[group.ownerKey]}
-                    onToggle={() => togglePagarGroup(group.ownerKey)}
-                    onOpen={openDetail}
+            <div className="space-y-2">
+              {data.pagarTasks.length === 0 ? (
+                <p className="text-sm text-gray-500">Inget pågår just nu.</p>
+              ) : (
+                data.pagarTasks.map((task) => (
+                  <PagarRow
+                    key={task.id}
+                    task={task}
+                    onOpen={() => setDetail(task.detail)}
                   />
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </section>
 
-          <section aria-labelledby="veckan-heading">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <h2
-                id="veckan-heading"
-                ref={weekRef}
-                className="text-lg font-bold text-gray-900 dark:text-white"
-              >
+          <section>
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Den här veckan
               </h2>
-              <button
-                type="button"
-                className="text-sm font-medium text-gray-600 underline underline-offset-2 decoration-gray-300 hover:text-gray-900 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-white"
-                onClick={() => selectTab("pipeline")}
-              >
-                Se allt i Pipeline
-              </button>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-gray-500">Senast klart</span>
+                <button
+                  type="button"
+                  className={OPEN_LINK_CLASS}
+                  onClick={() => navigate({ tab: "pipeline" })}
+                >
+                  Se allt i Pipeline
+                </button>
+              </div>
             </div>
-            <div className="rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
+            <div className="rounded-xl border border-gray-200 bg-white px-4 dark:border-[#1F1F23] dark:bg-[#0F0F12]">
               {data.weekItems.length === 0 ? (
-                <p className="px-5 py-8 text-center text-sm text-gray-500 dark:text-zinc-400">
-                  Inget klart denna vecka.
-                </p>
+                <p className="py-6 text-sm text-gray-500">Inget klart denna vecka.</p>
               ) : (
-                <ul className="divide-y divide-gray-200 dark:divide-[#1F1F23]">
-                  {data.weekItems.map((item) => {
-                    const badge = sourceBadgeLabel(item.source)
-                    return (
-                      <li key={item.id}>
-                        <button
-                          type="button"
-                          className="w-full px-5 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-zinc-900/40"
-                          onClick={() => openDetail(item.detail)}
-                        >
-                          <p
-                            className="text-sm font-medium leading-snug text-gray-900 line-clamp-2 dark:text-white"
-                            title={item.heading}
-                          >
-                            {item.heading}
-                          </p>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                            {item.owner ? (
-                              <span className="text-xs text-gray-500 dark:text-zinc-400">
-                                {item.owner}
-                              </span>
-                            ) : null}
-                            <time className="text-xs tabular-nums text-gray-500 dark:text-zinc-400">
-                              {item.atLabel}
-                            </time>
-                            {item.projectTag ? (
-                              <span className={PROJECT_TAG_CLASS}>
-                                {item.projectTag}
-                              </span>
-                            ) : null}
-                            {badge ? (
-                              <span className={SOURCE_BADGE_CLASS}>{badge}</span>
-                            ) : null}
-                          </div>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
+                data.weekItems.map((item) => (
+                  <WeekRow
+                    key={item.id}
+                    item={item}
+                    onOpen={() => setDetail(item.detail)}
+                  />
+                ))
               )}
             </div>
           </section>
         </div>
       ) : null}
 
-      {tab === "botar" ? (
-        <div id="panel-botar" role="tabpanel" aria-labelledby="tab-botar">
-          <section aria-labelledby="bots-heading" className="space-y-4">
-            <h2
-              id="bots-heading"
-              className="text-lg font-bold text-gray-900 dark:text-white"
-            >
-              Botar
-            </h2>
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-              <div className="hidden overflow-x-auto lg:block">
-                <table className="w-full min-w-[36rem] text-left">
-                  <thead>
-                    <tr className="text-left text-xs font-medium text-gray-500 dark:text-zinc-400">
-                      <th className="px-5 py-3 font-medium">Bot</th>
-                      <th className="px-5 py-3 font-medium">Ägarområde</th>
-                      <th className="px-5 py-3 font-medium">Senaste aktivitet</th>
-                      <th className="px-5 py-3 font-medium">Jobbar på</th>
-                      <th className="px-5 py-3 font-medium">Väntar på</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeBots.map((bot) => (
-                      <BotTableRow key={bot.id} bot={bot} />
-                    ))}
-                  </tbody>
-                  {showSilentBots && silentBots.length > 0 ? (
-                    <tbody>
-                      {silentBots.map((bot) => (
-                        <BotTableRow key={bot.id} bot={bot} quiet />
-                      ))}
-                    </tbody>
-                  ) : null}
-                </table>
-              </div>
-
-              <div className="divide-y divide-gray-200 dark:divide-[#1F1F23] lg:hidden">
-                {activeBots.map((bot) => (
-                  <BotMobileCard key={bot.id} bot={bot} />
+      {listFilter == null && tab === "mal" ? (
+        <div className="space-y-6">
+          {data.unprioritizedTasks.length > 0 ? (
+            <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+              <h2 className="text-base font-semibold text-amber-950 dark:text-amber-100">
+                Ej prioriterad
+              </h2>
+              <p className="text-sm text-amber-900/80 dark:text-amber-100/80">
+                Uppgifter utan mål eller initiativ. Påbörjade utan initiativ
+                visas i rött.
+              </p>
+              <ul className="space-y-2">
+                {data.unprioritizedTasks.map((task: DriftUnprioritizedTask) => (
+                  <li key={task.id}>
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex w-full flex-col gap-1 rounded-lg border px-3 py-3 text-left",
+                        task.startedWithoutInitiative
+                          ? "border-red-300 bg-white dark:border-red-800 dark:bg-red-950/30"
+                          : "border-amber-200 bg-white dark:border-amber-800 dark:bg-zinc-900",
+                      )}
+                      onClick={() => setDetail(task.detail)}
+                    >
+                      <span
+                        className={cn(
+                          "text-sm font-medium text-gray-900 dark:text-zinc-100",
+                          TITLE_BREAK,
+                        )}
+                      >
+                        {task.heading}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <span
+                          className={
+                            task.startedWithoutInitiative
+                              ? RED_BADGE
+                              : YELLOW_BADGE
+                          }
+                        >
+                          Ej prioriterad
+                        </span>
+                        {task.startedWithoutInitiative ? (
+                          <span className="text-xs text-red-700 dark:text-red-300">
+                            Påbörjad utan initiativ
+                          </span>
+                        ) : null}
+                        <span className="text-xs text-gray-500">
+                          {task.statusLabel}
+                          {task.owner ? ` · ${task.owner}` : ""}
+                        </span>
+                      </div>
+                    </button>
+                  </li>
                 ))}
-                {showSilentBots && silentBots.length > 0 ? (
-                  <div className="divide-y divide-gray-200 dark:divide-[#1F1F23]">
-                    {silentBots.map((bot) => (
-                      <BotMobileCard key={bot.id} bot={bot} quiet />
+              </ul>
+            </section>
+          ) : null}
+
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Mål i prioritetsordning
+            </h2>
+            <span className="text-xs text-gray-500">Målordning</span>
+          </div>
+
+          <div className="space-y-4">
+            {data.malObjectives.map((obj) => (
+              <MalObjectiveCard
+                key={obj.id}
+                objective={obj}
+                botFilter={owner}
+                onOpenTask={setDetail}
+              />
+            ))}
+            {data.malObjectives.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                Inga mål för {company === "dirtywine" ? "Dirty Wine" : "PACT"}{" "}
+                ännu.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {listFilter == null && tab === "pipeline" ? (
+        <div className="space-y-6">
+          {unprioritizedPipelineCount > 0 ? (
+            <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+              <h2 className="text-sm font-semibold text-amber-950 dark:text-amber-100">
+                Ej prioriterat ({data.summary.unprioritized} uppgifter utan
+                initiativ)
+              </h2>
+              <PipelineColumnBoard
+                columns={data.pipelineUnprioritized}
+                onOpen={(card) => setDetail(card.detail)}
+              />
+            </section>
+          ) : null}
+
+          {data.pipelineObjectives.map((obj: DriftPipelineObjective) => {
+            const open = pipelineExpanded[obj.id] ?? obj.defaultExpanded
+            return (
+              <section
+                key={obj.id}
+                className="rounded-xl border border-gray-200 dark:border-[#1F1F23]"
+              >
+                <button
+                  type="button"
+                  className="flex w-full flex-col gap-1 px-4 py-3 text-left sm:flex-row sm:items-center sm:gap-2"
+                  onClick={() =>
+                    setPipelineExpanded((s) => ({ ...s, [obj.id]: !open }))
+                  }
+                >
+                  {/* Mobile (<sm): stacked rows. Desktop (sm+): single row, unchanged. */}
+                  <span className="flex min-w-0 items-center gap-2">
+                    {open ? (
+                      <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+                    )}
+                    <span className="whitespace-nowrap font-semibold text-gray-900 dark:text-white">
+                      {obj.rank} {obj.shortLabel}
+                    </span>
+                    <span className="hidden min-w-0 text-sm text-gray-500 sm:inline">
+                      — {obj.title}
+                    </span>
+                  </span>
+                  <span className="pl-6 text-sm text-gray-500 sm:hidden">
+                    {obj.title}
+                  </span>
+                  <span className="pl-6 text-xs text-gray-500 sm:ml-auto sm:pl-0 sm:shrink-0">
+                    {obj.summaryLine}
+                  </span>
+                </button>
+                {open ? (
+                  <div className="space-y-6 border-t border-gray-100 px-4 py-4 dark:border-zinc-800">
+                    {obj.initiatives.map((init) => (
+                      <div key={init.id}>
+                        <div className="mb-3">
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                            <span className="text-gray-700 dark:text-zinc-300">
+                              {init.key}
+                            </span>{" "}
+                            {init.title}
+                          </h3>
+                          <p className="mt-0.5 text-xs text-gray-600 dark:text-zinc-400">
+                            Ansvarig: {init.ownerAgent}
+                          </p>
+                        </div>
+                        <PipelineColumnBoard
+                          columns={init.columns}
+                          onOpen={(card) => setDetail(card.detail)}
+                          emptyLabel="Inget i flödet"
+                        />
+                      </div>
                     ))}
                   </div>
                 ) : null}
-              </div>
-
-              {silentBots.length > 0 ? (
-                <div className="border-t border-gray-200 px-5 py-3 dark:border-[#1F1F23]">
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white"
-                    onClick={() => setShowSilentBots((v) => !v)}
-                  >
-                    {showSilentBots
-                      ? "Dölj tysta botar"
-                      : `Visa ${silentBots.length} tysta botar`}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </section>
+              </section>
+            )
+          })}
         </div>
       ) : null}
 
-      {tab === "pipeline" ? (
-        <div
-          id="panel-pipeline"
-          role="tabpanel"
-          aria-labelledby="tab-pipeline"
-        >
-          <section aria-labelledby="pipe-heading" className="space-y-4">
-            <h2
-              id="pipe-heading"
-              className="text-lg font-bold text-gray-900 dark:text-white"
-            >
-              Pipeline per projekt
-            </h2>
-            {data.projects.length === 0 ? (
-              <div className="rounded-xl border border-gray-200 bg-white px-5 py-10 text-center dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-                <p className="text-sm text-gray-600 dark:text-zinc-400">
-                  Inga projekt matchar filtret.
-                </p>
-                {(owner || projectId) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={cn("mt-4", ADMIN_OUTLINE_BUTTON_CLASS)}
-                    onClick={clearFilters}
-                  >
-                    Rensa
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-                {data.projects.map((project) => {
-                  const open = expandedProjectId === project.id
-                  return (
-                    <section
-                      key={project.id}
-                      ref={(el) => {
-                        projectSectionRefs.current[project.id] = el
-                      }}
-                      className="border-b border-gray-200 last:border-b-0 dark:border-[#1F1F23]"
-                    >
-                      <button
-                        type="button"
-                        className="flex w-full items-start gap-3 px-5 py-4 text-left hover:bg-gray-50/80 dark:hover:bg-zinc-900/40"
-                        aria-expanded={open}
-                        onClick={() =>
-                          setExpandedProjectId(open ? null : project.id)
-                        }
-                      >
-                        {open ? (
-                          <ChevronDown
-                            className="mt-1 h-4 w-4 shrink-0 text-gray-400 dark:text-zinc-500"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <ChevronRight
-                            className="mt-1 h-4 w-4 shrink-0 text-gray-400 dark:text-zinc-500"
-                            aria-hidden="true"
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {project.name}
-                            </h3>
-                            <span className="text-xs text-gray-500 dark:text-zinc-400">
-                              {project.companyLabel}
-                            </span>
-                            {project.archived ? (
-                              <span className={ARCHIVED_BADGE_CLASS}>
-                                Arkiverat
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
-                            {projectCountsLine(project)}
-                            {project.lastActivityLabel ? (
-                              <>
-                                {" · "}
-                                <span className="text-xs text-gray-400 dark:text-zinc-500">
-                                  Senast {project.lastActivityLabel}
-                                </span>
-                              </>
-                            ) : null}
-                          </p>
-                        </div>
-                      </button>
-                      {open ? (
-                        <div className="px-5 pb-5">
-                          {project.archived ? (
-                            <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
-                              Arkiverat i admin, men har fortfarande öppna
-                              uppgifter.
-                            </p>
-                          ) : null}
-                          <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                            <PipelineColumn
-                              title="Klart"
-                              titleClass="text-emerald-700 dark:text-emerald-400"
-                              cards={project.columns.klart}
-                              older={project.columns.klartOlder}
-                              showOlder={!!showOlderByProject[project.id]}
-                              onToggleOlder={() =>
-                                setShowOlderByProject((prev) => ({
-                                  ...prev,
-                                  [project.id]: !prev[project.id],
-                                }))
-                              }
-                            />
-                            <PipelineColumn
-                              title="Pågår"
-                              titleClass="text-blue-700 dark:text-blue-400"
-                              cards={project.columns.pagar}
-                            />
-                            <PipelineColumn
-                              title="På gång"
-                              titleClass="text-sky-800 dark:text-sky-300"
-                              cards={project.columns.pagang}
-                            />
-                            <PipelineColumn
-                              title="Backlog"
-                              titleClass="text-gray-600 dark:text-zinc-400"
-                              cards={project.columns.backlog}
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-                    </section>
-                  )
-                })}
-              </div>
-            )}
-          </section>
-        </div>
+      {listFilter == null && tab === "fokus" && focusData ? (
+        <FokusTab
+          data={focusData}
+          period={period}
+          onPeriodChange={(next) =>
+            navigate({ tab: "fokus", period: next, filter: null })
+          }
+          onPeriodAnchorChange={(ymd) =>
+            navigate({ tab: "fokus", periodAnchor: ymd, filter: null })
+          }
+          initialExpandId={focusExpandId}
+          initialHelpOpen={focusHelpOpen}
+        />
       ) : null}
 
-      {filterOpen && filterPortalReady
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-[100]"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={filterTitleId}
-            >
-              <button
-                type="button"
-                className="absolute inset-0 bg-black/80 lg:bg-black/40"
-                aria-label="Stäng filter"
-                onClick={() => setFilterOpen(false)}
-              />
-              <div className="absolute inset-x-0 bottom-0 z-[101] max-h-[85vh] overflow-y-auto rounded-t-xl border border-gray-200 bg-white p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-lg dark:border-zinc-800 dark:bg-zinc-900 lg:inset-auto lg:right-8 lg:top-32 lg:w-[22rem] lg:rounded-xl lg:p-5">
-                <div
-                  className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-zinc-600 lg:hidden"
-                  aria-hidden="true"
-                />
-                <div className="mb-4 flex items-center justify-between">
-                  <h2
-                    id={filterTitleId}
-                    className="text-lg font-bold text-gray-900 dark:text-white"
-                  >
-                    Filter
-                  </h2>
-                  <button
-                    type="button"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                    aria-label="Stäng filter"
-                    onClick={() => setFilterOpen(false)}
-                  >
-                    <X className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-                <div className={cn(ADMIN_FORM_FIELDS_CLASS, "space-y-4")}>
-                  <label className="block" htmlFor="drift-filter-owner">
-                    <span className="mb-1 block text-xs font-medium text-gray-700 dark:text-zinc-300">
-                      Ägare
-                    </span>
-                    <select
-                      id="drift-filter-owner"
-                      className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                      value={draftOwner}
-                      onChange={(e) => setDraftOwner(e.target.value)}
-                    >
-                      <option value="">Alla ägare</option>
-                      <option value="__none__">Utan ägare</option>
-                      {data.ownerOptions.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block" htmlFor="drift-filter-project">
-                    <span className="mb-1 block text-xs font-medium text-gray-700 dark:text-zinc-300">
-                      Projekt
-                    </span>
-                    <select
-                      id="drift-filter-project"
-                      className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                      value={draftProject}
-                      onChange={(e) => setDraftProject(e.target.value)}
-                    >
-                      <option value="">Alla projekt</option>
-                      <option value="__unassigned__">Utan projektkoppling</option>
-                      {data.projectOptions.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="mt-6 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gray-900 text-sm font-medium text-white hover:bg-gray-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                    onClick={applyFilters}
-                  >
-                    Visa resultat
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      "inline-flex h-11 w-full items-center justify-center border text-sm font-medium",
-                      ADMIN_OUTLINE_BUTTON_CLASS,
-                    )}
-                    onClick={clearFilters}
-                  >
-                    Rensa
-                  </button>
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      {listFilter == null && tab === "fokus" && !focusData ? (
+        <p className="text-sm text-gray-500 dark:text-zinc-400">
+          Kunde inte ladda Fokus.
+        </p>
+      ) : null}
 
       <DriftDetailPanel
         detail={detail}
         open={!!detail}
-        onClose={closeDetail}
-        onShowInPipeline={showInPipeline}
+        onClose={() => setDetail(null)}
+        onShowInPipeline={() => {
+          setDetail(null)
+          navigate({ tab: "pipeline", filter: null })
+        }}
       />
-    </div>
-  )
-}
 
-function PagarBotGroup({
-  group,
-  collapsed,
-  onToggle,
-  onOpen,
-}: {
-  group: DriftPagarBotGroup
-  collapsed: boolean
-  onToggle: () => void
-  onOpen: (detail: DriftTaskDetail) => void
-}) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left sm:cursor-default"
-        aria-expanded={!collapsed}
-        onClick={onToggle}
-      >
-        <div className="flex min-w-0 items-baseline gap-2">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-            {group.ownerLabel}
-          </h3>
-          <span className="text-xs tabular-nums text-gray-500 dark:text-zinc-400">
-            {group.count}
-          </span>
-        </div>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 text-gray-400 transition-transform sm:hidden dark:text-zinc-500",
-            collapsed && "-rotate-90",
-          )}
-          aria-hidden="true"
-        />
-      </button>
-      <div
-        className={cn(
-          "divide-y divide-gray-200 border-t border-gray-200 dark:divide-[#1F1F23] dark:border-[#1F1F23]",
-          collapsed && "hidden sm:block",
-        )}
-      >
-        {group.tasks.map((task) => (
-          <button
-            key={task.id}
-            type="button"
-            className="flex w-full flex-col gap-1.5 px-5 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-zinc-900/40"
-            onClick={() => onOpen(task.detail)}
-          >
-            <p
-              className="text-sm font-medium leading-snug text-gray-900 line-clamp-2 dark:text-white"
-              title={task.heading}
-            >
-              {task.heading}
-            </p>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              {task.projectTag ? (
-                <span className={PROJECT_TAG_CLASS}>{task.projectTag}</span>
-              ) : null}
-              {task.badge === "waiting_for_you" ? (
-                <span className={WAIT_YOU_BADGE_CLASS}>Väntar på dig</span>
-              ) : null}
-              {task.badge === "waiting_for_review" ? (
-                <span className={WAIT_REVIEW_BADGE_CLASS}>
-                  Väntar på granskning
-                </span>
-              ) : null}
-              {task.dateLabel ? (
-                <time className="text-xs tabular-nums text-gray-500 dark:text-zinc-400">
-                  {task.dateLabel}
-                </time>
-              ) : null}
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function Sep() {
-  return (
-    <span className="text-gray-300 dark:text-zinc-600" aria-hidden="true">
-      {" · "}
-    </span>
-  )
-}
-
-function SummaryBtn({
-  n,
-  label,
-  onClick,
-}: {
-  n: number
-  label: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      className="inline whitespace-nowrap text-left"
-      onClick={onClick}
-      aria-label={`${n} ${label}`}
-    >
-      <span className="font-semibold tabular-nums text-gray-900 dark:text-white">
-        {n}
-      </span>
-      <span className="text-gray-500 dark:text-zinc-400"> {label}</span>
-    </button>
-  )
-}
-
-function BotTableRow({
-  bot,
-  quiet = false,
-}: {
-  bot: DriftBotRow
-  quiet?: boolean
-}) {
-  return (
-    <tr
-      className={cn(
-        "border-t border-gray-100 dark:border-zinc-800",
-        quiet && "opacity-70",
-      )}
-    >
-      <td className="px-5 py-3.5 align-top">
-        <div className="text-sm font-medium text-gray-900 dark:text-zinc-100">
-          {bot.name}
-        </div>
-        <div className="mt-0.5 text-xs text-gray-500 dark:text-zinc-500">
-          {bot.companyLabel}
-        </div>
-      </td>
-      <td className="px-5 py-3.5 align-top text-sm text-gray-600 dark:text-zinc-400">
-        {bot.area || "—"}
-      </td>
-      <td className="px-5 py-3.5 align-top">
-        <div className="text-sm tabular-nums text-gray-700 dark:text-zinc-300">
-          {bot.latestAtLabel}
-        </div>
-        <div
-          className="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-zinc-500"
-          title={bot.latestAction ?? undefined}
-        >
-          {bot.latestAction}
-        </div>
-      </td>
-      <td className="px-5 py-3.5 align-top text-sm text-gray-700 dark:text-zinc-300">
-        <span className="line-clamp-2">{bot.jobbarPa}</span>
-      </td>
-      <td className="px-5 py-3.5 align-top text-left">
-        <BotVantarCell bot={bot} />
-      </td>
-    </tr>
-  )
-}
-
-function BotMobileCard({
-  bot,
-  quiet = false,
-}: {
-  bot: DriftBotRow
-  quiet?: boolean
-}) {
-  return (
-    <article className={cn("px-5 py-4", quiet && "opacity-70")}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">
-            {bot.name}
-          </p>
-          <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">
-            {bot.area || "—"} · {bot.companyLabel}
-          </p>
-        </div>
-        {bot.vantarTone !== "none" ? <BotVantarCell bot={bot} /> : null}
-      </div>
-      <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">
-        {bot.latestAtLabel}
-        {bot.latestAction ? ` · ${bot.latestAction}` : ""}
+      <p className="sr-only">
+        Uppdaterad {data.generatedAtLabel}.{" "}
+        <Link href="/admin/operations/objectives">Hantera mål</Link>
       </p>
-      <p className="mt-1 text-sm text-gray-700 dark:text-zinc-300">
-        Jobbar på {bot.jobbarPa}
-      </p>
-    </article>
+    </div>
   )
 }

@@ -16,6 +16,7 @@ import { CategoryFilter } from "./category-filter";
 import { ColorFilter } from "./color-filter";
 import { GrapesFilter } from "./grapes-filter";
 import { FarmingFilter } from "./farming-filter";
+import { StyleFilter } from "./style-filter";
 import { RegionFilter } from "./region-filter";
 import { CompetitorFilter, type PriceSourceForFilter } from "./competitor-filter";
 import { useFilterCount } from "../hooks/use-filter-count";
@@ -55,6 +56,11 @@ import {
   shouldNavigateShopFilters,
 } from "@/lib/shop/filter-navigation";
 import type { ShopFarmingFilterValue } from "@/lib/shop/farming-filter";
+import {
+  getActiveStyleFromPathname,
+  getCategoryUrlForStyle,
+  type ShopStyleFilterValue,
+} from "@/lib/shop/style-category-links";
 import { gateShopFilterHref } from "@/lib/shop/gate-shop-filter-href";
 import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { extractGrapesFromProducts } from "../hooks/use-available-grapes";
@@ -111,6 +117,7 @@ export function MobileFilters({
   const locale = localeFromShopPathname(pathname);
   const activeColorName = getActiveColorFromPathname(pathname);
   const activeFarming = getActiveFarmingFromPathname(pathname);
+  const activeStyle = getActiveStyleFromPathname(pathname);
   const grapeCandidates = useMemo(
     () => extractGrapesFromProducts(originalProducts),
     [originalProducts],
@@ -190,8 +197,31 @@ export function MobileFilters({
     );
   };
 
+  const resolveStyleHref = (style: ShopStyleFilterValue): string | null => {
+    const isClear = activeStyle === style;
+    const url = isClear
+      ? locale === "en"
+        ? "/wine"
+        : "/vin"
+      : getCategoryUrlForStyle(style, locale);
+    if (!url) return null;
+    return withPreservedShopFilters(
+      gateShopFilterHref(url, {
+        isClear,
+        navigablePaths: navigableShopPaths,
+      }),
+    );
+  };
+
   const handleColorSelect = (colorName: string) => {
     const url = resolveColorHref(colorName);
+    if (!url) return false;
+    router.push(url);
+    return true;
+  };
+
+  const handleStyleSelect = (style: ShopStyleFilterValue): boolean => {
+    const url = resolveStyleHref(style);
     if (!url) return false;
     router.push(url);
     return true;
@@ -367,6 +397,12 @@ export function MobileFilters({
                     onColorSelect={handleColorSelect}
                     getColorHref={resolveColorHref}
                     showSwatchLabels
+                  />
+                  <StyleFilter
+                    mode="drawer"
+                    onStyleSelect={handleStyleSelect}
+                    activeStyle={activeStyle ?? undefined}
+                    getStyleHref={resolveStyleHref}
                   />
                   <RegionFilter
                     mode="drawer"

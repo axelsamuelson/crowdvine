@@ -34,6 +34,11 @@ export function DirectBoxDeliveryPromise({
 
   const promise = translate(locale, DIRECT_BOX_DELIVERY_MESSAGE_KEY);
   const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim() || null;
+  // Message key already includes the window ("… – 5–10 arbetsdagar"); do not
+  // repeat it on a second line when the TODO string is embedded in the promise.
+  const showTimeTodo =
+    Boolean(timeTodo) &&
+    !promise.toLowerCase().includes(String(timeTodo).toLowerCase());
 
   return (
     <div className={cn("min-w-0", className)}>
@@ -44,7 +49,7 @@ export function DirectBoxDeliveryPromise({
         )}
       >
         {promise}
-        {timeTodo ? (
+        {showTimeTodo ? (
           <span className="block text-muted-foreground/80">{timeTodo}</span>
         ) : null}
       </p>

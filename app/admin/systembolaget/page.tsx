@@ -41,7 +41,7 @@ type SearchHit = {
 type CuratedRow = {
   id: number;
   product_number: string;
-  verdict: "recommended" | "avoid" | "skipped";
+  verdict: "recommended" | "avoid" | "skipped" | "candidate";
   category: string;
   editorial_note_sv: string;
   editorial_note_en: string | null;
@@ -69,7 +69,7 @@ type CuratedRow = {
 type CurateForm = {
   product_number: string;
   product_label: string;
-  verdict: "recommended" | "avoid" | "skipped";
+  verdict: "recommended" | "avoid" | "skipped" | "candidate";
   category: GuideWineCategory;
   editorial_note_sv: string;
   editorial_note_en: string;
@@ -443,8 +443,13 @@ export default function SystembolagetAdminPage() {
   }
 
   async function saveCurated() {
-    if (!form.product_number || !form.editorial_note_sv.trim()) {
-      toast.error("Product and Swedish editorial note are required");
+    if (!form.product_number) {
+      toast.error("Product is required");
+      return;
+    }
+    const noteRequired = form.verdict !== "candidate";
+    if (noteRequired && !form.editorial_note_sv.trim()) {
+      toast.error("Swedish editorial note is required");
       return;
     }
     if (form.verdict === "skipped" && !form.skip_reason_sv.trim()) {
@@ -468,7 +473,7 @@ export default function SystembolagetAdminPage() {
           skip_reason_sv: form.skip_reason_sv.trim() || null,
           skip_reason_en: form.skip_reason_en.trim() || null,
           sort_order: Number.parseInt(form.sort_order, 10) || 100,
-          is_published: form.verdict === "skipped" ? false : form.is_published,
+          is_published: form.verdict === "skipped" || form.verdict === "candidate" ? false : form.is_published,
         }),
       });
       if (!res.ok) {
@@ -970,7 +975,7 @@ export default function SystembolagetAdminPage() {
                 <Label htmlFor="verdict">Verdict</Label>
                 <select
                   id="verdict"
-                  className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:[color-scheme:dark]"
                   value={form.verdict}
                   onChange={(e) =>
                     setForm((p) => ({
@@ -982,13 +987,14 @@ export default function SystembolagetAdminPage() {
                   <option value="recommended">recommended</option>
                   <option value="avoid">avoid</option>
                   <option value="skipped">skipped (reviewed, not listed)</option>
+                  <option value="candidate">Kandidat</option>
                 </select>
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
                 <select
                   id="category"
-                  className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:[color-scheme:dark]"
                   value={form.category}
                   onChange={(e) =>
                     setForm((p) => ({
@@ -1038,7 +1044,10 @@ export default function SystembolagetAdminPage() {
               </>
             ) : null}
             <div>
-              <Label htmlFor="note-sv">Editorial note (SV)</Label>
+              <Label htmlFor="note-sv">
+                Editorial note (SV)
+                {form.verdict === "candidate" ? " (optional for Kandidat)" : ""}
+              </Label>
               <textarea
                 id="note-sv"
                 className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm min-h-[88px]"
@@ -1188,14 +1197,15 @@ export default function SystembolagetAdminPage() {
                           </span>
                         ) : null}
                         {!row.is_published ? (
-                          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">
-                            draft
+                          <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-zinc-700 dark:text-zinc-200">
+                            Utkast
                           </span>
                         ) : null}
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {row.product_number} · {row.verdict} · sort{" "}
-                        {row.sort_order}
+                        {row.product_number} ·{" "}
+                        {row.verdict === "candidate" ? "kandidat" : row.verdict}{" "}
+                        · sort {row.sort_order}
                         {category === "new"
                           ? ` · släpp ${formatLaunchDate(row.product?.product_launch_date)}`
                           : ""}

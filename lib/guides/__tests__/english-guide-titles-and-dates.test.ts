@@ -95,7 +95,7 @@ describe("guide article dates", () => {
     for (const article of publishedBilingualArticleGuides()) {
       expect(article.updated, article.slug.en).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
-    expect(worldsBestOrangeWinesGuide.updated).toBe("2026-10-25");
+    expect(worldsBestOrangeWinesGuide.updated).toBe("2026-11-18");
     expect(worldsBestNaturalChampagneGuide.updated).toBe("2026-10-25");
   });
 });

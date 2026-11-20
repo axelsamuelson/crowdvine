@@ -125,13 +125,12 @@ describe("PDP + /vin wiring (PACT only)", () => {
     expect(bar).toMatch(/PactSellerConsumerInfo/);
   });
 
-  it("listing shows seller/withdrawal/pallet once on /vin (PACT)", () => {
+  it("listing PLP has no seller/withdrawal/pallet trust box (link-rules §5)", () => {
     const shop = readFileSync(
       resolve(process.cwd(), "app/vin/components/main-shop-content.tsx"),
       "utf8",
     );
-    expect(shop).toMatch(/PactSellerConsumerInfo/);
-    expect(shop).toMatch(/!isB2BSite/);
-    expect(shop).toMatch(/locale=\{locale\}/);
+    expect(shop).not.toMatch(/PactSellerConsumerInfo/);
   });
 });
+

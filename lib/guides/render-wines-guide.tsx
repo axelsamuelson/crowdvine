@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -14,7 +15,11 @@ import {
   entryDescription,
   guideCopy,
 } from "@/lib/guides/guide-copy";
-import { countryLabel, wineTypeLabel } from "@/lib/guides/guide-labels";
+import {
+  countryLabel,
+  regionLabel,
+  wineTypeLabel,
+} from "@/lib/guides/guide-labels";
 import {
   guideHreflang,
   guidePath,
@@ -140,7 +145,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   const languedoc = filterLanguedocRoussillonEntries(TOP_100_WINES);
 
   const wineMetaLine = (entry: (typeof TOP_100_WINES)[number]) =>
-    `${entry.producer} · ${entry.region} · ${countryLabel(entry.country, locale)} · ${wineTypeLabel(entry.type, locale)} · ${entry.grapes}`;
+    `${entry.producer} · ${regionLabel(entry.region, locale)} · ${countryLabel(entry.country, locale)} · ${wineTypeLabel(entry.type, locale)} · ${entry.grapes}`;
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
@@ -221,9 +226,11 @@ export async function renderWinesGuidePage(locale: AppLocale) {
         </p>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
-          {copy.wines.intro.map((paragraph) => (
+          {copy.wines.intro.map((paragraph, index) => (
             <p key={paragraph.slice(0, 40)}>
-              {linkLanguedocMentions(paragraph, locale)}
+              {paragraph.includes("](")
+                ? renderArticleRichText(paragraph, `intro-${index}`)
+                : linkLanguedocMentions(paragraph, locale)}
             </p>
           ))}
         </div>
@@ -413,7 +420,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 {wine.wine}
                 <span className="text-muted-foreground/80">
                   {", "}
-                  {wine.producer}, {wine.region}
+                  {wine.producer}, {regionLabel(wine.region, locale)}
                 </span>
               </li>
             ))}

@@ -160,6 +160,11 @@ export type FetchEventsWindowOptions<T extends CreatedAtRow> = {
   /** Safety cap — when hit, oldest rows are dropped. */
   maxRows?: number;
   chunkDays?: number;
+  /**
+   * Max date-windows fetched at once (newest → oldest waves).
+   * Default 6. Set to 1 for fully sequential (legacy) behaviour.
+   */
+  concurrency?: number;
   /** Optional overall abort for a single table attempt (e.g. clean view). */
   signal?: AbortSignal;
   queryPage: (args: PageQueryArgs) => Promise<PageQueryResult<T>>;
@@ -171,9 +176,48 @@ export type FetchEventsWindowResult<T extends CreatedAtRow> = CapResult<T> & {
   complete: boolean;
 };
 
+async function fetchOneDateChunk<T extends CreatedAtRow>(opts: {
+  win: { gteIso: string; ltIso: string };
+  pageSize: number;
+  maxRows: number;
+  signal?: AbortSignal;
+  queryPage: (args: PageQueryArgs) => Promise<PageQueryResult<T>>;
+}): Promise<{ rows: T[]; error: { message: string } | null; incomplete: boolean }> {
+  const chunkRows: T[] = [];
+  let incomplete = false;
+  for (let from = 0; ; from += opts.pageSize) {
+    if (opts.signal?.aborted) {
+      return { rows: [], error: { message: "aborted" }, incomplete: true };
+    }
+    const { data, error } = await opts.queryPage({
+      gteIso: opts.win.gteIso,
+      ltIso: opts.win.ltIso,
+      from,
+      to: from + opts.pageSize - 1,
+      signal: opts.signal,
+    });
+    if (error) {
+      return { rows: [], error, incomplete: false };
+    }
+    const batch = (data ?? []) as T[];
+    chunkRows.push(...batch);
+    if (batch.length < opts.pageSize) break;
+    // Per-chunk safety against runaway paging
+    if (chunkRows.length >= opts.maxRows) {
+      incomplete = true;
+      break;
+    }
+  }
+  return { rows: chunkRows, error: null, incomplete };
+}
+
 /**
  * Fetch events in Stockholm date chunks, newest chunk first, paging within
  * each chunk until exhausted. If `maxRows` is hit, keeps newest rows only.
+ *
+ * Windows are fetched in newest→oldest waves of `concurrency` so wall-clock
+ * time drops sharply vs fully sequential awaits, while preferNewestCap keeps
+ * aggregate inputs identical to the sequential path when under the cap.
  */
 export async function fetchEventsInDateChunks<T extends CreatedAtRow>(
   opts: FetchEventsWindowOptions<T>,
@@ -181,6 +225,7 @@ export async function fetchEventsInDateChunks<T extends CreatedAtRow>(
   const pageSize = opts.pageSize ?? 1000;
   const maxRows = opts.maxRows ?? 100_000;
   const chunkDays = opts.chunkDays ?? 7;
+  const concurrency = Math.max(1, Math.floor(opts.concurrency ?? 6));
   const untilIso = opts.untilIso ?? new Date().toISOString();
   const windows = stockholmDateChunkWindows(
     opts.sinceIso,
@@ -188,12 +233,13 @@ export async function fetchEventsInDateChunks<T extends CreatedAtRow>(
     chunkDays,
   );
 
+  // Newest → oldest so a safety cap keeps recent traffic.
+  const newestFirstWindows = [...windows].reverse();
   const collectedNewestFirst: T[] = [];
   let truncatedByCap = false;
   let incomplete = false;
 
-  // Newest → oldest so a safety cap keeps recent traffic.
-  for (let wi = windows.length - 1; wi >= 0; wi--) {
+  for (let i = 0; i < newestFirstWindows.length; i += concurrency) {
     if (opts.signal?.aborted) {
       return {
         rows: [],
@@ -205,41 +251,38 @@ export async function fetchEventsInDateChunks<T extends CreatedAtRow>(
       };
     }
 
-    const win = windows[wi];
-    const chunkRows: T[] = [];
-    for (let from = 0; ; from += pageSize) {
-      const { data, error } = await opts.queryPage({
-        gteIso: win.gteIso,
-        ltIso: win.ltIso,
-        from,
-        to: from + pageSize - 1,
-        signal: opts.signal,
-      });
-      if (error) {
+    const wave = newestFirstWindows.slice(i, i + concurrency);
+    const waveResults = await Promise.all(
+      wave.map((win) =>
+        fetchOneDateChunk({
+          win,
+          pageSize,
+          maxRows,
+          signal: opts.signal,
+          queryPage: opts.queryPage,
+        }),
+      ),
+    );
+
+    for (const result of waveResults) {
+      if (result.error) {
         return {
           rows: [],
           truncated: false,
           earliestCoveredDate: null,
           latestCoveredDate: null,
-          error,
+          error: result.error,
           complete: false,
         };
       }
-      const batch = (data ?? []) as T[];
-      chunkRows.push(...batch);
-      if (batch.length < pageSize) break;
-      // Per-chunk safety against runaway paging
-      if (chunkRows.length >= maxRows) {
-        incomplete = true;
-        break;
-      }
+      incomplete = incomplete || result.incomplete;
+      collectedNewestFirst.push(...result.rows);
     }
 
-    collectedNewestFirst.push(...chunkRows);
     if (collectedNewestFirst.length >= maxRows) {
       truncatedByCap = true;
-      // Older chunks would only add older rows — stop early.
-      incomplete = incomplete || wi > 0;
+      const remainingOlder = i + concurrency < newestFirstWindows.length;
+      incomplete = incomplete || remainingOlder;
       break;
     }
   }

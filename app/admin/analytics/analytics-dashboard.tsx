@@ -18,16 +18,26 @@ import {
 } from "@/lib/analytics/analytics-site";
 import { BarChart2 } from "lucide-react";
 
+type ReportTab =
+  | "traffic"
+  | "intent"
+  | "b2b"
+  | "users"
+  | "customers"
+  | "debug";
+
 export function AnalyticsDashboard() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const site = parseSiteParam(searchParams.get("site"));
 
+  const [activeTab, setActiveTab] = useState<ReportTab>("traffic");
   const [events, setEvents] = useState([]);
   const [metrics, setMetrics] = useState<Metrics28d | null>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
-  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
 
   const setSite = useCallback(
     (next: AnalyticsSiteFilter) => {
@@ -41,12 +51,18 @@ export function AnalyticsDashboard() {
   );
 
   useEffect(() => {
+    if (activeTab === "b2b" && site !== "dirtywine" && site !== "all") {
+      setActiveTab("traffic");
+    }
+  }, [site, activeTab]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoadingMetrics(true);
     (async () => {
       try {
         const res = await fetch(
-          `/api/admin/analytics/intent?days=28&site=${site}`,
+          `/api/admin/analytics/intent?days=28&site=${site}&metricsOnly=1`,
         );
         const json = await res.json();
         if (!cancelled && res.ok) {
@@ -64,19 +80,27 @@ export function AnalyticsDashboard() {
   }, [site]);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    if (activeTab !== "debug" || eventsLoaded) return;
+    let cancelled = false;
+    setLoadingEvents(true);
+    (async () => {
       try {
         const eventsRes = await fetch("/api/admin/analytics?metric=events");
         const eventsData = await eventsRes.json();
-        setEvents(eventsData.events || []);
+        if (!cancelled) {
+          setEvents(eventsData.events || []);
+          setEventsLoaded(true);
+        }
       } catch (error) {
         console.error("Failed to fetch events:", error);
       } finally {
-        setLoadingEvents(false);
+        if (!cancelled) setLoadingEvents(false);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-    void fetchEvents();
-  }, []);
+  }, [activeTab, eventsLoaded]);
 
   return (
     <div className="space-y-4">
@@ -90,7 +114,12 @@ export function AnalyticsDashboard() {
       <MetricsCards data={metrics} loading={loadingMetrics} />
 
       <div className="bg-white dark:bg-[#0F0F12] rounded-xl border border-gray-200 dark:border-[#1F1F23]">
-        <Tabs key={site} defaultValue="traffic" className="w-full">
+        <Tabs
+          key={site}
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as ReportTab)}
+          className="w-full"
+        >
           <div className="p-6 border-b border-gray-200 dark:border-[#1F1F23]">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <BarChart2 className="w-3.5 h-3.5 text-zinc-900 dark:text-zinc-50" />
@@ -140,18 +169,20 @@ export function AnalyticsDashboard() {
 
           <div className="p-6">
             <TabsContent value="traffic" className="mt-0">
-              <TrafficPanel site={site} />
+              {activeTab === "traffic" ? <TrafficPanel site={site} /> : null}
             </TabsContent>
             <TabsContent value="intent" className="mt-0">
-              <IntentPanel site={site} />
+              {activeTab === "intent" ? <IntentPanel site={site} /> : null}
             </TabsContent>
             {(site === "dirtywine" || site === "all") && (
               <TabsContent value="b2b" className="mt-0">
-                <B2bFunnelPanel site="dirtywine" />
+                {activeTab === "b2b" ? (
+                  <B2bFunnelPanel site="dirtywine" />
+                ) : null}
               </TabsContent>
             )}
             <TabsContent value="users" className="mt-0">
-              <UsersPanel />
+              {activeTab === "users" ? <UsersPanel /> : null}
             </TabsContent>
             <TabsContent value="customers" className="mt-0">
               <p className="text-sm text-gray-600 dark:text-zinc-400">
@@ -159,40 +190,44 @@ export function AnalyticsDashboard() {
               </p>
             </TabsContent>
             <TabsContent value="debug" className="mt-0 space-y-10">
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Event-timeline
-                </h3>
-                {loadingEvents ? (
-                  <p className="text-sm text-gray-500 dark:text-zinc-400">
-                    Laddar event-timeline…
-                  </p>
-                ) : (
-                  <EventTimeline events={events} showSiteBadge />
-                )}
-              </section>
+              {activeTab === "debug" ? (
+                <>
+                  <section className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Event-timeline
+                    </h3>
+                    {loadingEvents ? (
+                      <p className="text-sm text-gray-500 dark:text-zinc-400">
+                        Laddar event-timeline…
+                      </p>
+                    ) : (
+                      <EventTimeline events={events} showSiteBadge />
+                    )}
+                  </section>
 
-              <section className="space-y-3 border-t border-gray-100 dark:border-zinc-800 pt-8">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Parkerad
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-zinc-500 mt-0.5">
-                    Meningsfull från ~50 reservationer/månad
-                  </p>
-                </div>
-                <CohortAnalysis />
-              </section>
+                  <section className="space-y-3 border-t border-gray-100 dark:border-zinc-800 pt-8">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                        Parkerad
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-zinc-500 mt-0.5">
+                        Meningsfull från ~50 reservationer/månad
+                      </p>
+                    </div>
+                    <CohortAnalysis />
+                  </section>
 
-              <section className="space-y-3 border-t border-gray-100 dark:border-zinc-800 pt-8">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Views
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-zinc-500">
-                  Behållen från tidigare dashboard.
-                </p>
-                <ViewsTable />
-              </section>
+                  <section className="space-y-3 border-t border-gray-100 dark:border-zinc-800 pt-8">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Views
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-zinc-500">
+                      Behållen från tidigare dashboard.
+                    </p>
+                    <ViewsTable />
+                  </section>
+                </>
+              ) : null}
             </TabsContent>
           </div>
         </Tabs>
