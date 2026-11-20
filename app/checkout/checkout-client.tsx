@@ -180,6 +180,7 @@ import {
   trackShippingQuoteFailed,
   type CheckoutBlockReason,
 } from "@/lib/analytics/checkout-block-events";
+import { resolveDisplayShippingSek } from "@/lib/checkout/shipping-preview";
 
 
 interface UserProfile {
@@ -389,6 +390,14 @@ function CheckoutContent({
     shared_pallet?: number;
     direct_box?: number;
   }>({});
+  /**
+   * Public pre-session shipping preview (POST /api/checkout/shipping-preview).
+   * Fills radios + Frakt/Totalt as soon as postal is known — does not call
+   * authenticated /api/checkout/quote (B1). Quote still wins when ready.
+   */
+  const [shippingPreviewStatus, setShippingPreviewStatus] = useState<
+    "idle" | "loading" | "ready" | "missing"
+  >("idle");
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   /** Dual-offer purchase bar (sticky under Totalt / mobile after address). */
   const [dualOfferPurchase, setDualOfferPurchase] =
@@ -1909,20 +1918,9 @@ function CheckoutContent({
       });
       return;
     }
-    // Quote gates the final Pay CTA, not revealing Betalkort — guests must
-    // still reach PE after age/terms (401/idle quote must not block the step).
-    if (purchaseBlockedByQuote) {
-      const gate = shouldBlockCheckoutOnQuote({
-        fulfillmentChannel,
-        quote: serverQuote,
-        quoteStatus,
-      });
-      const raw = gate.reason ?? "quote_missing";
-      const reason = (
-        /^[a-z0-9_]+$/i.test(raw) ? raw : "purchase_disabled"
-      ) as CheckoutBlockReason;
-      trackCheckoutStepBlocked({ step: "payment", reason });
-    }
+    // Quote gates the final Pay CTA, not Betalkort reveal. Never emit
+    // checkout_step_blocked for payment when Fortsätt still opens the card
+    // step (idle/loading quote is expected for guests before authReady).
     if (!legacySharedPalletPaymentAllowed) {
       trackCheckoutStepBlocked({
         step: "payment",
@@ -1940,10 +1938,6 @@ function CheckoutContent({
   }, [
     deliveryComplete,
     complianceComplete,
-    purchaseBlockedByQuote,
-    fulfillmentChannel,
-    serverQuote,
-    quoteStatus,
     legacySharedPalletPaymentAllowed,
     resolveAgeTermsBlockReason,
   ]);
@@ -3418,6 +3412,104 @@ function CheckoutContent({
   const displayShippingSek = serverQuote?.shipping_sek;
   const displayPactOff = serverQuote?.pact_points_sek ?? pactPointsSekOff;
 
+  // Public rate preview as soon as postal/country + cart bottles are known.
+  useEffect(() => {
+    if (!hasPostalCode || !cart?.totalQuantity) {
+      setShippingPreviewStatus("idle");
+      return;
+    }
+    const country = String(ageCountryCode || "SE")
+      .trim()
+      .toUpperCase();
+    if (country.length !== 2) {
+      setShippingPreviewStatus("missing");
+      return;
+    }
+    const bottles = Math.max(0, Math.floor(cart.totalQuantity));
+    const subtotalSek = parseFloat(cart.cost?.totalAmount?.amount ?? "0") || 0;
+    let cancelled = false;
+    setShippingPreviewStatus("loading");
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/checkout/shipping-preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              country_code: country,
+              bottle_count: bottles,
+              product_subtotal_sek: subtotalSek,
+            }),
+          });
+          if (cancelled) return;
+          if (!res.ok) {
+            setShippingPreviewStatus("missing");
+            return;
+          }
+          const data: unknown = await res.json().catch(() => null);
+          const preview =
+            data &&
+            typeof data === "object" &&
+            "preview" in data &&
+            (data as { preview?: unknown }).preview &&
+            typeof (data as { preview: unknown }).preview === "object"
+              ? (
+                  data as {
+                    preview: {
+                      shared_pallet?: { shipping_sek?: number; complete?: boolean } | null;
+                      direct_box?: { shipping_sek?: number; complete?: boolean } | null;
+                    };
+                  }
+                ).preview
+              : null;
+          if (!preview) {
+            setShippingPreviewStatus("missing");
+            return;
+          }
+          setShippingByChannel((prev) => {
+            const next = { ...prev };
+            const shared = preview.shared_pallet;
+            const direct = preview.direct_box;
+            if (
+              shared?.complete !== false &&
+              typeof shared?.shipping_sek === "number" &&
+              Number.isFinite(shared.shipping_sek)
+            ) {
+              next.shared_pallet = shared.shipping_sek;
+            }
+            if (
+              direct &&
+              direct.complete !== false &&
+              typeof direct.shipping_sek === "number" &&
+              Number.isFinite(direct.shipping_sek)
+            ) {
+              next.direct_box = direct.shipping_sek;
+            }
+            return next;
+          });
+          const hasAny =
+            (preview.shared_pallet &&
+              typeof preview.shared_pallet.shipping_sek === "number") ||
+            (preview.direct_box &&
+              preview.direct_box.complete !== false &&
+              typeof preview.direct_box.shipping_sek === "number");
+          setShippingPreviewStatus(hasAny ? "ready" : "missing");
+        } catch {
+          if (!cancelled) setShippingPreviewStatus("missing");
+        }
+      })();
+    }, 100);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    hasPostalCode,
+    cart?.totalQuantity,
+    cart?.cost?.totalAmount?.amount,
+    ageCountryCode,
+  ]);
+
   useEffect(() => {
     if (
       quoteStatus === "ready" &&
@@ -3459,6 +3551,33 @@ function CheckoutContent({
     return Math.min(...vals);
   }, [sharedShippingSek, directShippingSek]);
 
+  const channelDisplayShippingSek = useMemo(
+    () =>
+      resolveDisplayShippingSek({
+        fulfillmentChannel,
+        quoteShippingSek: serverQuote?.shipping_sek,
+        quoteReady:
+          quoteStatus === "ready" &&
+          !!serverQuote &&
+          serverQuote.shipping_pending !== true,
+        previewSharedSek: sharedShippingSek,
+        previewDirectSek: directShippingSek,
+      }),
+    [
+      fulfillmentChannel,
+      serverQuote,
+      quoteStatus,
+      sharedShippingSek,
+      directShippingSek,
+    ],
+  );
+  const shippingDisplayPending =
+    hasPostalCode &&
+    channelDisplayShippingSek == null &&
+    (shippingPreviewStatus === "loading" ||
+      shippingPreviewStatus === "idle" ||
+      quoteStatus === "loading");
+
   const conversionCouponHalfCapReduced = useMemo(() => {
     if (!appliedDiscount) return false;
     const items =
@@ -3491,20 +3610,18 @@ function CheckoutContent({
     displayShippingSek,
   ]);
   // Shipping is a SEK rate. formatSek converts it into the active currency.
-  // A missing country rate shows explanatory copy — never a bogus "$99.0".
-  // direct_box must never fall back to shared/pact 99 via client invention.
+  // Prefer authoritative quote; else public preview once postal is known.
+  // Never show "Beräknas efter postnummer" after step 1 — skeleton instead.
   const chargedShippingLabel = formatCheckoutShippingLabel(
     resolveCheckoutShippingLabelState({
-      hasShippingContext: checkoutHasShippingQuoteContext({
-        fulfillmentChannel,
-        selectedPalletId,
-      }),
-      shippingPending:
-        quoteStatus === "loading" ||
-        quoteStatus === "stale" ||
-        serverQuote?.shipping_pending === true,
-      shippingSek:
-        quoteStatus === "ready" && serverQuote ? displayShippingSek : null,
+      hasShippingContext:
+        hasPostalCode ||
+        checkoutHasShippingQuoteContext({
+          fulfillmentChannel,
+          selectedPalletId,
+        }),
+      shippingPending: false,
+      shippingSek: channelDisplayShippingSek,
     }),
     {
       pendingLabel: t("checkout.shippingConfirmedBeforeCharge"),
@@ -3512,16 +3629,8 @@ function CheckoutContent({
       formatSek,
     },
   );
-  // Never invent a total when mode-scoped quote is missing/stale (esp. direct_box).
-  const displayTotal =
-    quoteStatus === "ready" && serverQuote
-      ? serverQuote.total_sek
-      : fulfillmentChannel === "direct_box"
-        ? null
-        : Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek);
-  // Collapsed mobile header: prefer quote total; else subtotal (+ known ship).
-  // Never show "…" when we can show a number.
-  const collapsedOrderTotalSek = useMemo(() => {
+  // Prefer quote total; else merchandise + display shipping (preview or quote).
+  const displayTotalSek = useMemo(() => {
     if (quoteStatus === "ready" && serverQuote) {
       return serverQuote.total_sek;
     }
@@ -3529,15 +3638,10 @@ function CheckoutContent({
       fulfillmentChannel === "direct_box"
         ? (serverQuote?.subtotal_sek ?? directBoxClientSubtotalSek)
         : (serverQuote?.subtotal_sek ?? bottleCost);
-    const ship =
-      fulfillmentChannel === "direct_box"
-        ? directShippingSek
-        : sharedShippingSek;
-    const shipPart =
-      typeof ship === "number" && Number.isFinite(ship) ? ship : 0;
+    if (channelDisplayShippingSek == null) return null;
     return Math.max(
       0,
-      sub + shipPart - pactPointsSekOff - promoDiscountSek,
+      sub + channelDisplayShippingSek - pactPointsSekOff - promoDiscountSek,
     );
   }, [
     quoteStatus,
@@ -3545,11 +3649,19 @@ function CheckoutContent({
     fulfillmentChannel,
     directBoxClientSubtotalSek,
     bottleCost,
-    directShippingSek,
-    sharedShippingSek,
+    channelDisplayShippingSek,
     pactPointsSekOff,
     promoDiscountSek,
   ]);
+  /** Purchase CTA still uses quote-gated displayTotal; UI uses displayTotalSek. */
+  const displayTotal =
+    quoteStatus === "ready" && serverQuote
+      ? serverQuote.total_sek
+      : fulfillmentChannel === "direct_box"
+        ? displayTotalSek
+        : (displayTotalSek ??
+          Math.max(0, bottleCost - pactPointsSekOff - promoDiscountSek));
+  const collapsedOrderTotalSek = displayTotalSek ?? displayTotal;
   const commitAppliedDiscount = (data: {
     code: string;
     discount_code_id: string;
@@ -4150,14 +4262,29 @@ function CheckoutContent({
                 onClick={() => setOrderSummaryExpanded((v) => !v)}
               >
                 <span>
-                  {t(
-                    cart.totalQuantity === 1
-                      ? "checkout.orderSummaryCollapsedOne"
-                      : "checkout.orderSummaryCollapsed",
-                    {
-                      count: String(cart.totalQuantity),
-                      total: formatChargedAmount(collapsedOrderTotalSek),
-                    },
+                  {collapsedOrderTotalSek != null ? (
+                    t(
+                      cart.totalQuantity === 1
+                        ? "checkout.orderSummaryCollapsedOne"
+                        : "checkout.orderSummaryCollapsed",
+                      {
+                        count: String(cart.totalQuantity),
+                        total: formatChargedAmount(collapsedOrderTotalSek),
+                      },
+                    )
+                  ) : (
+                    <span className="inline-flex items-center gap-2">
+                      {t("checkout.yourOrder")} ({cart.totalQuantity}{" "}
+                      {cart.totalQuantity === 1
+                        ? t("checkout.bottle")
+                        : t("checkout.bottles")}
+                      )
+                      <span
+                        className="inline-block h-4 w-14 animate-pulse rounded bg-muted"
+                        aria-hidden
+                      />
+                      ▾
+                    </span>
                   )}
                 </span>
               </button>
@@ -4203,7 +4330,14 @@ function CheckoutContent({
                     {t("checkout.shipping")}
                   </span>
                   <span className="text-right tabular-nums text-foreground">
-                    {chargedShippingLabel ?? (
+                    {chargedShippingLabel ? (
+                      chargedShippingLabel
+                    ) : shippingDisplayPending || hasPostalCode ? (
+                      <span
+                        className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
+                        aria-hidden
+                      />
+                    ) : (
                       <span className="text-muted-foreground">
                         {t("checkout.shippingAfterAddress")}
                       </span>
@@ -4381,9 +4515,14 @@ function CheckoutContent({
                 <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
                   <span>{t("checkout.total")}</span>
                   <span className="tabular-nums text-foreground">
-                    {displayTotal == null
-                      ? "…"
-                      : formatChargedAmount(displayTotal)}
+                    {displayTotal != null ? (
+                      formatChargedAmount(displayTotal)
+                    ) : (
+                      <span
+                        className="inline-block h-5 w-16 animate-pulse rounded bg-muted"
+                        aria-hidden
+                      />
+                    )}
                   </span>
                 </div>
               </div>
@@ -4606,8 +4745,18 @@ function CheckoutContent({
                                       </span>
                                       {typeof sharedShippingSek === "number" ? (
                                         <span className="block text-muted-foreground tabular-nums">
-                                          {formatChargedAmount(sharedShippingSek)}
+                                          {t("checkout.fulfillmentSharedSubtitle", {
+                                            shipping:
+                                              formatChargedAmount(
+                                                sharedShippingSek,
+                                              ),
+                                          })}
                                         </span>
+                                      ) : shippingDisplayPending ? (
+                                        <span
+                                          className="mt-1 inline-block h-3 w-40 animate-pulse rounded bg-muted"
+                                          aria-hidden
+                                        />
                                       ) : null}
                                     </span>
                                   </label>
@@ -4640,18 +4789,29 @@ function CheckoutContent({
                                       <span className="block font-medium">
                                         {t("checkout.dualOfferDirectTitle")}
                                       </span>
-                                      <span className="block text-muted-foreground tabular-nums">
-                                        {[
-                                          typeof directShippingSek === "number"
-                                            ? formatChargedAmount(
-                                                directShippingSek,
-                                              )
-                                            : null,
-                                          directBoxEtaLabel,
-                                        ]
-                                          .filter(Boolean)
-                                          .join(" · ")}
-                                      </span>
+                                      {typeof directShippingSek === "number" ? (
+                                        <span className="block text-muted-foreground tabular-nums">
+                                          {t(
+                                            "checkout.fulfillmentDirectSubtitle",
+                                            {
+                                              shipping:
+                                                formatChargedAmount(
+                                                  directShippingSek,
+                                                ),
+                                              estimate: directBoxEtaLabel,
+                                            },
+                                          )}
+                                        </span>
+                                      ) : shippingDisplayPending ? (
+                                        <span
+                                          className="mt-1 inline-block h-3 w-36 animate-pulse rounded bg-muted"
+                                          aria-hidden
+                                        />
+                                      ) : (
+                                        <span className="block text-muted-foreground">
+                                          {directBoxEtaLabel}
+                                        </span>
+                                      )}
                                       {!directBoxAvailability.deliverySelectable ? (
                                         <span className="mt-0.5 block text-amber-500">
                                           {t(
@@ -4667,13 +4827,19 @@ function CheckoutContent({
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
                             <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
-                              {chargedShippingLabel ??
-                                (lowestShippingSek != null
-                                  ? t("checkout.shippingFromAmount", {
-                                      amount:
-                                        formatChargedAmount(lowestShippingSek),
-                                    })
-                                  : null)}
+                              {chargedShippingLabel ? (
+                                chargedShippingLabel
+                              ) : lowestShippingSek != null ? (
+                                t("checkout.shippingFromAmount", {
+                                  amount:
+                                    formatChargedAmount(lowestShippingSek),
+                                })
+                              ) : shippingDisplayPending || hasPostalCode ? (
+                                <span
+                                  className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
+                                  aria-hidden
+                                />
+                              ) : null}
                             </span>
                           </div>
                         </div>
@@ -5755,9 +5921,14 @@ function CheckoutContent({
                                   {t("checkout.total")}
                                 </span>
                                 <span className="text-2xl font-bold tabular-nums text-foreground">
-                                  {displayTotal == null
-                                    ? "…"
-                                    : formatChargedAmount(displayTotal)}
+                                  {displayTotal != null ? (
+                                    formatChargedAmount(displayTotal)
+                                  ) : (
+                                    <span
+                                      className="inline-block h-7 w-20 animate-pulse rounded bg-muted"
+                                      aria-hidden
+                                    />
+                                  )}
                                 </span>
                               </div>
 

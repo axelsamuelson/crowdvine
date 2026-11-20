@@ -34,14 +34,28 @@ describe("checkout age-gate / address wiring (hotfix)", () => {
     expect(checkoutSrc).toMatch(/quote_timeout/);
   });
 
-  it("emits checkout_step_blocked only on continue / locked-step attempts", () => {
+  it("emits checkout_step_blocked only when advance actually fails", () => {
     expect(checkoutSrc).toMatch(/handleLockedAgeStepAttempt/);
-    expect(checkoutSrc).toMatch(/trackCheckoutStepBlocked\(\{\s*step: "payment"/);
     expect(checkoutSrc).not.toMatch(/step: "continue"/);
+    // F8: Fortsätt must not fire payment blocked when Betalkort still opens
+    // (quote idle/loading) — only when the click returns without revealing PE.
+    expect(checkoutSrc).not.toMatch(
+      /if \(purchaseBlockedByQuote\) \{[\s\S]{0,400}trackCheckoutStepBlocked\(\{\s*step: "payment"/,
+    );
+    expect(checkoutSrc).toMatch(
+      /if \(!legacySharedPalletPaymentAllowed\) \{[\s\S]{0,200}trackCheckoutStepBlocked\(\{\s*step: "payment"/,
+    );
     // No passive age_terms fire on hasPostalCode && !deliveryComplete field status.
     expect(checkoutSrc).not.toMatch(
       /if \(!hasPostalCode \|\| deliveryComplete\) return;[\s\S]{0,200}trackCheckoutStepBlocked/,
     );
+  });
+
+  it("loads public shipping-preview before auth (display only)", () => {
+    expect(checkoutSrc).toMatch(/\/api\/checkout\/shipping-preview/);
+    expect(checkoutSrc).toMatch(/resolveDisplayShippingSek/);
+    expect(checkoutSrc).toMatch(/fulfillmentSharedSubtitle/);
+    expect(checkoutSrc).toMatch(/fulfillmentDirectSubtitle/);
   });
 
   it("persists guest address after auth without waiting for payment card", () => {
