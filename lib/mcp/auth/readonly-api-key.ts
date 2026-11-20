@@ -5,13 +5,19 @@ import { toolRequiresWriteScope } from "./tool-scopes";
 export const PACT_MCP_READONLY_API_KEY_ENV = "PACT_MCP_READONLY_API_KEY";
 
 /**
- * Tools a read-only API-key session may call.
- * Keep this list explicit — do not infer from “non-write” tools.
+ * Known `get_gsc_*` tools (documentation / tools/list expectations).
+ * Runtime policy is prefix-based via {@link isReadonlyApiKeyAllowedTool} so
+ * new GSC tools are covered without widening to non-GSC reads.
  */
 export const MCP_READONLY_TOOL_ALLOWLIST: ReadonlySet<string> = new Set([
   "get_gsc_performance",
   "get_gsc_compare",
 ]);
+
+/** Read-only API-key sessions may only call `get_gsc_*` tools. */
+export function isReadonlyApiKeyAllowedTool(name: string): boolean {
+  return name.startsWith("get_gsc_");
+}
 
 type JsonRpcish = {
   method?: string;
@@ -70,13 +76,17 @@ export function matchReadonlyApiKey(
 }
 
 /**
- * Enforce the read-only API-key allowlist on JSON-RPC before the MCP transport.
- * Write tools and any non-allowlisted tool → 403.
+ * Enforce the read-only API-key policy on JSON-RPC before the MCP transport.
+ * Write tools and any non-`get_gsc_*` tool → 403.
+ *
+ * `allowlist` is accepted for call-site compatibility; gating is
+ * {@link isReadonlyApiKeyAllowedTool} (prefix `get_gsc_`).
  */
 export function checkJsonRpcReadonlyAllowlist(
   body: unknown,
-  allowlist: ReadonlySet<string> = MCP_READONLY_TOOL_ALLOWLIST,
+  _allowlist: ReadonlySet<string> = MCP_READONLY_TOOL_ALLOWLIST,
 ): { ok: true } | { ok: false; message: string } {
+  void _allowlist;
   const items = asRpcList(body);
 
   for (const msg of items) {
@@ -84,7 +94,7 @@ export function checkJsonRpcReadonlyAllowlist(
     if (method === "tools/call") {
       const name = msg.params?.name;
       if (typeof name !== "string") continue;
-      if (toolRequiresWriteScope(name) || !allowlist.has(name)) {
+      if (toolRequiresWriteScope(name) || !isReadonlyApiKeyAllowedTool(name)) {
         return {
           ok: false,
           message: `Tool "${name}" is not allowed for read-only API key sessions`,

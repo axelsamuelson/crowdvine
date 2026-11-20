@@ -24,11 +24,13 @@ vi.mock("@/lib/gsc/performance", () => ({
 import {
   checkJsonRpcReadonlyAllowlist,
   getReadonlyApiKeysFromEnv,
+  isReadonlyApiKeyAllowedTool,
   matchReadonlyApiKey,
   MCP_READONLY_TOOL_ALLOWLIST,
   requestHasQueryCredentials,
 } from "@/lib/mcp/auth/readonly-api-key";
 import { authenticateMcpBearer } from "@/lib/mcp/auth/authenticate-mcp-request";
+import { mcpAuthIsConfigured } from "@/lib/mcp/auth/mcp-auth-config";
 import { handleMcpRequest } from "@/lib/mcp/handle-mcp-request";
 import { createPactMcpServer } from "@/lib/mcp/server";
 
@@ -128,9 +130,16 @@ describe("MCP read-only API key", () => {
   });
 
   describe("allowlist checks", () => {
-    it("allows only allowlisted tools", () => {
+    it("allows only get_gsc_* tools", () => {
       expect(
         checkJsonRpcReadonlyAllowlist(toolsCall("get_gsc_performance")),
+      ).toEqual({ ok: true });
+      expect(
+        checkJsonRpcReadonlyAllowlist(toolsCall("get_gsc_compare")),
+      ).toEqual({ ok: true });
+      // Future get_gsc_* tools are covered by the prefix policy.
+      expect(
+        checkJsonRpcReadonlyAllowlist(toolsCall("get_gsc_pagespeed")),
       ).toEqual({ ok: true });
       expect(
         checkJsonRpcReadonlyAllowlist(toolsCall("create_goal")),
@@ -138,6 +147,8 @@ describe("MCP read-only API key", () => {
       expect(
         checkJsonRpcReadonlyAllowlist(toolsCall("list_goals")),
       ).toMatchObject({ ok: false });
+      expect(isReadonlyApiKeyAllowedTool("get_gsc_performance")).toBe(true);
+      expect(isReadonlyApiKeyAllowedTool("get_metrics")).toBe(false);
     });
 
     it("exposes the documented allowlist", () => {
@@ -212,7 +223,7 @@ describe("MCP read-only API key", () => {
   });
 
   describe("handleMcpRequest", () => {
-    it("lets a valid key call an allowlisted tool", async () => {
+    it("lets a valid key call an allowlisted tool (200, mocked GSC)", async () => {
       const res = await mcpPost({
         bearer: READONLY_KEY,
         body: toolsCall("get_gsc_performance", { site: "pact" }),
@@ -223,6 +234,15 @@ describe("MCP read-only API key", () => {
       expect(json.result ?? json).toBeTruthy();
     });
 
+    it("lets a valid key call get_gsc_compare (200, mocked GSC)", async () => {
+      const res = await mcpPost({
+        bearer: READONLY_KEY,
+        body: toolsCall("get_gsc_compare", { site: "pact" }),
+      });
+      expect(res.status).toBe(200);
+      expect(fetchGscCompare).toHaveBeenCalled();
+    });
+
     it("returns 403 when a valid key calls a write tool", async () => {
       const res = await mcpPost({
         bearer: READONLY_KEY,
@@ -231,6 +251,15 @@ describe("MCP read-only API key", () => {
       expect(res.status).toBe(403);
       const text = await res.text();
       expect(text).toContain("not allowed");
+      expect(fetchGscPerformance).not.toHaveBeenCalled();
+    });
+
+    it("returns 403 when a valid key calls a non-GSC read tool", async () => {
+      const res = await mcpPost({
+        bearer: READONLY_KEY,
+        body: toolsCall("list_goals"),
+      });
+      expect(res.status).toBe(403);
       expect(fetchGscPerformance).not.toHaveBeenCalled();
     });
 
@@ -248,6 +277,35 @@ describe("MCP read-only API key", () => {
         body: toolsCall("get_gsc_performance"),
       });
       expect(res.status).toBe(401);
+    });
+
+    it("enables MCP with only PACT_MCP_READONLY_API_KEY (no Auth0 / MCP_API_KEY)", async () => {
+      delete process.env.AUTH0_DOMAIN;
+      delete process.env.AUTH0_AUDIENCE;
+      delete process.env.MCP_API_KEY;
+      process.env.MCP_AUTH_MODE = "api_key";
+      process.env.PACT_MCP_READONLY_API_KEY = READONLY_KEY;
+
+      expect(mcpAuthIsConfigured()).toBe(true);
+
+      const ok = await mcpPost({
+        bearer: READONLY_KEY,
+        body: toolsCall("get_gsc_performance", { site: "pact" }),
+      });
+      expect(ok.status).toBe(200);
+      expect(fetchGscPerformance).toHaveBeenCalled();
+
+      const forbidden = await mcpPost({
+        bearer: READONLY_KEY,
+        body: toolsCall("list_goals"),
+      });
+      expect(forbidden.status).toBe(403);
+
+      const unauthorized = await mcpPost({
+        bearer: "wrong-key",
+        body: toolsCall("get_gsc_performance"),
+      });
+      expect(unauthorized.status).toBe(401);
     });
 
     it("rejects a key passed only in the query string", async () => {

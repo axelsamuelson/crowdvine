@@ -43,7 +43,11 @@ const pageFilterSchema = z
   );
 
 export type RegisterGscToolsOptions = {
-  /** When set, only register tools present in the set. */
+  /**
+   * When set, only register tools present in the set.
+   * For read-only API-key sessions the set is GSC-only; any `get_gsc_*`
+   * tool in this module is registered (prefix policy).
+   */
   allowlist?: ReadonlySet<string>;
 };
 
@@ -52,7 +56,15 @@ export function registerGscTools(
   opts?: RegisterGscToolsOptions,
 ) {
   const allow = opts?.allowlist;
-  const allowTool = (name: string) => !allow || allow.has(name);
+  const allowTool = (name: string) => {
+    if (!allow) return true;
+    if (allow.has(name)) return true;
+    // Read-only sessions: every get_gsc_* tool in this module is in scope.
+    return (
+      name.startsWith("get_gsc_") &&
+      [...allow].every((t) => t.startsWith("get_gsc_"))
+    );
+  };
 
   if (allowTool("get_gsc_performance")) {
     server.registerTool(
