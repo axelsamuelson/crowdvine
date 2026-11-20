@@ -975,7 +975,7 @@ export default function SystembolagetAdminPage() {
                 <Label htmlFor="verdict">Verdict</Label>
                 <select
                   id="verdict"
-                  className="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-zinc-900"
+                  className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:[color-scheme:dark]"
                   value={form.verdict}
                   onChange={(e) =>
                     setForm((p) => ({
@@ -994,7 +994,7 @@ export default function SystembolagetAdminPage() {
                 <Label htmlFor="category">Category</Label>
                 <select
                   id="category"
-                  className="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-zinc-900"
+                  className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:[color-scheme:dark]"
                   value={form.category}
                   onChange={(e) =>
                     setForm((p) => ({
