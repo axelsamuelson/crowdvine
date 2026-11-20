@@ -70,6 +70,13 @@ describe("checkout age-gate / address wiring (hotfix)", () => {
     expect(checkoutSrc).toMatch(/fulfillmentDirectSubtitle/);
   });
 
+  it("scrubs DOB from browser storage and does not autocomplete bday", () => {
+    expect(checkoutSrc).toMatch(/scrubCheckoutDobFromBrowserStorage/);
+    expect(checkoutSrc).toMatch(/autoComplete=\"off\"/);
+    expect(checkoutSrc).not.toMatch(/autoComplete=\"bday\"/);
+    expect(checkoutSrc).toMatch(/directBoxLineMarkupNote/);
+  });
+
   it("persists guest address after auth without waiting for payment card", () => {
     expect(checkoutSrc).toMatch(
       /After guest ensure-session: persist draft to DB/,
