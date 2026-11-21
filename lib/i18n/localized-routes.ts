@@ -95,6 +95,27 @@ export function producerPublicPath(slug: string, locale: AppLocale): string {
   return producerPagePath(slug, locale === "sv" ? "producenter" : "producers");
 }
 
+/**
+ * Public producer profile href from legal `producers.name` only.
+ * Do not pass `display_name` — that yields 404s when the short name differs.
+ */
+export function producerPublicHrefFromLegalName(
+  legalProducerName: string,
+  locale: AppLocale,
+): string {
+  return producerPublicPath(getProducerHandle(legalProducerName), locale);
+}
+
+/** Fact-box / byline link when the legal-name slug is already known. */
+export function producerPublicHrefFromSlug(
+  producerSlug: string | null | undefined,
+  locale: AppLocale,
+): string | null {
+  const slug = producerSlug?.trim();
+  if (!slug) return null;
+  return producerPublicPath(slug, locale);
+}
+
 /** Producer-filtered shop PLP — /vin/{handle} or /wine/{handle}. */
 export function producerShopPathFromName(
   producerName: string,

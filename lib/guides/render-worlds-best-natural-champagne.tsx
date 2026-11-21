@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
@@ -67,9 +70,13 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
+  const champagneGuidePath = guidePath("naturalChampagne", locale);
   const champagnes = getChampagneWinesFromTop100();
   const guide = worldsBestNaturalChampagneGuide;
-  const regionCounts = await getLiveWineRegionCountsMap();
+  const [regionCounts, guideShopLinks] = await Promise.all([
+    getLiveWineRegionCountsMap(),
+    loadGuideShopLinks(champagneGuidePath, locale),
+  ]);
   const champagneRegionHref = getWineRegionPageHref(
     "champagne",
     locale,
@@ -207,8 +214,9 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
         </section>
 
         <GuideShopLinksBlock
-          guidePath={guidePath("naturalChampagne", locale)}
+          guidePath={champagneGuidePath}
           locale={locale}
+          links={guideShopLinks}
         />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">

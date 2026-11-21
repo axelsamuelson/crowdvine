@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { resolveGuideShopLinksAgainstLiveCatalog } from "@/lib/guides/guide-catalog-links";
 import {
   GUIDE_SHOP_LINKS_BUTTON,
   GUIDE_SHOP_LINKS_HEADING,
@@ -9,6 +10,17 @@ import {
   type GuideShopLink,
 } from "@/lib/guides/shop-links";
 import type { AppLocale } from "@/lib/i18n/locale";
+
+/** Static map + live catalog: producer profile hrefs use legal-name slugs. */
+export async function loadGuideShopLinks(
+  guidePath: string,
+  locale: AppLocale,
+): Promise<GuideShopLink[] | null> {
+  const raw = getGuideShopLinks(guidePath);
+  if (!raw) return null;
+  const resolved = await resolveGuideShopLinksAgainstLiveCatalog(raw, locale);
+  return resolved.length > 0 ? resolved : null;
+}
 
 export type GuideShopLinksCta = {
   href: string;
@@ -50,6 +62,8 @@ const ARROW_ICON = (
 /**
  * Contextual shop links after guide body (before FAQ).
  * Pillista rows + optional black primary CTA. Returns null for NONE / empty.
+ * Prefer `loadGuideShopLinks` so producer profile hrefs match live legal-name
+ * slugs (and dead env-specific slugs are dropped).
  */
 export function GuideShopLinksBlock({
   guidePath,

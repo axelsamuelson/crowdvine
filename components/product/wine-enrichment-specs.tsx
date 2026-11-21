@@ -21,8 +21,7 @@ import {
   type EnrichmentSpecKey,
 } from "@/lib/product/wine-enrichment";
 import type { WineEnrichment } from "@/lib/shopify/types";
-import { generateProducerSlug } from "@/lib/producer-handle";
-import { producerPublicPath } from "@/lib/i18n/localized-routes";
+import { producerPublicHrefFromSlug } from "@/lib/i18n/localized-routes";
 import { wineColorDotClass } from "@/lib/wine-color";
 import { isCuratedGrape } from "@/lib/curated-grape-categories";
 import { useTranslations } from "@/lib/hooks/use-translations";
@@ -82,7 +81,13 @@ export function resolveVisibleTasteTags(tags: string[] | null | undefined): stri
 
 interface WineEnrichmentSpecsProps {
   enrichment: WineEnrichment | null | undefined;
+  /** Display label in the fact box (may be `display_name`). */
   producerName?: string | null;
+  /**
+   * Public profile slug from legal `producers.name` only.
+   * Never derive this from `producerName` / display_name.
+   */
+  producerSlug?: string | null;
   className?: string;
   tasteTags?: string[];
 }
@@ -124,6 +129,7 @@ function SpecItem({
   enrichment,
   locale,
   styleCategoryHref,
+  producerSlug,
 }: {
   specKey: EnrichmentSpecKey;
   label: string;
@@ -131,8 +137,13 @@ function SpecItem({
   enrichment: WineEnrichment | null | undefined;
   locale: AppLocale;
   styleCategoryHref?: string | null;
+  producerSlug?: string | null;
 }) {
   const Icon = SPEC_ICONS[specKey] ?? MapPin;
+  const producerHref =
+    specKey === "producer"
+      ? producerPublicHrefFromSlug(producerSlug, locale)
+      : null;
 
   return (
     <div
@@ -159,13 +170,15 @@ function SpecItem({
           {label}
         </dt>
         <dd className="mt-0.5 break-words text-sm leading-snug text-foreground">
-          {specKey === "producer" ? (
+          {specKey === "producer" && producerHref ? (
             <Link
-              href={producerPublicPath(generateProducerSlug(value), locale)}
+              href={producerHref}
               className="underline underline-offset-2"
             >
               {value}
             </Link>
+          ) : specKey === "producer" ? (
+            value
           ) : specKey === "grapeVariety" ? (
             <GrapeVarietyLinks
               grapes={enrichment?.grapeVarieties ?? []}
@@ -219,6 +232,7 @@ function TasteTagsBlock({ tags }: { tags: string[] }) {
 export function WineEnrichmentSpecs({
   enrichment,
   producerName,
+  producerSlug,
   className = "",
   tasteTags,
 }: WineEnrichmentSpecsProps) {
@@ -250,6 +264,7 @@ export function WineEnrichmentSpecs({
               enrichment={enrichment}
               locale={context.locale}
               styleCategoryHref={styleCategoryHref}
+              producerSlug={producerSlug}
             />
           ))}
         </dl>

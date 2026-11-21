@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { SystembolagetBottleImage } from "@/components/guides/systembolaget-bottle-image";
 import { SystembolagetRankStatusBadge } from "@/components/guides/systembolaget-rank-status-badge";
 import { Footer } from "@/components/layout/footer";
@@ -825,6 +828,7 @@ export async function renderSystembolagetRankedListPage(
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const pagePath = articlePath(content, locale);
+  const guideShopLinks = await loadGuideShopLinks(pagePath, locale);
   const pageUrl = `${seoBaseUrl}${pagePath}`;
   const intro =
     content.lede?.[locale] ?? content.hubCard.description[locale];
@@ -1174,7 +1178,11 @@ export async function renderSystembolagetRankedListPage(
               </section>
             ))}
 
-            <GuideShopLinksBlock guidePath={pagePath} locale={locale} />
+            <GuideShopLinksBlock
+              guidePath={pagePath}
+              locale={locale}
+              links={guideShopLinks}
+            />
 
             {faqs.length > 0 ? (
               <section>
