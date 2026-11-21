@@ -76,6 +76,7 @@ export type EventType =
   | "sticky_atc_shown"
   | "sticky_atc_clicked"
   | "six_pack_rule_viewed"
+  | "pdp_section_opened"
   | "why_modal_opened"
   // Welcome modal (post-login)
   | "welcome_shown"
