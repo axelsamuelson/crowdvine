@@ -8,11 +8,15 @@ describe("guidesMentioningProducer", () => {
       producerName: "Jean Foillard",
     });
     const hrefs = sv.map((guide) => guide.href);
+    const byHref = Object.fromEntries(sv.map((guide) => [guide.href, guide.title]));
 
     expect(hrefs).toContain("/guider/jean-foillard");
     expect(hrefs).toContain("/guider/varldens-basta-naturvinsproducenter");
     expect(hrefs).toContain("/guider/varldens-basta-naturviner");
     expect(hrefs).toContain("/guider/beaujolais-natural-wine");
+    expect(byHref["/guider/jean-foillard"]).toBe(
+      "Jean Foillard och Gang of Four — hur Beaujolais hittade sin själ",
+    );
     expect(sv.every((guide) => guide.title.trim().length > 0)).toBe(true);
   });
 

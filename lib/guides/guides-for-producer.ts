@@ -2,8 +2,8 @@ import {
   NATURAL_VS_ORGANIC_PATH,
   naturalVsOrganicProducerGroups,
 } from "@/lib/guides/articles/natural-vs-organic-vs-biodynamic-wine";
-import { guideCopy } from "@/lib/guides/guide-copy";
-import { GUIDE_PATHS, guidePath } from "@/lib/guides/guide-routes";
+import { guidePath } from "@/lib/guides/guide-routes";
+import { guidePageTitleForPath } from "@/lib/guides/guide-page-titles";
 import {
   ALL_PRODUCER_GUIDES,
   producerGuidePath,
@@ -19,36 +19,13 @@ export type ProducerMentionedGuide = {
   title: string;
 };
 
-/** Known guide titles for shop-link paths that are not article registry entries. */
-const GUIDE_PATH_TITLES: Record<
-  string,
-  { sv: string; en: string }
-> = {
-  "/guides/beaujolais-natural-wine": {
-    en: "Beaujolais natural wine",
-    sv: "Naturvin från Beaujolais",
-  },
-  "/guider/beaujolais-natural-wine": {
-    en: "Beaujolais natural wine",
-    sv: "Naturvin från Beaujolais",
-  },
-  "/guides/jura-natural-wine": {
-    en: "Jura natural wine",
-    sv: "Naturvin från Jura",
-  },
-  "/guider/jura-natural-wine": {
-    en: "Jura natural wine",
-    sv: "Naturvin från Jura",
-  },
-  "/guides/gang-of-four-wine": {
-    en: "The Gang of Four",
-    sv: "Gang of Four",
-  },
-  "/guider/gang-of-four-wine": {
-    en: "The Gang of Four",
-    sv: "Gang of Four",
-  },
-};
+function titleForGuidePath(path: string, locale: AppLocale): string {
+  return (
+    guidePageTitleForPath(path, locale) ||
+    path.split("/").filter(Boolean).at(-1)?.replace(/-/g, " ") ||
+    path
+  );
+}
 
 function producerSlugFromHref(href: string): string | null {
   const match = href.match(/^\/(?:producers|producenter)\/([^/?#]+)\/?$/);
@@ -125,7 +102,6 @@ export function guidesMentioningProducer(
   };
 
   const found = new Map<string, ProducerMentionedGuide>();
-  const copy = guideCopy(locale);
 
   for (const guide of ALL_PRODUCER_GUIDES) {
     const linkedByRank =
@@ -138,16 +114,14 @@ export function guidesMentioningProducer(
       matchesProducer(guide.name.en) ||
       matchesProducer(guide.name.sv)
     ) {
-      addGuide(
-        found,
-        producerGuidePath(guide.slug, locale),
-        guide.name[locale],
-      );
+      const href = producerGuidePath(guide.slug, locale);
+      addGuide(found, href, titleForGuidePath(href, locale));
     }
   }
 
   if (top100Entry || TOP_100_PRODUCERS.some((producer) => matchesProducer(producer.name))) {
-    addGuide(found, guidePath("producers", locale), copy.producers.h1);
+    const href = guidePath("producers", locale);
+    addGuide(found, href, titleForGuidePath(href, locale));
   }
 
   if (
@@ -158,7 +132,8 @@ export function guidesMentioningProducer(
         (top100Entry != null && wine.topProducerName === top100Entry.name),
     )
   ) {
-    addGuide(found, guidePath("wines", locale), copy.wines.h1);
+    const href = guidePath("wines", locale);
+    addGuide(found, href, titleForGuidePath(href, locale));
   }
 
   if (
@@ -170,13 +145,8 @@ export function guidesMentioningProducer(
           (top100Entry != null && wine.topProducerName === top100Entry.name)),
     )
   ) {
-    addGuide(
-      found,
-      guidePath("orangeWines", locale),
-      locale === "sv"
-        ? "Världens bästa orange viner"
-        : "The world's best orange wines",
-    );
+    const href = guidePath("orangeWines", locale);
+    addGuide(found, href, titleForGuidePath(href, locale));
   }
 
   for (const group of naturalVsOrganicProducerGroups) {
@@ -213,21 +183,7 @@ export function guidesMentioningProducer(
     const isSv = path.startsWith("/guider");
     if ((locale === "sv") !== isSv) continue;
 
-    const known = GUIDE_PATH_TITLES[path]?.[locale];
-    const title =
-      known ||
-      (path === GUIDE_PATHS.producers.en || path === GUIDE_PATHS.producers.sv
-        ? copy.producers.h1
-        : path === GUIDE_PATHS.wines.en || path === GUIDE_PATHS.wines.sv
-          ? copy.wines.h1
-          : ALL_PRODUCER_GUIDES.find(
-              (guide) =>
-                producerGuidePath(guide.slug, locale) === path,
-            )?.name[locale]) ||
-      path.split("/").filter(Boolean).at(-1)?.replace(/-/g, " ") ||
-      path;
-
-    addGuide(found, path, title);
+    addGuide(found, path, titleForGuidePath(path, locale));
   }
 
   return [...found.values()].sort((a, b) =>
