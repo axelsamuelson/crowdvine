@@ -16,6 +16,12 @@ import {
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import {
+  buildGuideAuthorPersonJsonLd,
+  buildGuideFaqPageJsonLd,
+  guideArticleAuthorRef,
+  guideAuthorPersonId,
+} from "@/lib/guides/guide-json-ld";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
 import {
@@ -23,7 +29,6 @@ import {
   shouldShowGuideShopCta,
 } from "@/lib/guides/shop-links";
 import {
-  articleLinkText,
   articleParagraphs,
   articlePath,
   articleVisibleForLocale,
@@ -178,28 +183,19 @@ export async function renderArticleGuidePage(
             name: content.jsonLdAbout.name,
           };
 
-  const authorPersonId = content.author
-    ? `${seoBaseUrl}/#/schema/person/${content.author.name
-        .toLowerCase()
-        .replace(/\s+/g, "-")}`
-    : null;
-
-  /** Single Person node; Article.author references it by @id (no duplicate Person). */
-  const authorPerson = content.author
-    ? {
-        "@type": "Person" as const,
-        "@id": authorPersonId!,
-        name: content.author.name,
-        ...(content.author.jobTitle
-          ? { jobTitle: content.author.jobTitle }
-          : {}),
-        worksFor: {
-          "@type": "Organization" as const,
-          name: "PACT",
-          url: seoBaseUrl,
-        },
-      }
-    : null;
+  /**
+   * Person only when a named author byline is actually visible on the page.
+   * Single Person node; Article.author references it by @id (no duplicate).
+   */
+  const visibleAuthorByline = content.author?.byline[locale]?.trim();
+  const authorPerson =
+    content.author && visibleAuthorByline
+      ? buildGuideAuthorPersonJsonLd(content.author, seoBaseUrl)
+      : null;
+  const authorPersonId =
+    content.author && visibleAuthorByline
+      ? guideAuthorPersonId(content.author.name, seoBaseUrl)
+      : null;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -214,7 +210,9 @@ export async function renderArticleGuidePage(
       url: seoBaseUrl,
     },
     about,
-    ...(authorPersonId ? { author: { "@id": authorPersonId } } : {}),
+    ...(authorPersonId
+      ? { author: guideArticleAuthorRef(authorPersonId) }
+      : {}),
     ...(content.updated ? { dateModified: content.updated } : {}),
   };
 
@@ -224,21 +222,7 @@ export async function renderArticleGuidePage(
       answer: faq.answer[locale],
     }),
   );
-  const faqJsonLd =
-    faqs.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: articleLinkText(faq.answer),
-            },
-          })),
-        }
-      : null;
+  const faqJsonLd = buildGuideFaqPageJsonLd(faqs);
 
   const breadcrumbCrumbs = articleGuideCrumbs({
     locale,
@@ -309,10 +293,7 @@ export async function renderArticleGuidePage(
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              ...authorPerson,
-            }),
+            __html: JSON.stringify(authorPerson),
           }}
         />
       ) : null}

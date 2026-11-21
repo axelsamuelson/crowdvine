@@ -13,6 +13,7 @@ import {
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import { buildGuideFaqPageJsonLd } from "@/lib/guides/guide-json-ld";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import { guidePath } from "@/lib/guides/guide-routes";
@@ -23,6 +24,7 @@ import {
 import { formatReleaseUpdatedLabel } from "@/lib/guides/systembolaget-release-groups";
 import {
   articlePath,
+  articleVisibleForLocale,
   isGuideArticlePublished,
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
@@ -171,23 +173,14 @@ export async function renderSystembolagetReleasesPage(
     }),
   };
 
-  const faqs = content.faqs ?? [];
-  const faqJsonLd =
-    faqs.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          name: content.h1[locale],
-          mainEntity: faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question[locale],
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: faq.answer[locale],
-            },
-          })),
-        }
-      : null;
+  const faqs = articleVisibleForLocale(content.faqs ?? [], locale);
+  const faqJsonLd = buildGuideFaqPageJsonLd(
+    faqs.map((faq) => ({
+      question: faq.question[locale],
+      answer: faq.answer[locale],
+    })),
+    { name: content.h1[locale] },
+  );
 
   let cardIndex = 0;
 
