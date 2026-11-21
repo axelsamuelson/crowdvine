@@ -16,7 +16,7 @@ export function ShopLayoutClient({
   collections,
   priceSources,
   initialFilterCount = 0,
-  initialResultsCount,
+  initialResultsCount = null,
   ssrPathname,
   navigableShopPaths,
   linkableRegionSlugs,
@@ -25,8 +25,12 @@ export function ShopLayoutClient({
   collections: Collection[];
   priceSources: PriceSourceForFilter[];
   initialFilterCount?: number;
-  /** SSR product count for mobile bar — avoids hydration mismatch. */
-  initialResultsCount?: number;
+  /**
+   * SSR product count for mobile bar. Pass null when the layout is ISR and
+   * cannot read the request pathname — MobileFilters then waits for the
+   * product list bridge instead of hydrating 0 → N.
+   */
+  initialResultsCount?: number | null;
   /** Pathname from the request. The CTA uses it until the client has mounted. */
   ssrPathname: string;
   /** Category paths with products for this site (sitemap emptiness rule). */
@@ -36,14 +40,14 @@ export function ShopLayoutClient({
   const pathname = usePathname() || ssrPathname;
   if (isShopFullBleedPath(pathname)) {
     return (
-      <ProductsProvider initialServerResultsCount={initialResultsCount ?? 0}>
+      <ProductsProvider initialServerResultsCount={initialResultsCount}>
         <Suspense fallback={null}>{children}</Suspense>
       </ProductsProvider>
     );
   }
 
   return (
-    <ProductsProvider initialServerResultsCount={initialResultsCount ?? 0}>
+    <ProductsProvider initialServerResultsCount={initialResultsCount}>
       <div className="flex flex-col md:grid grid-cols-12 md:gap-4">
         <Suspense fallback={null}>
           <DesktopFilters

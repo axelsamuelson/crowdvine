@@ -231,8 +231,14 @@ export async function MainShopContent({
   const sp = await searchParams;
   const content = getShopRootNaturalWineContent(locale, { isB2BSite: false });
   const [regionLinks, styleLinks] = await Promise.all([
-    getIndexableRegionLinks(locale),
-    getShopRootStylePillLinks(locale, false),
+    getIndexableRegionLinks(locale).catch((error) => {
+      console.warn("Failed to resolve shop region links:", error);
+      return [] as Awaited<ReturnType<typeof getIndexableRegionLinks>>;
+    }),
+    getShopRootStylePillLinks(locale, false).catch((error) => {
+      console.warn("Failed to resolve shop style links:", error);
+      return [] as Awaited<ReturnType<typeof getShopRootStylePillLinks>>;
+    }),
   ]);
   const styleHeading =
     locale === "sv" ? "Utforska per stil" : "Explore by style";

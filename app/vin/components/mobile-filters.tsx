@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import { cn } from "@/lib/utils";
@@ -69,8 +69,8 @@ interface MobileFiltersProps {
   collections: Collection[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
-  /** SSR product count from server parent — avoids 0 → N jump on hydration. */
-  resultsCount?: number;
+  /** SSR product count from server parent — null when ISR shell cannot know it. */
+  resultsCount?: number | null;
   /** SSR active filter count parsed from URL search params. */
   initialFilterCount?: number;
   /** Pathname from the request. Fallback when usePathname is empty during SSR. */
@@ -98,6 +98,14 @@ export function MobileFilters({
   const routerPathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+  // When the ISR shell cannot SSR a real count, keep SSR + first client paint
+  // identical (empty). ProductList may hydrate first and update context before
+  // this sibling hydrates — gating on mount avoids 0/empty → N mismatches.
+  const [countReady, setCountReady] = useState(resultsCountProp != null);
+  useEffect(() => {
+    if (resultsCountProp != null) return;
+    setCountReady(true);
+  }, [resultsCountProp]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -266,6 +274,12 @@ export function MobileFilters({
     products.length > 0
       ? products.length
       : (resultsCountProp ?? serverResultsCount);
+  const showResultsCount =
+    countReady &&
+    displayResultsCount != null &&
+    (products.length > 0 ||
+      resultsCountProp != null ||
+      serverResultsCount != null);
   const displayFilterCount =
     clientFilterCount > 0 ? clientFilterCount : initialFilterCount;
 
@@ -342,15 +356,19 @@ export function MobileFilters({
               {t("shop.clear")}
             </Link>
           </div>
-          <ResultsCount
-            count={displayResultsCount}
-            className="shrink-0 place-self-auto"
-          />
+          {showResultsCount ? (
+            <ResultsCount
+              count={displayResultsCount ?? 0}
+              className="shrink-0 place-self-auto"
+            />
+          ) : null}
+        </div>
+      ) : showResultsCount ? (
+        <div className="flex items-center justify-center px-sides py-1.5">
+          <ResultsCount count={displayResultsCount ?? 0} />
         </div>
       ) : (
-        <div className="flex items-center justify-center px-sides py-1.5">
-          <ResultsCount count={displayResultsCount} />
-        </div>
+        <div className="px-sides py-1.5" aria-hidden />
       )}
 
       {/* Filter drawer — groups scroll; footer (Show + Se vinlådor) stays pinned */}
@@ -436,7 +454,7 @@ export function MobileFilters({
                 className="h-11 w-full cursor-pointer rounded-full border-0 bg-[#0A0A0A] px-5 text-white shadow-none ring-0 ring-offset-0 hover:bg-[#0A0A0A]/90 hover:shadow-none focus-visible:ring-offset-0"
                 onClick={() => setFiltersOpen(false)}
               >
-                {t("shop.showWines", { count: displayResultsCount })}
+                {t("shop.showWines", { count: displayResultsCount ?? 0 })}
               </Button>
               <ProducerBoxesCta
                 variant="textLink"

@@ -5,6 +5,7 @@ import {
   MainShopContent,
   shopSkeleton,
 } from "@/app/vin/components/main-shop-content";
+import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
   pageTwitterCard,
@@ -12,20 +13,23 @@ import {
 import { getPublicSiteConfig } from "@/lib/site-config-server";
 import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 
-// force-static + revalidate → CDN ISR. Avoid awaiting searchParams (dynamic).
+// force-static + revalidate → CDN ISR. Do not await searchParams (dynamic).
 export const dynamic = "force-static";
 export const revalidate = 300;
 
 export function generateMetadata(): Metadata {
   const config = getPublicSiteConfig();
   const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin`;
-  const titleBase = "Naturvin: köp naturvin online";
-  const title = `${titleBase} | ${config.siteName}`;
+  // Strip suffix so root layout title.template does not double "| PACT Wines".
+  const title = categoryPageTitle(
+    "Naturvin online från små producenter i Frankrike | PACT Wines",
+    config.siteName,
+  );
   const description =
-    "Bläddra bland naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
+    "Naturvin online från små producenter i hela Frankrike. Vi samlar köpen på delade pallar från Languedoc och levererar inom Sverige.";
 
   return {
-    title: { absolute: title },
+    title,
     description,
     alternates: {
       canonical: pageUrl,

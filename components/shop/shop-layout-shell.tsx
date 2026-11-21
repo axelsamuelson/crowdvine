@@ -4,11 +4,15 @@ import {
   getCachedShopCollections,
 } from "@/lib/shop/cached-layout-data";
 import { getCachedNavigableShopFilterPaths } from "@/lib/shop/shop-filter-category-availability";
+import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
+import { getLinkableWineRegions } from "@/lib/wine-regions";
 import { ShopLayoutClient } from "@/components/shop/shop-layout-client";
 
 /**
  * Shop chrome without headers()/cookies() so /vin and /wine stay ISR-eligible.
- * Filter counts and B2B navigable paths hydrate client-side; static shell uses B2C.
+ * Pathname-dependent filter counts hydrate client-side; navigable paths +
+ * region slugs stay server-fetched for B2C so style/color/region filters match
+ * the live catalog on first paint.
  */
 export async function ShopLayoutShell({
   children,
@@ -31,12 +35,20 @@ export async function ShopLayoutShell({
     console.warn("Failed to fetch price sources in shop layout:", error);
   }
 
-  const navigableShopPaths = await getCachedNavigableShopFilterPaths(false).catch(
-    (error) => {
+  const [navigableShopPaths, linkableRegionSlugs] = await Promise.all([
+    getCachedNavigableShopFilterPaths(false).catch((error) => {
       console.warn("Failed to resolve navigable shop filter paths:", error);
       return undefined;
-    },
-  );
+    }),
+    getLiveWineRegionCountsMap()
+      .then((counts) =>
+        getLinkableWineRegions(counts).map((region) => region.slug),
+      )
+      .catch((error) => {
+        console.warn("Failed to resolve linkable wine regions:", error);
+        return undefined;
+      }),
+  ]);
 
   return (
     <PageLayoutServer>
@@ -44,8 +56,10 @@ export async function ShopLayoutShell({
         collections={collections}
         priceSources={priceSources}
         initialFilterCount={0}
+        initialResultsCount={null}
         ssrPathname=""
         navigableShopPaths={navigableShopPaths}
+        linkableRegionSlugs={linkableRegionSlugs}
       >
         {children}
       </ShopLayoutClient>
