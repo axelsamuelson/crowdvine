@@ -12,6 +12,65 @@ import type { AppLocale } from "@/lib/i18n/locale";
 const PRODUCER_BY_SLUG_SELECT =
   `${PRODUCER_DB_SELECT}, lat, lon, website_url, instagram_handle, certification_verified_url, certification_in_conversion, certification_lapsed` as const;
 
+const PRODUCER_WINE_SELECT_PARTS = [
+  "id",
+  "wine_name",
+  "vintage",
+  "handle",
+  "color",
+  "base_price_cents",
+  "summary",
+  "grape_varieties",
+  "appellation",
+  "is_live",
+  "farming",
+] as const;
+
+const OPTIONAL_PRODUCER_WINE_COLUMNS = new Set([
+  "summary",
+  "appellation",
+  "farming",
+  "grape_varieties",
+  "color",
+  "vintage",
+]);
+
+function missingWineColumnFromError(errorMessage: string): string | null {
+  const patterns = [
+    /column\s+[a-z_]+\.([a-z_0-9]+)\s+does not exist/i,
+    /could not find\s+(?:the\s+)?column\s+['"]?([a-z_0-9]+)['"]?/i,
+    /Could not find the '([a-z_0-9]+)' column/i,
+  ];
+  for (const pattern of patterns) {
+    const match = errorMessage.match(pattern);
+    if (match?.[1]) return match[1].toLowerCase();
+  }
+  return null;
+}
+
+async function fetchLiveWinesForProducer(
+  producerId: string,
+  selectParts: string[] = [...PRODUCER_WINE_SELECT_PARTS],
+): Promise<WineRow[] | null> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb
+    .from("wines")
+    .select(selectParts.join(", "))
+    .eq("producer_id", producerId)
+    .eq("is_live", true);
+
+  if (!error) return (data as WineRow[] | null) ?? [];
+
+  const missing = missingWineColumnFromError(error.message);
+  if (missing && OPTIONAL_PRODUCER_WINE_COLUMNS.has(missing)) {
+    const next = selectParts.filter((part) => part !== missing);
+    if (next.length < selectParts.length) {
+      return fetchLiveWinesForProducer(producerId, next);
+    }
+  }
+  return null;
+}
+
 type ProducerRow = {
   id: string;
   name: string;
@@ -117,7 +176,6 @@ export async function getProducerBySlugForLocale(
   if (!slug) return null;
 
   const wineLocale: WineLocale = locale === "en" ? "en" : "sv";
-  const sb = getSupabaseAdmin();
 
   const producers = await fetchIndexableProducersFromDb(PRODUCER_BY_SLUG_SELECT);
 
@@ -127,15 +185,8 @@ export async function getProducerBySlugForLocale(
 
   if (!producer) return null;
 
-  const { data: wines, error: winesError } = await sb
-    .from("wines")
-    .select(
-      "id, wine_name, vintage, handle, color, base_price_cents, summary, grape_varieties, appellation, is_live, farming",
-    )
-    .eq("producer_id", producer.id)
-    .eq("is_live", true);
-
-  if (winesError) return null;
+  const wines = await fetchLiveWinesForProducer(producer.id);
+  if (!wines) return null;
 
   return {
     producer: {
@@ -167,6 +218,6 @@ export async function getProducerBySlugForLocale(
       lat: producer.lat,
       lon: producer.lon,
     },
-    wines: (wines ?? []).map((row) => mapWineRow(row as WineRow, wineLocale)),
+    wines: wines.map((row) => mapWineRow(row, wineLocale)),
   };
 }
