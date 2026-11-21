@@ -41,6 +41,33 @@ function isFirstOrderMeta(meta: Record<string, unknown>): boolean {
   return meta.is_first_order === true;
 }
 
+function metaId(meta: Record<string, unknown>, key: string): string | null {
+  const value = meta[key];
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Deduplicate b2b_order_created by order_id, falling back to invoice_id.
+ * Also collapses draft+order pairs that share invoice_id when one event
+ * only has invoice_id and the other has both (legacy double-logging).
+ */
+export function shouldCountB2bOrderCreated(
+  meta: Record<string, unknown>,
+  seenOrderIds: Set<string>,
+  seenInvoiceIds: Set<string>,
+): boolean {
+  const orderId = metaId(meta, "order_id");
+  const invoiceId = metaId(meta, "invoice_id");
+  if (orderId && seenOrderIds.has(orderId)) return false;
+  if (invoiceId && seenInvoiceIds.has(invoiceId)) return false;
+  if (!orderId && !invoiceId) return true;
+  if (orderId) seenOrderIds.add(orderId);
+  if (invoiceId) seenInvoiceIds.add(invoiceId);
+  return true;
+}
+
 /**
  * Fill continuous Stockholm weeks from B2B_FUNNEL_SINCE through the current week.
  */
@@ -60,6 +87,8 @@ export function buildB2bWeeklyFunnel(
       repeat: number;
     }
   >();
+  const seenOrderIds = new Set<string>();
+  const seenInvoiceIds = new Set<string>();
 
   const ensure = (key: string) => {
     let b = byWeek.get(key);
@@ -104,6 +133,7 @@ export function buildB2bWeeklyFunnel(
         bucket.tastingQuote += 1;
         break;
       case "b2b_order_created":
+        if (!shouldCountB2bOrderCreated(meta, seenOrderIds, seenInvoiceIds)) break;
         if (isFirstOrderMeta(meta)) bucket.first += 1;
         else bucket.repeat += 1;
         break;

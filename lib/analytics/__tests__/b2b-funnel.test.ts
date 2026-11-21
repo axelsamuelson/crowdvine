@@ -3,6 +3,7 @@ import {
   B2B_FUNNEL_CONVERSION_EVENT,
   B2B_FUNNEL_SINCE,
   buildB2bWeeklyFunnel,
+  shouldCountB2bOrderCreated,
 } from "@/lib/analytics/b2b-funnel";
 
 describe("buildB2bWeeklyFunnel", () => {
@@ -85,5 +86,104 @@ describe("buildB2bWeeklyFunnel", () => {
       new Date("2026-08-10T12:00:00.000Z"),
     );
     expect(rows.every((r) => r.contact_clicked === 0)).toBe(true);
+  });
+
+  it("counts two b2b_order_created with the same order_id as one order", () => {
+    const rows = buildB2bWeeklyFunnel(
+      [
+        {
+          event_type: "b2b_order_created",
+          created_at: "2026-09-12T10:00:00.000Z",
+          event_metadata: {
+            is_first_order: true,
+            order_type: "offline",
+            order_id: "INV-100",
+            invoice_id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+          },
+          page_url: "https://dirtywine.se/",
+        },
+        {
+          event_type: "b2b_order_created",
+          created_at: "2026-09-12T11:00:00.000Z",
+          event_metadata: {
+            is_first_order: true,
+            order_type: "offline",
+            order_id: "INV-100",
+            invoice_id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+          },
+          page_url: "https://dirtywine.se/",
+        },
+      ],
+      new Date("2026-09-14T12:00:00.000Z"),
+    );
+
+    const week = rows.find((r) => r.week_start === "2026-09-07");
+    expect(week?.first_orders).toBe(1);
+    expect(week?.repeat_orders).toBe(0);
+  });
+
+  it("collapses legacy draft+order pairs that share invoice_id", () => {
+    const rows = buildB2bWeeklyFunnel(
+      [
+        {
+          event_type: "b2b_order_created",
+          created_at: "2026-09-12T09:00:00.000Z",
+          event_metadata: {
+            is_first_order: true,
+            order_type: "offline",
+            invoice_id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+          },
+          page_url: "https://dirtywine.se/",
+        },
+        {
+          event_type: "b2b_order_created",
+          created_at: "2026-09-12T10:00:00.000Z",
+          event_metadata: {
+            is_first_order: true,
+            order_type: "offline",
+            order_id: "INV-100",
+            invoice_id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+          },
+          page_url: "https://dirtywine.se/",
+        },
+      ],
+      new Date("2026-09-14T12:00:00.000Z"),
+    );
+
+    const week = rows.find((r) => r.week_start === "2026-09-07");
+    expect(week?.first_orders).toBe(1);
+    expect(week?.repeat_orders).toBe(0);
+  });
+});
+
+describe("shouldCountB2bOrderCreated", () => {
+  it("dedupes by order_id first", () => {
+    const seenOrders = new Set<string>();
+    const seenInvoices = new Set<string>();
+    expect(
+      shouldCountB2bOrderCreated(
+        { order_id: "O1", invoice_id: "I1" },
+        seenOrders,
+        seenInvoices,
+      ),
+    ).toBe(true);
+    expect(
+      shouldCountB2bOrderCreated(
+        { order_id: "O1", invoice_id: "I2" },
+        seenOrders,
+        seenInvoices,
+      ),
+    ).toBe(false);
+  });
+
+  it("falls back to invoice_id when order_id is missing", () => {
+    const seenOrders = new Set<string>();
+    const seenInvoices = new Set<string>();
+    expect(
+      shouldCountB2bOrderCreated({ invoice_id: "I1" }, seenOrders, seenInvoices),
+    ).toBe(true);
+    expect(
+      shouldCountB2bOrderCreated({ invoice_id: "I1" }, seenOrders, seenInvoices),
+    ).toBe(false);
   });
 });
