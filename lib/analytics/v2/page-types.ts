@@ -1,6 +1,6 @@
 /**
  * Analytics V2 landing / page types — Hugo H3 patterns.
- * Mirrors SQL analytics_landing_type() (migrations/297).
+ * Mirrors SQL analytics_landing_type() (migrations/300).
  */
 
 export type AnalyticsPageType =

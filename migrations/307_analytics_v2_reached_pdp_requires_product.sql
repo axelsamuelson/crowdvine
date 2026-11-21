@@ -3,7 +3,7 @@
 -- in funnel/overview while analytics_product_daily stayed empty.
 --
 -- NOTE: The CREATE OR REPLACE analytics_refresh_session_facts below is
--- superseded by migration 305 (Saga B1–B6): v2 channel/site helpers,
+-- superseded by migration 308 (Saga B1–B6): v2 channel/site helpers,
 -- full-day rollup rebuild, geo-bot-inside-refresh, clean filter, RPCs.
 
 CREATE OR REPLACE FUNCTION analytics_product_id_from_event(

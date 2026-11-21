@@ -1,6 +1,6 @@
 /**
  * H9 / M5: invited-friend profile union for the three canonical PACT inviters.
- * Mirrors analytics_invited_friend_profiles (migrations/299).
+ * Mirrors analytics_invited_friend_profiles (migrations/302).
  * No emails in this module.
  */
 

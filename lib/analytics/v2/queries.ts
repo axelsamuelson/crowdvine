@@ -257,7 +257,7 @@ export async function fetchRollupTotals(
   const args = rpcFilterArgs(filters);
   const { data, error } = await sb.rpc("analytics_v2_rpc_rollup_totals", args);
   if (error) {
-    // Fallback for environments where 305 is not applied yet.
+    // Fallback for environments where 308 is not applied yet.
     const rows = await fetchRollupRows(filters);
     return sumRows(rows);
   }

@@ -7,7 +7,7 @@
 --
 -- Saga R2: do NOT CREATE OR REPLACE unchanged prod helpers:
 --   analytics_site, analytics_channel, analytics_utm_param, analytics_checkout_step
--- Those stay as 177 / 187 / 232. V2 uses analytics_v2_site / analytics_v2_channel (305).
+-- Those stay as 177 / 187 / 232. V2 uses analytics_v2_site / analytics_v2_channel (308).
 -- ---------------------------------------------------------------------------
 
 -- Path helpers (H3 / V2 sidtyper)

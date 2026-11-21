@@ -2,10 +2,10 @@
 -- Soft flag only; never DELETE user_events.
 -- Cron calls analytics_apply_geo_bot_flags() after analytics_refresh_session_facts.
 --
--- NOTE: Migration 305 supersedes this body with the Saga geo rule
+-- NOTE: Migration 308 supersedes this body with the Saga geo rule
 -- (has_referrer, page_views, duration_s, has_geo_engagement) and also flags
 -- geo inside analytics_refresh_session_facts before rollup. Keep this file
--- on the v1.2 signature so installs that stop between 302 and 305 still work.
+-- on the v1.2 signature so installs that stop between 305 and 308 still work.
 
 CREATE OR REPLACE FUNCTION analytics_apply_geo_bot_flags()
 RETURNS jsonb
@@ -81,4 +81,4 @@ REVOKE ALL ON FUNCTION analytics_apply_geo_bot_flags() FROM PUBLIC, anon, authen
 GRANT EXECUTE ON FUNCTION analytics_apply_geo_bot_flags() TO service_role;
 
 COMMENT ON FUNCTION analytics_apply_geo_bot_flags() IS
-  'v1.2 applicator (superseded by Saga body in migration 305). Soft-flag only; no DELETE.';
+  'v1.2 applicator (superseded by Saga body in migration 308). Soft-flag only; no DELETE.';

@@ -235,7 +235,7 @@ COMMENT ON COLUMN analytics_session_facts.checkout_steps_seen IS
   'Distinct checkout_step_viewed steps seen in session (postal/delivery/age_terms/payment).';
 
 -- ===========================================================================
--- B3/B5/B2/B1 — Full refresh (supersedes 297/304 body)
+-- B3/B5/B2/B1 — Full refresh (supersedes 300/307 body)
 -- ===========================================================================
 
 CREATE OR REPLACE FUNCTION analytics_refresh_session_facts(p_since timestamptz DEFAULT NULL)
@@ -870,7 +870,7 @@ COMMENT ON FUNCTION analytics_refresh_session_facts(timestamptz) IS
   'Saga B1–B5 refresh: v2 channel/site, first country, geo inside refresh, full-day rollup, clean≈sessions_clean.';
 
 -- ===========================================================================
--- Update geo applicator (302) to Saga rule — still callable from cron
+-- Update geo applicator (305) to Saga rule — still callable from cron
 -- ===========================================================================
 
 CREATE OR REPLACE FUNCTION analytics_apply_geo_bot_flags()
@@ -987,8 +987,8 @@ GRANT EXECUTE ON FUNCTION analytics_apply_geo_bot_flags() TO service_role;
 COMMENT ON FUNCTION analytics_apply_geo_bot_flags() IS
   'Saga geo-bot applicator (also folded into analytics_refresh_session_facts). Soft flag only.';
 
--- Keep 302 file in sync for readers of the migration chain (same body).
--- (302 itself is not re-run; this CREATE OR REPLACE is the live definition.)
+-- Keep 305 file in sync for readers of the migration chain (same body).
+-- (305 itself is not re-run; this CREATE OR REPLACE is the live definition.)
 
 -- ===========================================================================
 -- B4 — RLS on V2 analytics tables
