@@ -37,7 +37,8 @@ import {
 const DASHBOARD_CARD =
   "rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]";
 
-const EDIT_BUTTON_CLASS = `${ADMIN_OUTLINE_BUTTON_CLASS} text-xs`;
+/** Force 14px icon: Button defaults `[&_svg:not([class*='size-'])]:size-6`. */
+const EDIT_BUTTON_CLASS = `${ADMIN_OUTLINE_BUTTON_CLASS} text-xs [&_svg]:size-3.5`;
 
 type EditForm = {
   name: string;
@@ -169,7 +170,7 @@ function EditRowButton({
       className={`${EDIT_BUTTON_CLASS} ${className}`}
       onClick={onClick}
     >
-      <Pencil className="mr-1.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+      <Pencil className="mr-1.5 size-3.5 shrink-0" aria-hidden />
       Redigera
     </Button>
   );
