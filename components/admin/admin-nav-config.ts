@@ -17,8 +17,6 @@ import {
   Sparkles,
   Search,
   ListTodo,
-  FolderKanban,
-  Target,
   UserCheck,
   Flag,
   Globe2,
@@ -27,6 +25,7 @@ import {
   Image,
   PenSquare,
   Wallet,
+  Activity,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -137,13 +136,16 @@ export const adminNavigationGroups: AdminNavGroup[] = [
     name: "Drift",
     icon: ListTodo,
     items: [
-      { name: "Mål", href: "/admin/operations/goals", icon: Flag },
       {
-        name: "Delmål",
-        href: "/admin/operations/objectives",
-        icon: Target,
+        name: "Driftöversikt",
+        href: "/admin/operations",
+        icon: Activity,
       },
-      { name: "Projekt", href: "/admin/operations/projects", icon: FolderKanban },
+      {
+        name: "Mål",
+        href: "/admin/operations/objectives",
+        icon: Flag,
+      },
       { name: "Uppgifter", href: "/admin/operations/tasks", icon: ListTodo },
       { name: "Min arbetsyta", href: "/admin/operations/my-work", icon: UserCheck },
     ],

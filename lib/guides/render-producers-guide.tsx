@@ -5,10 +5,15 @@ import type { ReactNode } from "react";
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankNumber } from "@/components/guides/guide-rank-number";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { ProducerRankChange } from "@/components/guides/producer-rank-change";
 import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon";
 import { SystembolagetProducerMark } from "@/components/guides/systembolaget-producer-mark";
 import { Footer } from "@/components/layout/footer";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -18,7 +23,7 @@ import {
   entryDescription,
   guideCopy,
 } from "@/lib/guides/guide-copy";
-import { countryLabel } from "@/lib/guides/guide-labels";
+import { countryLabel, regionLabel } from "@/lib/guides/guide-labels";
 import {
   guideHreflang,
   guidePath,
@@ -198,11 +203,14 @@ function ProducerShopLink({
 }
 
 export async function renderProducersGuidePage(locale: AppLocale) {
-  const [{ seoBaseUrl }, availability, shopLinks] = await Promise.all([
-    getGuideSeoOwnership(),
-    getSystembolagetProducerAvailability(),
-    getTop100ProducerShopLinks(locale),
-  ]);
+  const producersGuidePath = guidePath("producers", locale);
+  const [{ seoBaseUrl }, availability, shopLinks, guideShopLinks] =
+    await Promise.all([
+      getGuideSeoOwnership(),
+      getSystembolagetProducerAvailability(),
+      getTop100ProducerShopLinks(locale),
+      loadGuideShopLinks(producersGuidePath, locale),
+    ]);
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const winesPath = guidePath("wines", locale);
@@ -231,7 +239,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
   const languedoc = filterLanguedocRoussillonEntries(TOP_100_PRODUCERS);
 
   const producerMetaLine = (entry: (typeof TOP_100_PRODUCERS)[number]) =>
-    `${entry.region} · ${countryLabel(entry.country, locale)} · ${entry.grapes}`;
+    `${regionLabel(entry.region, locale)} · ${countryLabel(entry.country, locale)} · ${entry.grapes}`;
   const shopLinkFor = (producer: TopProducer) =>
     producer.producerId ? shopLinks[producer.producerId] : undefined;
 
@@ -330,9 +338,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
         <p className="mt-3 text-sm text-muted-foreground">{updatedLine}</p>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
-          {copy.producers.intro.map((paragraph) => (
+          {copy.producers.intro.map((paragraph, index) => (
             <p key={paragraph.slice(0, 40)}>
-              {linkLanguedocMentions(paragraph, locale)}
+              {paragraph.includes("](")
+                ? renderArticleRichText(paragraph, `intro-${index}`)
+                : linkLanguedocMentions(paragraph, locale)}
             </p>
           ))}
         </div>
@@ -464,11 +474,11 @@ export async function renderProducersGuidePage(locale: AppLocale) {
               name: producer.name,
               region: shopLinkFor(producer) ? (
                 <>
-                  {producer.region}
+                  {regionLabel(producer.region, locale)}
                   <ProducerShopLink link={shopLinkFor(producer)} />
                 </>
               ) : (
-                producer.region
+                regionLabel(producer.region, locale)
               ),
               country: countryLabel(producer.country, locale),
               grapes: producer.grapes,
@@ -523,7 +533,7 @@ export async function renderProducersGuidePage(locale: AppLocale) {
                 )}
                 <span className="text-muted-foreground/80">
                   {" "}
-                  — {producer.region}
+                  — {regionLabel(producer.region, locale)}
                 </span>
                 <ProducerShopLink link={shopLinkFor(producer)} />
               </li>
@@ -548,6 +558,12 @@ export async function renderProducersGuidePage(locale: AppLocale) {
             ))}
           </ul>
         </section>
+
+        <GuideShopLinksBlock
+          guidePath={producersGuidePath}
+          locale={locale}
+          links={guideShopLinks}
+        />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           <p>

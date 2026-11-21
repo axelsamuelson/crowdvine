@@ -405,12 +405,13 @@ describe("petnat, glouglou, budget and best", () => {
     ).toEqual(["dear-high", "cheap-low"]);
   });
 
-  it("describes a move between visible places, and a wine that was not on the list", () => {
+  it("describes ↑/↓ between visible places and hides list-Ny entirely", () => {
     expect(formatPlacementBadge(1, 2, "sv")).toBe("↑ 1");
     expect(formatPlacementBadge(4, 2, "sv")).toBe("↓ 2");
     expect(formatPlacementBadge(3, 3, "en")).toBeNull();
-    expect(formatPlacementBadge(5, null, "sv")).toBe("Ny");
-    expect(formatPlacementBadge(5, null, "en")).toBe("New");
+    // New on the list (previous_rank null) — no list-Ny/New on type guides.
+    expect(formatPlacementBadge(5, null, "sv")).toBeNull();
+    expect(formatPlacementBadge(5, null, "en")).toBeNull();
     expect(formatPlacementBadge(5, undefined, "sv")).toBeNull();
   });
 

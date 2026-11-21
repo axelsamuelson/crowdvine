@@ -557,6 +557,11 @@ export type DualOfferCheckoutPanelProps = {
   cartMinimumMet?: boolean;
   /** Existing blocked-order helper; shown under Fortsätt when minimum unmet. */
   cartBlockedNote?: string | null;
+  /**
+   * When purchase is disabled because postal is missing, show this under the
+   * gray CTA (e.g. "Fyll i postnummer för att gå vidare").
+   */
+  postalRequiredNote?: string | null;
   onPurchaseActionsChange?: (
     model: DualOfferPurchaseActionsModel | null,
   ) => void;
@@ -591,6 +596,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
   const purchaseEnabled = props.purchaseEnabled !== false;
   const cartMinimumMet = props.cartMinimumMet !== false;
   const cartBlockedNote = props.cartBlockedNote ?? null;
+  const postalRequiredNote = props.postalRequiredNote ?? null;
   const showPalletFillStatus = props.showPalletFillStatus !== false;
   const palletFill = props.palletFill ?? null;
   const requestGen = useRef(0);
@@ -840,7 +846,11 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       totalInclLine: null,
       legalLine: null,
       disabled: continueDisabled,
-      confirmNote: !cartMinimumMet ? cartBlockedNote : confirmNote,
+      confirmNote: !cartMinimumMet
+        ? cartBlockedNote
+        : !purchaseEnabled && postalRequiredNote
+          ? postalRequiredNote
+          : confirmNote,
       onConfirm: onContinueToCard,
     };
   }, [
@@ -854,6 +864,8 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     onContinueToCard,
     cartMinimumMet,
     cartBlockedNote,
+    purchaseEnabled,
+    postalRequiredNote,
   ]);
 
   const onPurchaseActionsChange = props.onPurchaseActionsChange;

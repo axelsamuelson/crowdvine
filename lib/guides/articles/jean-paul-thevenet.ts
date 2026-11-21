@@ -42,7 +42,7 @@ export const jeanPaulThevenetArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Jean-Paul Thévenet is known as Polpo — a nickname that travels in the natural wine world alongside the domaine name. He took control of the family domaine in Villié-Morgon as a third-generation producer, inheriting not only vines but the standard Beaujolais model of the era: fruit sold to cooperatives, wine made for someone else's calendar.",
+          "Jean-Paul Thévenet is known as Polpo — a nickname that travels in the [natural wine](/guides/what-is-natural-wine) world alongside the domaine name. He took control of the family domaine in Villié-Morgon as a third-generation producer, inheriting not only vines but the standard Beaujolais model of the era: fruit sold to cooperatives, wine made for someone else's calendar.",
           "The change came in the early 1980s. Marcel Lapierre — a childhood friend — influenced his move toward organic farming and natural winemaking. What began as friendship became the intellectual foundation for everything he would do differently: a decision to bottle Morgon under his own name rather than feed the industrial machine. Polpo's path into the Gang of Four started with that personal trust as much as with a technical idea — and with the refusal to keep selling fruit into a system that erased the hillside.",
         ],
         sv: "Smeknamnet Polpo — vad det säger om mannen. Att ta över familjedomänet som tredje generation. Vad domänet var innan — standardmodellen för Beaujolais, frukt såld till kooperativ. Förändringens stund på tidiga 1980-talet och vad som orsakade den. Hans koppling till Marcel Lapierre — en barndomsvänskap som blev den intellektuella grunden för allt han skulle göra annorlunda.",
@@ -117,6 +117,16 @@ export const jeanPaulThevenetArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "The Gang of Four →",

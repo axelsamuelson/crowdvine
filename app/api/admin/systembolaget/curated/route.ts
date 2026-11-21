@@ -27,9 +27,9 @@ function normalizeTop100Name(
 const curatedSchema = z
   .object({
     product_number: z.string().min(1),
-    verdict: z.enum(["recommended", "avoid", "skipped"]),
+    verdict: z.enum(["recommended", "avoid", "skipped", "candidate"]),
     category: z.enum(GUIDE_WINE_CATEGORIES),
-    editorial_note_sv: z.string().min(1),
+    editorial_note_sv: z.string(),
     editorial_note_en: z.string().optional().nullable(),
     producer_note_sv: z.string().optional().nullable(),
     producer_note_en: z.string().optional().nullable(),
@@ -40,6 +40,16 @@ const curatedSchema = z
     is_published: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
+    if (
+      value.verdict !== "candidate" &&
+      !value.editorial_note_sv.trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["editorial_note_sv"],
+        message: "editorial_note_sv is required unless verdict is candidate",
+      });
+    }
     if (value.verdict !== "skipped") return;
     if (!value.skip_reason_sv?.trim()) {
       ctx.addIssue({
@@ -162,6 +172,7 @@ export async function POST(request: NextRequest) {
   }
 
   const skipped = parsed.data.verdict === "skipped";
+  const candidate = parsed.data.verdict === "candidate";
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("systembolaget_curated")
@@ -179,7 +190,7 @@ export async function POST(request: NextRequest) {
         skip_reason_en: parsed.data.skip_reason_en?.trim() || null,
         sort_order: parsed.data.sort_order ?? 100,
         // Skipped reviews must not appear on public lists.
-        is_published: skipped ? false : (parsed.data.is_published ?? false),
+        is_published: skipped || candidate ? false : (parsed.data.is_published ?? false),
       },
       { onConflict: "product_number,category" },
     )

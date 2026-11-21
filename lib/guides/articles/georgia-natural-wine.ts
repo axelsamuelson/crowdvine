@@ -44,7 +44,7 @@ export const georgiaNaturalWineArticle: GuideArticleContent = {
         en: [
           "Georgia, in the South Caucasus, is widely considered the birthplace of wine. Archaeological evidence points to winemaking going back approximately eight thousand years — not a marketing claim, but a depth of practice that few wine regions can approach. The finds matter because they place fermentation culture here long before most European vineyards existed as we know them.",
           "The qvevri is the unbroken thread: clay vessels buried in the ground for fermentation and storage, carrying an ancient method into modern bottles. That continuity matters. The tradition survived invasion, Soviet collectivisation and modernisation pressure without disappearing into museum folklore — a line of practice that kept being used, not merely remembered.",
-          "What drinkers meet today is not a reconstruction. It is a living practice that European natural wine only rediscovered when growers began looking for authenticity beyond stainless steel and temperature control. Eight thousand years is not a slogan here — it is the reason Georgia still sets the terms for what skin-contact wine can mean.",
+          "What drinkers meet today is not a reconstruction. It is a living practice that European [natural wine](/guides/what-is-natural-wine) only rediscovered when growers began looking for authenticity beyond stainless steel and temperature control. Eight thousand years is not a slogan here — it is the reason Georgia still sets the terms for what skin-contact wine can mean.",
         ],
         sv: "Arkeologin — vad som hittats, vad det betyder. Georgiens anspråk på att vara vinets födelseplats. Qvevri som en obruten tråd från urgammal praxis till modern flaska. Vad det betyder att en vinframställningstradition överlevt årtusenden av invasion, sovjetisk kollektivisering och moderniseringstryck.",
       },
@@ -84,10 +84,10 @@ export const georgiaNaturalWineArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Joško Gravner's 1997 trip to Georgia was the catalyst for orange wine in Friuli. What he saw — qvevri, skin contact, no temperature control — reshaped how he thought white wine could be made. From that visit, a change in Collio eventually reached drinkers everywhere. Georgian tradition did not stay in Georgia.",
+          "Joško Gravner's 2000 trip to Georgia was the catalyst for orange wine in Friuli. What he saw — qvevri, skin contact, no temperature control — reshaped how he thought white wine could be made. He used qvevri from the 2001 vintage. From that visit, a change in Collio eventually reached drinkers everywhere. Georgian tradition did not stay in Georgia.",
           "European orange wine owes a direct debt to Georgian tradition. When a modern movement looking for authenticity met an ancient method that had never abandoned skin contact, the result was not invention so much as recognition — and then translation into European cellars. Kakheti did not become a fashion; it became a reference point for what orange wine had always been able to be. The debt is historical, not metaphorical.",
         ],
-        sv: "Gravners resa 1997. Vad han såg och vad han tog med hem. Hur ett besök i Kakheti förändrade vinframställningen i Friuli och slutligen överallt. Den skuld europeiskt orange vin är skyldig georgisk tradition. Vad som händer när en urgammal metod möter en modern rörelse som letar efter exakt den typen av äkthet.",
+        sv: "Gravners resa 2000. Från 2001 års skörd använde han qvevri. Vad han såg och vad han tog med hem. Hur ett besök i Kakheti förändrade vinframställningen i Friuli och slutligen överallt. Den skuld europeiskt orange vin är skyldig georgisk tradition. Vad som händer när en urgammal metod möter en modern rörelse som letar efter exakt den typen av äkthet.",
       },
     },
     {
@@ -119,6 +119,16 @@ export const georgiaNaturalWineArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Explore the world's 100 best natural wine producers →",

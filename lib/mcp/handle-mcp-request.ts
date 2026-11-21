@@ -24,18 +24,26 @@ function bearerToken(req: Request): string | null {
 
 function mcpDisabledBody(): string {
   const mode = getMcpAuthMode();
+  const readonlyHint =
+    " Or set PACT_MCP_READONLY_API_KEY for get_gsc_* tools only.";
   if (mode === "oauth") {
     return (
-      "MCP disabled: set AUTH0_DOMAIN and AUTH0_AUDIENCE (and MCP_AUTH_MODE=oauth).\n"
+      "MCP disabled: set AUTH0_DOMAIN and AUTH0_AUDIENCE (and MCP_AUTH_MODE=oauth)." +
+      readonlyHint +
+      "\n"
     );
   }
   if (mode === "dual") {
     return (
-      "MCP disabled: dual mode requires MCP_API_KEY and AUTH0_DOMAIN + AUTH0_AUDIENCE.\n"
+      "MCP disabled: dual mode requires MCP_API_KEY and AUTH0_DOMAIN + AUTH0_AUDIENCE." +
+      readonlyHint +
+      "\n"
     );
   }
   return (
-    "MCP disabled: set MCP_API_KEY in .env.local (or the host environment) and restart next dev.\n"
+    "MCP disabled: set MCP_API_KEY in .env.local (or the host environment) and restart next dev." +
+    readonlyHint +
+    "\n"
   );
 }
 

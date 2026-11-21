@@ -97,6 +97,23 @@ export function formatStockholmDate(input: string | Date | number): string {
   return stockholmDateFmt.format(d);
 }
 
+/**
+ * Swedish short display date for analytics notes, e.g. "16 aug. 2026".
+ * Accepts YYYY-MM-DD (Stockholm civil) or an instant; always formats in
+ * Europe/Stockholm via sv-SE (day numeric, month short, year numeric).
+ * Month abbreviations include a trailing period (e.g. "aug.").
+ */
+export function formatStockholmDisplayDate(
+  input: string | Date | number,
+): string {
+  if (typeof input === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    const [y, m, d] = input.split("-").map(Number);
+    // Noon UTC on the civil date keeps the Stockholm calendar day stable.
+    return formatStockholmDate(new Date(Date.UTC(y, m - 1, d, 12, 0, 0)));
+  }
+  return formatStockholmDate(input);
+}
+
 export function formatStockholmTime(input: string | Date | number): string {
   const d = input instanceof Date ? input : new Date(input);
   if (Number.isNaN(d.getTime())) return "—";

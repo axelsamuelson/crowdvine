@@ -3,7 +3,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
@@ -13,7 +18,11 @@ import {
   entryDescription,
   guideCopy,
 } from "@/lib/guides/guide-copy";
-import { countryLabel, wineTypeLabel } from "@/lib/guides/guide-labels";
+import {
+  countryLabel,
+  regionLabel,
+  wineTypeLabel,
+} from "@/lib/guides/guide-labels";
 import {
   guideHreflang,
   guidePath,
@@ -21,6 +30,7 @@ import {
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import { filterLanguedocRoussillonEntries } from "@/lib/guides/languedoc-region";
 import { PRODUCER_BOXES_PATH } from "@/lib/producer-boxes/config";
+import { resolveTopWineCatalogLinks } from "@/lib/guides/guide-catalog-links";
 import { producerGuideHref } from "@/lib/guides/producer-guide-links";
 import {
   TOP_100_PRODUCERS,
@@ -59,6 +69,16 @@ function wineProducerGuideHref(
   );
   if (!producer) return undefined;
   return producerGuideHref(producer.rank, locale);
+}
+
+function wineTitleHref(
+  wine: TopWine,
+  locale: AppLocale,
+  catalog: Awaited<ReturnType<typeof resolveTopWineCatalogLinks>>,
+): string | undefined {
+  const pdp = catalog[wine.rank]?.wine?.href;
+  if (pdp) return pdp;
+  return wineProducerGuideHref(wine, locale);
 }
 
 function linkLanguedocMentions(
@@ -118,7 +138,9 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   const beginner = beginnerPickCopy(locale);
   const hubPath = guidePath("hub", locale);
   const producersPath = guidePath("producers", locale);
-  const pageUrl = `${seoBaseUrl}${guidePath("wines", locale)}`;
+  const winesGuidePath = guidePath("wines", locale);
+  const pageUrl = `${seoBaseUrl}${winesGuidePath}`;
+  const guideShopLinks = await loadGuideShopLinks(winesGuidePath, locale);
   const shopNatural =
     locale === "sv" ? "/vin" : "/wine";
   const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
@@ -130,7 +152,10 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   // Same BEGINNER_PICKS + resolver for both /guides/... and /guider/... pages.
   // Never drop the section on a locale just because the product lookup failed;
   // resolveAvailableBeginnerPicks falls back to editorial copy without prices.
-  const beginnerResolved = await resolveAvailableBeginnerPicks();
+  const [beginnerResolved, catalogLinks] = await Promise.all([
+    resolveAvailableBeginnerPicks(),
+    resolveTopWineCatalogLinks(locale),
+  ]);
   const beginnerPicks: BeginnerPickResolved[] = beginnerResolved.available;
 
   const top10 = TOP_100_WINES.filter((w) => w.rank <= 10);
@@ -138,8 +163,29 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   const rest = TOP_100_WINES.filter((w) => w.rank >= 31);
   const languedoc = filterLanguedocRoussillonEntries(TOP_100_WINES);
 
-  const wineMetaLine = (entry: (typeof TOP_100_WINES)[number]) =>
-    `${entry.producer} · ${entry.region} · ${countryLabel(entry.country, locale)} · ${wineTypeLabel(entry.type, locale)} · ${entry.grapes}`;
+  const wineMetaLine = (entry: (typeof TOP_100_WINES)[number]) => {
+    const producerLink = catalogLinks[entry.rank]?.producer;
+    const restMeta = ` · ${regionLabel(entry.region, locale)} · ${countryLabel(entry.country, locale)} · ${wineTypeLabel(entry.type, locale)} · ${entry.grapes}`;
+    if (!producerLink) {
+      return (
+        <>
+          {entry.producer}
+          {restMeta}
+        </>
+      );
+    }
+    return (
+      <>
+        <Link
+          href={producerLink.href}
+          className="underline underline-offset-4 hover:text-foreground"
+        >
+          {entry.producer}
+        </Link>
+        {restMeta}
+      </>
+    );
+  };
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
@@ -220,9 +266,11 @@ export async function renderWinesGuidePage(locale: AppLocale) {
         </p>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
-          {copy.wines.intro.map((paragraph) => (
+          {copy.wines.intro.map((paragraph, index) => (
             <p key={paragraph.slice(0, 40)}>
-              {linkLanguedocMentions(paragraph, locale)}
+              {paragraph.includes("](")
+                ? renderArticleRichText(paragraph, `intro-${index}`)
+                : linkLanguedocMentions(paragraph, locale)}
             </p>
           ))}
         </div>
@@ -336,7 +384,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
                 description={entryDescription(wine, locale)}
-                href={wineProducerGuideHref(wine, locale)}
+                href={wineTitleHref(wine, locale, catalogLinks)}
               />
             ))}
           </div>
@@ -355,7 +403,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
                 description={entryDescription(wine, locale)}
-                href={wineProducerGuideHref(wine, locale)}
+                href={wineTitleHref(wine, locale, catalogLinks)}
                 compact
               />
             ))}
@@ -375,7 +423,7 @@ export async function renderWinesGuidePage(locale: AppLocale) {
                 title={wine.wine}
                 meta={wineMetaLine(wine)}
                 description={entryDescription(wine, locale)}
-                href={wineProducerGuideHref(wine, locale)}
+                href={wineTitleHref(wine, locale, catalogLinks)}
                 compact
               />
             ))}
@@ -404,20 +452,49 @@ export async function renderWinesGuidePage(locale: AppLocale) {
             {copy.wines.languedocBoxAfter}
           </p>
           <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
-            {languedoc.map((wine) => (
-              <li key={wine.rank}>
-                <span className="font-medium tabular-nums text-foreground">
-                  #{wine.rank}
-                </span>{" "}
-                {wine.wine}
-                <span className="text-muted-foreground/80">
-                  {", "}
-                  {wine.producer}, {wine.region}
-                </span>
-              </li>
-            ))}
+            {languedoc.map((wine) => {
+              const links = catalogLinks[wine.rank];
+              const wineNode = links?.wine ? (
+                <Link
+                  href={links.wine.href}
+                  className="font-medium text-foreground underline underline-offset-4 hover:text-foreground"
+                >
+                  {wine.wine}
+                </Link>
+              ) : (
+                wine.wine
+              );
+              const producerNode = links?.producer ? (
+                <Link
+                  href={links.producer.href}
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  {wine.producer}
+                </Link>
+              ) : (
+                wine.producer
+              );
+              return (
+                <li key={wine.rank}>
+                  <span className="font-medium tabular-nums text-foreground">
+                    #{wine.rank}
+                  </span>{" "}
+                  {wineNode}
+                  <span className="text-muted-foreground/80">
+                    {", "}
+                    {producerNode}, {regionLabel(wine.region, locale)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </section>
+
+        <GuideShopLinksBlock
+          guidePath={winesGuidePath}
+          locale={locale}
+          links={guideShopLinks}
+        />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           <p>

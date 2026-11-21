@@ -206,6 +206,16 @@ export const bestPetNatWinesSystembolagetArticle: GuideArticleContent = {
         sv: "/guider",
       },
     },
+    {
+      label: {
+        en: "Pet nat in the shop →",
+        sv: "Pet nat i shopen →",
+      },
+      href: {
+        en: "/wine/pet-nat",
+        sv: "/vin/pet-nat",
+      },
+    },
   ],
   jsonLdAbout: {
     type: "Thing",
@@ -511,6 +521,16 @@ export const bestPetNatWinesSystembolagetSvArticle: GuideArticleContent = {
       href: {
         en: "/guides/best-sparkling-natural-wines-systembolaget",
         sv: "/guider/basta-mousserande-naturviner-systembolaget",
+      },
+    },
+    {
+      label: {
+        en: "Pet nat in the shop →",
+        sv: "Pet nat i shopen →",
+      },
+      href: {
+        en: "/wine/pet-nat",
+        sv: "/vin/pet-nat",
       },
     },
   ],

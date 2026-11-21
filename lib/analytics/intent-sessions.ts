@@ -412,7 +412,88 @@ export function buildWeeklyFunnelFromCleanEvents(
 
 export type CleanMetrics28d = {
   visitors: number;
+  sessions: number;
   intent_sessions: number;
   reservations: number;
   conversion_pct: number;
 };
+
+function visitorIdentityKey(e: {
+  visitor_id?: string | null;
+  session_id: string;
+}): string {
+  return e.visitor_id && String(e.visitor_id).trim()
+    ? String(e.visitor_id).trim()
+    : `session:${e.session_id}`;
+}
+
+/**
+ * 28-day headline metrics from clean events + order_reservations lookback.
+ * Pure function — same inputs always yield identical aggregates (used by
+ * admin analytics cards and equality tests around fetch optimisations).
+ */
+export function computeMetrics28d(
+  events28: CleanEventRow[],
+  reservationsByUser: Map<string, string[]>,
+): CleanMetrics28d {
+  const visitorKeys = new Set(events28.map((e) => visitorIdentityKey(e)));
+  const sessionKeys = new Set(events28.map((e) => e.session_id));
+  const intent28 = buildIntentSessionsFromCleanEvents(
+    events28,
+    reservationsByUser,
+  );
+  const reservationSessions = new Set<string>();
+  const sessionAgg = new Map<
+    string,
+    { minAt: number; maxAt: number; userIds: Set<string>; types: Set<string> }
+  >();
+  for (const e of events28) {
+    let a = sessionAgg.get(e.session_id);
+    if (!a) {
+      a = {
+        minAt: new Date(e.created_at).getTime(),
+        maxAt: new Date(e.created_at).getTime(),
+        userIds: new Set(),
+        types: new Set(),
+      };
+      sessionAgg.set(e.session_id, a);
+    }
+    const t = new Date(e.created_at).getTime();
+    if (t < a.minAt) a.minAt = t;
+    if (t > a.maxAt) a.maxAt = t;
+    if (e.user_id) a.userIds.add(e.user_id);
+    a.types.add(e.event_type);
+  }
+  for (const [sid, a] of sessionAgg) {
+    if (a.types.has("reservation_completed")) {
+      reservationSessions.add(sid);
+      continue;
+    }
+    for (const uid of a.userIds) {
+      const dates = reservationsByUser.get(uid) ?? [];
+      if (
+        dates.some((iso) => {
+          const t = new Date(iso).getTime();
+          return t >= a.minAt && t <= a.maxAt + 24 * 60 * 60 * 1000;
+        })
+      ) {
+        reservationSessions.add(sid);
+        break;
+      }
+    }
+  }
+
+  const visitors = visitorKeys.size;
+  const sessions28 = sessionKeys.size;
+  const reservations = reservationSessions.size;
+  const conversion_pct =
+    visitors > 0 ? Math.round((reservations / visitors) * 1000) / 10 : 0;
+
+  return {
+    visitors,
+    sessions: sessions28,
+    intent_sessions: intent28.length,
+    reservations,
+    conversion_pct,
+  };
+}

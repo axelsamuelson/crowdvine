@@ -17,6 +17,7 @@ import { FunnelStepBadgeEl } from "./funnel-step-badge";
 import { WeeklyIntentFunnel } from "./weekly-intent-funnel";
 import {
   formatStockholmDate,
+  formatStockholmDisplayDate,
   formatStockholmTime,
 } from "@/lib/analytics/stockholm-time";
 import { eventTypeLabelSv } from "@/lib/analytics/event-aliases";
@@ -77,6 +78,7 @@ export function IntentPanel({
 }) {
   const [sessions, setSessions] = useState<IntentSession[]>([]);
   const [weeklyFunnel, setWeeklyFunnel] = useState<WeeklyFunnelRow[]>([]);
+  const [truncatedNote, setTruncatedNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -94,6 +96,11 @@ export function IntentPanel({
         if (!cancelled) {
           setSessions(json.sessions ?? []);
           setWeeklyFunnel(json.weeklyFunnel ?? []);
+          setTruncatedNote(
+            json.truncated && json.earliestCoveredDate
+              ? `Visar data från ${formatStockholmDisplayDate(json.earliestCoveredDate)}`
+              : null,
+          );
         }
       } catch (e) {
         if (!cancelled) {
@@ -132,6 +139,11 @@ export function IntentPanel({
           <p className="text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
             Sessioner med varukorg eller checkout som inte konverterat.
           </p>
+          {truncatedNote ? (
+            <p className="text-xs text-gray-500 dark:text-zinc-500 mt-1">
+              {truncatedNote}
+            </p>
+          ) : null}
         </div>
         <Popover>
           <PopoverTrigger asChild>

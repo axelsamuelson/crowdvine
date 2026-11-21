@@ -24,27 +24,24 @@ interface SortDropdownProps {
   className?: string;
 }
 
-/** Always light UI: shop shell stays light even when prefers-color-scheme is dark. */
+/** Theme-following trigger (same muted/foreground tokens as shop body copy). */
 const SHOP_SORT_TRIGGER =
-  "justify-self-end -mr-3 font-medium !border-transparent !bg-transparent !shadow-none md:w-32 " +
-  "!text-neutral-600 hover:!bg-neutral-100/80 hover:!text-neutral-900 " +
-  "data-[placeholder]:!text-neutral-500 dark:data-[placeholder]:!text-neutral-500 " +
-  "dark:!border-transparent dark:!bg-transparent dark:!text-neutral-600 dark:hover:!bg-neutral-100/80 dark:hover:!text-neutral-900 " +
-  "[&_svg]:!text-neutral-500 dark:[&_svg]:!text-neutral-500";
+  "justify-self-end -mr-3 font-medium border-transparent bg-transparent shadow-none md:w-32 " +
+  "text-muted-foreground hover:bg-muted/80 hover:text-foreground " +
+  "data-[placeholder]:text-muted-foreground " +
+  "[&_svg]:text-muted-foreground";
 
 const SHOP_SORT_CONTENT =
-  "z-[100] !border-neutral-200/90 !bg-white !text-neutral-900 shadow-md " +
-  "dark:!border-neutral-200/90 dark:!bg-white dark:!text-neutral-900";
+  "z-[100] border-border bg-popover text-popover-foreground shadow-md";
 
 const SHOP_SORT_ITEM =
-  "!text-neutral-700 data-[highlighted]:!bg-neutral-100 data-[highlighted]:!text-neutral-900 " +
-  "dark:!text-neutral-700 dark:data-[highlighted]:!bg-neutral-100 dark:data-[highlighted]:!text-neutral-900";
+  "text-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground";
 
-const SHOP_SORT_SEPARATOR = "!bg-neutral-200 dark:!bg-neutral-200";
+const SHOP_SORT_SEPARATOR = "bg-border";
 
 /**
- * Shop sort control — v0 baseline layout; colors forced light to match the shop surface
- * (avoids dark: Select styles when the page is visually light).
+ * Shop sort control — v0 baseline layout; colours follow theme tokens so dark
+ * mode stays readable (no forced light neutral-* overrides).
  */
 export function SortDropdown({ className }: SortDropdownProps) {
   const { t } = useTranslations();
@@ -92,14 +89,14 @@ export function SortDropdown({ className }: SortDropdownProps) {
       <SelectContent align="end" className={SHOP_SORT_CONTENT}>
         <SelectGroup>
           <div className="flex justify-between items-center pr-1">
-            <SelectLabel className="px-2 text-xs !text-neutral-500 dark:!text-neutral-500">
+            <SelectLabel className="px-2 text-xs text-muted-foreground">
               {t("shop.sort")}
             </SelectLabel>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="px-1 h-5 text-xs !text-neutral-500 hover:!bg-transparent hover:!text-neutral-700 dark:!text-neutral-500 dark:hover:!text-neutral-700"
+              className="h-5 px-1 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
               onClick={() => setSort(null)}
             >
               {t("shop.clear")}

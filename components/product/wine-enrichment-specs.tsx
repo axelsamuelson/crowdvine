@@ -21,14 +21,28 @@ import {
   type EnrichmentSpecKey,
 } from "@/lib/product/wine-enrichment";
 import type { WineEnrichment } from "@/lib/shopify/types";
-import { generateProducerSlug } from "@/lib/producer-handle";
-import { producerPublicPath } from "@/lib/i18n/localized-routes";
+import { producerPublicHrefFromSlug } from "@/lib/i18n/localized-routes";
 import { wineColorDotClass } from "@/lib/wine-color";
 import { isCuratedGrape } from "@/lib/curated-grape-categories";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { getCategoryUrlForGrape } from "@/lib/wine-categories";
+import { getCategoryUrlForStyle } from "@/lib/shop/style-category-links";
 import { cn } from "@/lib/utils";
+
+function sparklingCategoryHref(
+  tags: string[] | null | undefined,
+  locale: AppLocale,
+): string | null {
+  if (!tags?.length) return null;
+  if (tags.includes("pet_nat")) {
+    return getCategoryUrlForStyle("pet_nat", locale);
+  }
+  if (tags.includes("sparkling")) {
+    return getCategoryUrlForStyle("sparkling", locale);
+  }
+  return null;
+}
 
 const SPEC_ICONS: Record<EnrichmentSpecKey, LucideIcon> = {
   color: Circle,
@@ -48,6 +62,8 @@ const HIDDEN_TASTE_TAGS = new Set([
   "everyday",
   "collectors_item",
   "winemaker_signature",
+  "sparkling",
+  "pet_nat",
 ]);
 
 const MAX_VISIBLE_TASTE_TAGS = 5;
@@ -58,14 +74,20 @@ function formatTasteTagLabel(tag: string): string {
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
 
-function resolveVisibleTasteTags(tags: string[] | null | undefined): string[] {
+export function resolveVisibleTasteTags(tags: string[] | null | undefined): string[] {
   if (!tags?.length) return [];
   return tags.filter((tag) => !HIDDEN_TASTE_TAGS.has(tag));
 }
 
 interface WineEnrichmentSpecsProps {
   enrichment: WineEnrichment | null | undefined;
+  /** Display label in the fact box (may be `display_name`). */
   producerName?: string | null;
+  /**
+   * Public profile slug from legal `producers.name` only.
+   * Never derive this from `producerName` / display_name.
+   */
+  producerSlug?: string | null;
   className?: string;
   tasteTags?: string[];
 }
@@ -106,14 +128,22 @@ function SpecItem({
   value,
   enrichment,
   locale,
+  styleCategoryHref,
+  producerSlug,
 }: {
   specKey: EnrichmentSpecKey;
   label: string;
   value: string;
   enrichment: WineEnrichment | null | undefined;
   locale: AppLocale;
+  styleCategoryHref?: string | null;
+  producerSlug?: string | null;
 }) {
   const Icon = SPEC_ICONS[specKey] ?? MapPin;
+  const producerHref =
+    specKey === "producer"
+      ? producerPublicHrefFromSlug(producerSlug, locale)
+      : null;
 
   return (
     <div
@@ -140,18 +170,27 @@ function SpecItem({
           {label}
         </dt>
         <dd className="mt-0.5 break-words text-sm leading-snug text-foreground">
-          {specKey === "producer" ? (
+          {specKey === "producer" && producerHref ? (
             <Link
-              href={producerPublicPath(generateProducerSlug(value), locale)}
+              href={producerHref}
               className="underline underline-offset-2"
             >
               {value}
             </Link>
+          ) : specKey === "producer" ? (
+            value
           ) : specKey === "grapeVariety" ? (
             <GrapeVarietyLinks
               grapes={enrichment?.grapeVarieties ?? []}
               locale={locale}
             />
+          ) : specKey === "color" && styleCategoryHref ? (
+            <Link
+              href={styleCategoryHref}
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              {value}
+            </Link>
           ) : (
             value
           )}
@@ -193,6 +232,7 @@ function TasteTagsBlock({ tags }: { tags: string[] }) {
 export function WineEnrichmentSpecs({
   enrichment,
   producerName,
+  producerSlug,
   className = "",
   tasteTags,
 }: WineEnrichmentSpecsProps) {
@@ -204,6 +244,10 @@ export function WineEnrichmentSpecs({
   });
 
   const resolvedTasteTags = tasteTags ?? enrichment?.taste_tags ?? [];
+  const styleCategoryHref = sparklingCategoryHref(
+    resolvedTasteTags,
+    context.locale,
+  );
 
   if (entries.length === 0 && resolvedTasteTags.length === 0) return null;
 
@@ -219,6 +263,8 @@ export function WineEnrichmentSpecs({
               value={value}
               enrichment={enrichment}
               locale={context.locale}
+              styleCategoryHref={styleCategoryHref}
+              producerSlug={producerSlug}
             />
           ))}
         </dl>

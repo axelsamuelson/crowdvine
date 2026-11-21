@@ -25,6 +25,7 @@ import {
   ANALYTICS_CHANNELS,
   channelLabel,
 } from "@/lib/analytics/analytics-channel";
+import { formatStockholmDisplayDate } from "@/lib/analytics/stockholm-time";
 
 type DailyPoint = {
   date: string;
@@ -54,6 +55,8 @@ type Annotation = {
 
 type TrafficPayload = {
   firstPageViewDate: string | null;
+  truncated?: boolean;
+  earliestCoveredDate?: string | null;
   daily: DailyPoint[];
   totals?: { visitors: number; sessions: number };
   channels: ChannelRow[];
@@ -164,9 +167,20 @@ export function TrafficPanel({
 
   if (loading && !data) {
     return (
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        Loading traffic…
-      </p>
+      <div className="space-y-6" aria-busy="true">
+        <div className="grid grid-cols-2 gap-4 max-w-md">
+          <div className="rounded-lg border border-gray-200 dark:border-[#1F1F23] p-3 space-y-2">
+            <div className="admin-skel h-3 w-16 rounded" />
+            <div className="admin-skel h-7 w-14 rounded" />
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-[#1F1F23] p-3 space-y-2">
+            <div className="admin-skel h-3 w-16 rounded" />
+            <div className="admin-skel h-7 w-14 rounded" />
+          </div>
+        </div>
+        <div className="admin-skel h-72 w-full rounded-lg" />
+        <p className="sr-only">Laddar trafik…</p>
+      </div>
     );
   }
 
@@ -291,6 +305,12 @@ export function TrafficPanel({
           flera datum för att filtrera kanaler, kampanjer, länder och sidor.
           {filterNote ? ` Filtrerat på ${filterNote}.` : ""}
         </p>
+        {data.truncated && data.earliestCoveredDate ? (
+          <p className="text-xs text-gray-500 dark:text-zinc-500 mb-3">
+            Visar data från{" "}
+            {formatStockholmDisplayDate(data.earliestCoveredDate)}
+          </p>
+        ) : null}
         {selectedDates.length > 0 ? (
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <p className="text-xs text-gray-600 dark:text-zinc-400">

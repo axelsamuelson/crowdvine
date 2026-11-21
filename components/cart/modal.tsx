@@ -3,6 +3,7 @@
 import { ArrowRight, Plus, PlusCircleIcon, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useFormStatus } from "react-dom";
 import { useCart } from "./cart-context";
 import { motion, AnimatePresence } from "motion/react";
@@ -397,11 +398,90 @@ export default function CartModal({
   const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
   const [neededTotal, setNeededTotal] = useState<number | undefined>();
   const [isValidating, setIsValidating] = useState(false);
+  /** Portal target ready — CartModal mounts inside the header stacking context. */
+  const [portalReady, setPortalReady] = useState(false);
   /** Previous total bottles in this page view; undefined until first silent init. */
   const knownTotalQuantityRef = useRef<number | undefined>(undefined);
   const wasOpenRef = useRef(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [panelEl, setPanelEl] = useState<HTMLDivElement | null>(null);
 
   useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
+
+  // Focus trap + restore trigger focus when the portaled drawer closes.
+  useEffect(() => {
+    if (!isOpen) return;
+    const panel = panelEl;
+    if (!panel) return;
+
+    const focusableSelector =
+      'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+    const getFocusable = () =>
+      Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+        (el) =>
+          !el.hasAttribute("disabled") &&
+          el.getAttribute("aria-hidden") !== "true" &&
+          el.tabIndex !== -1,
+      );
+
+    const previouslyFocused =
+      (document.activeElement as HTMLElement | null) ?? null;
+
+    // Defer until after portal paint / motion mount.
+    const focusTimer = window.setTimeout(() => {
+      const list = getFocusable();
+      (list[0] ?? panel).focus();
+    }, 0);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const list = getFocusable();
+      if (list.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = list[0];
+      const last = list[list.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (event.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    // Capture phase so Tab cannot escape to page content under the portal.
+    document.addEventListener("keydown", onKeyDown, true);
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target as Node | null;
+      if (target && !panel.contains(target)) {
+        const list = getFocusable();
+        (list[0] ?? panel).focus();
+      }
+    };
+    document.addEventListener("focusin", onFocusIn, true);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("focusin", onFocusIn, true);
+      const restoreTo =
+        triggerRef.current && document.contains(triggerRef.current)
+          ? triggerRef.current
+          : previouslyFocused;
+      restoreTo?.focus?.();
+    };
+  }, [isOpen, panelEl]);
 
   useEffect(() => {
     // Signal sticky ATC / overlays without coupling React trees.
@@ -595,6 +675,8 @@ export default function CartModal({
     <>
       {!hideTrigger && showCartBadge ? (
       <Button
+        ref={triggerRef}
+        data-testid="cart-open-button"
         aria-label={t("cart.openCart")}
         onClick={openCart}
         className={cn(
@@ -630,66 +712,84 @@ export default function CartModal({
           data-testid="cart-badge-spacer"
         />
       ) : null}
-      <AnimatePresence>
-        {isOpen && cart && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed inset-0 z-50 bg-foreground/30"
-              onClick={closeCart}
-              aria-hidden="true"
-            />
-
-            {/* Panel */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              // Mobile: full-bleed to the bottom (safe-area on inner panel) so no
-              // gap reveals the PDP sticky bar under the drawer.
-              className="fixed inset-y-0 right-0 z-50 flex w-full md:top-0 md:bottom-0 md:w-[500px] md:p-modal-sides"
-            >
-              <div className="flex h-full w-full flex-col bg-muted pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:rounded md:py-4">
-                <CartContainer className="flex justify-between items-center mb-10">
-                  {/* Back to Shop Button */}
-                  <Link href={paths.shop} onClick={closeCart}>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      aria-label={t("cart.backToShopAria")}
-                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/10"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span>{t("cart.backToShop")}</span>
-                    </Button>
-                  </Link>
-
-                  {/* Centered Cart Title */}
-                  <p className="text-2xl font-semibold">{t("cart.cartTitle")}</p>
-
-                  {/* Close Button */}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label={t("cart.closeAria")}
+      {portalReady
+        ? createPortal(
+            <AnimatePresence>
+              {isOpen && cart && (
+                <>
+                  {/* Backdrop — portaled to body so header MENY (z-[60] in header
+                      stacking context) cannot paint above the drawer. */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="fixed inset-0 z-[70] bg-foreground/30"
                     onClick={closeCart}
-                    className="text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/5"
-                  >
-                    {t("cart.close")}
-                  </Button>
-                </CartContainer>
+                    aria-hidden="true"
+                    data-testid="cart-drawer-backdrop"
+                  />
 
-                {renderCartContent()}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                  {/* Panel — z-[70] above header (z-50) */}
+                  <motion.div
+                    ref={(node) => {
+                      panelRef.current = node;
+                      setPanelEl(node);
+                    }}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={t("cart.cartTitle")}
+                    tabIndex={-1}
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    // Mobile: full-bleed to the bottom (safe-area on inner panel) so no
+                    // gap reveals the PDP sticky bar under the drawer.
+                    className="fixed inset-y-0 right-0 z-[70] flex w-full md:top-0 md:bottom-0 md:w-[500px] md:p-modal-sides outline-none"
+                    data-testid="cart-drawer-panel"
+                  >
+                    <div className="flex h-full w-full flex-col bg-muted pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:rounded md:py-4">
+                      <CartContainer className="flex justify-between items-center mb-10">
+                        {/* Back to Shop Button */}
+                        <Link href={paths.shop} onClick={closeCart}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={t("cart.backToShopAria")}
+                            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/10"
+                          >
+                            <ArrowLeft className="w-4 h-4" />
+                            <span>{t("cart.backToShop")}</span>
+                          </Button>
+                        </Link>
+
+                        {/* Centered Cart Title */}
+                        <p className="text-2xl font-semibold">
+                          {t("cart.cartTitle")}
+                        </p>
+
+                        {/* Close Button */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label={t("cart.closeAria")}
+                          onClick={closeCart}
+                          className="text-muted-foreground hover:text-foreground transition-colors hover:bg-muted-foreground/5"
+                        >
+                          {t("cart.close")}
+                        </Button>
+                      </CartContainer>
+
+                      {renderCartContent()}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

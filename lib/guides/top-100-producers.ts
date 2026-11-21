@@ -102,13 +102,13 @@ export const TOP_100_PRODUCERS: TopProducer[] = [
     rank: 3,
     previousRank: 3,
     name: "Joško Gravner",
-    region: "Friuli Collio / Oslavje",
+    region: "Oslavia, Collio, Friuli",
     country: "Italien",
     grapes: "Ribolla Gialla, Pinot Grigio, Chardonnay",
     description:
-      "Gravner var en tekniskt skicklig modernist som 1997 gjorde en resa till Georgien och kom tillbaka med en helt ny idé om vad vitt vin kunde vara. Från 2001 vinifierar han i qvevri — georgiska lerkärl nedgrävda i marken — med lång skalkontakt och utan temperaturkontroll. Hans Ribolla Gialla är den enskilt viktigaste flaskan i det moderna orangevinets historia.",
+      "Gravner var en tekniskt skicklig modernist som 2000 gjorde en resa till Georgien och kom tillbaka med en helt ny idé om vad vitt vin kunde vara. Från 2001 vinifierar han i qvevri — georgiska lerkärl nedgrävda i marken — med lång skalkontakt och utan temperaturkontroll. Hans Ribolla Gialla är den enskilt viktigaste flaskan i det moderna orangevinets historia.",
     descriptionEn:
-      "Gravner was a technically accomplished modernist until a 1997 trip to Georgia gave him an entirely new idea of what white wine could be. From 2001 he has vinified in qvevri — Georgian clay vessels buried in the ground — with long skin contact and no temperature control. His Ribolla Gialla is the single most important bottle in the history of modern orange wine.",
+      "Gravner was a technically accomplished modernist until a 2000 trip to Georgia gave him an entirely new idea of what white wine could be. From 2001 he has vinified in qvevri — Georgian clay vessels buried in the ground — with long skin contact and no temperature control. His Ribolla Gialla is the single most important bottle in the history of modern orange wine.",
   },
   {
     rank: 4,

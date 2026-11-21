@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { unstable_cache } from "next/cache";
+import { isRecentProductLaunch } from "@/lib/systembolaget/is-recent-product-launch";
 import { orderCategoryWines } from "@/lib/systembolaget/ranking";
 import type { GuideWineCategory } from "@/lib/systembolaget/guide-wine-categories";
 
@@ -108,6 +109,12 @@ export type SystembolagetGuideWine = {
   score_adjust: number;
   /** Systembolaget launch instant. Null when the product has no launch date. */
   product_launch_date: string | null;
+  /**
+   * True when the card should show the launch «NY» / «NEW» badge.
+   * Derived from product_launch_date (Stockholm calendar, 30-day window).
+   * Always false on the news guide (category "new").
+   */
+  show_launch_badge?: boolean;
   /** Set on the parent "best" list from the product's non-best curated row. */
   primary_style?: PrimaryStyleCategory | null;
 };
@@ -179,17 +186,17 @@ export function formatRankBadge(
 }
 
 /**
- * Movement against the place shown on the page.
- * Null previous rank means the wine is new on the list.
- * Undefined means there is no baseline yet, so the badge stays hidden.
+ * Placement movement against the place shown on the page.
+ * Only ↑/↓ — list-«Ny»/«New» is intentionally not shown on type guides
+ * (launch «NY»/«NEW» covers recent arrivals). Null or undefined previous
+ * rank → no movement badge.
  */
 export function formatPlacementBadge(
   currentRank: number,
   previousRank: number | null | undefined,
-  locale: "en" | "sv",
+  _locale: "en" | "sv" = "sv",
 ): string | null {
-  if (previousRank === undefined) return null;
-  if (previousRank === null) return locale === "sv" ? "Ny" : "New";
+  if (previousRank === undefined || previousRank === null) return null;
   const places = previousRank - currentRank;
   if (places > 0) return `↑ ${places}`;
   if (places < 0) return `↓ ${Math.abs(places)}`;
@@ -366,8 +373,26 @@ async function fetchGuideWinesUncached(
     verdict === "recommended" && category !== "new"
       ? orderCategoryWines(wines)
       : wines;
-  if (category !== "best" || ordered.length === 0) return ordered;
-  return attachPrimaryStyles(ordered);
+  const withLaunchBadge = attachLaunchBadgeFlags(ordered, category);
+  if (category !== "best" || withLaunchBadge.length === 0) return withLaunchBadge;
+  return attachPrimaryStyles(withLaunchBadge);
+}
+
+/**
+ * Launch «NY» / «NEW» for type guides only. The news list is already a
+ * release calendar, so it never gets the badge.
+ */
+function attachLaunchBadgeFlags(
+  wines: SystembolagetGuideWine[],
+  category: GuideWineCategory,
+): SystembolagetGuideWine[] {
+  if (category === "new") {
+    return wines.map((wine) => ({ ...wine, show_launch_badge: false }));
+  }
+  return wines.map((wine) => ({
+    ...wine,
+    show_launch_badge: isRecentProductLaunch(wine.product_launch_date),
+  }));
 }
 
 async function attachPrimaryStyles(

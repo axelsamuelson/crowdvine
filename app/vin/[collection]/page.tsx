@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
-import { notFound, permanentRedirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 import ProductList from "../components/product-list";
 import { ProductListShell } from "../components/product-list-shell";
@@ -25,7 +25,8 @@ import {
   producerShopMetaDescription,
   producerShopPageTitle,
 } from "@/lib/seo/producer-shop-metadata";
-import { getCollection, getCollectionProducts } from "@/lib/shopify";
+import { getCollectionProducts } from "@/lib/shopify";
+import { notFoundUnlessShopSlug } from "@/lib/shop/shop-slug-resolution";
 import { isB2BHost } from "@/lib/b2b-site";
 import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
@@ -50,6 +51,7 @@ import {
 } from "@/lib/wine-category-explore-links";
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
+import { CategoryPillLinks } from "@/components/shop/category-pill-links";
 import { RegionProducerLinks } from "@/components/shop/region-producer-links";
 import { isWineRegionBelowIndexMinimum } from "@/lib/wine-region-live-counts";
 import {
@@ -58,9 +60,8 @@ import {
 } from "@/lib/wine-categories";
 import { isWineRegionShopCategory } from "@/lib/wine-shop-filter-categories";
 import { wineRegionLabel } from "@/lib/wine-regions";
-import { resolveGrapeCategoryBySlug } from "@/lib/wine-grape-categories";
+import { getMoreStylesPillLinks } from "@/lib/shop/style-category-links-server";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
-import { isProducerBoxesSlug } from "@/lib/producer-boxes/config";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -78,12 +79,14 @@ export async function generateMetadata(props: {
     props.searchParams ?? Promise.resolve({}),
   ]);
 
-  if (isProducerBoxesSlug(slug, "sv")) {
+  const resolved = await notFoundUnlessShopSlug(slug, "sv");
+
+  if (resolved.kind === "producer-boxes") {
     return buildProducerBoxesMetadata("sv");
   }
 
-  const category = await resolveGrapeCategoryBySlug(slug, "sv");
-  if (category) {
+  if (resolved.kind === "category") {
+    const category = resolved.category;
     const headerList = await headers();
     const isB2BSite = isB2BHost(
       headerList.get("x-forwarded-host") ?? headerList.get("host"),
@@ -140,13 +143,8 @@ export async function generateMetadata(props: {
     };
   }
 
-  const [config, collection] = await Promise.all([
-    getSiteConfig(),
-    getCollection(slug),
-  ]);
-  if (!collection) {
-    return { robots: { index: false, follow: false } };
-  }
+  const collection = resolved.collection;
+  const config = await getSiteConfig();
 
   const shopUrl = `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "sv")}`;
   const producer = asProducerCollectionData(collection);
@@ -202,12 +200,14 @@ export default async function VinCollectionPage(props: {
   const { collection: slug } = await props.params;
   const searchParams = await props.searchParams;
 
-  if (isProducerBoxesSlug(slug, "sv")) {
+  const resolved = await notFoundUnlessShopSlug(slug, "sv");
+
+  if (resolved.kind === "producer-boxes") {
     return <ProducerBoxesPage locale="sv" />;
   }
 
-  const category = await resolveGrapeCategoryBySlug(slug, "sv");
-  if (category) {
+  if (resolved.kind === "category") {
+    const category = resolved.category;
     const headerList = await headers();
     const isB2BSite = isB2BHost(
       headerList.get("x-forwarded-host") ?? headerList.get("host"),
@@ -265,14 +265,21 @@ export default async function VinCollectionPage(props: {
       ],
     };
 
-    const exploreLinks = getCategoryExploreLinks(
-      category,
-      isColorNaturvinHub(category)
-        ? { regionLinks: await getColorHubRegionExploreLinks("sv") }
-        : undefined,
-    );
+    const colorHub = isColorNaturvinHub(category);
+    const regionExploreLinks = colorHub
+      ? await getColorHubRegionExploreLinks("sv")
+      : undefined;
+    const [moreStylesLinks, exploreLinks] = await Promise.all([
+      colorHub ? getMoreStylesPillLinks("sv", isB2BSite) : Promise.resolve([]),
+      Promise.resolve(
+        getCategoryExploreLinks(
+          category,
+          regionExploreLinks ? { regionLinks: regionExploreLinks } : undefined,
+        ),
+      ),
+    ]);
     const showLanguedocGuideLink =
-      isColorNaturvinHub(category) || category.slug === "naturvin-languedoc";
+      colorHub || category.slug === "naturvin-languedoc";
     const regionLabel = category.filter.wineRegion
       ? wineRegionLabel(category.filter.wineRegion, "sv")
       : null;
@@ -312,14 +319,26 @@ export default async function VinCollectionPage(props: {
               <p className="leading-relaxed text-stone-600">{description}</p>
             ) : null}
             {category.descriptionLink ? (
-              <p className="mt-3 leading-relaxed text-stone-600">
-                <Link
-                  href={category.descriptionLink.href}
-                  className="underline underline-offset-4 hover:text-stone-900"
-                >
-                  {category.descriptionLink.label}
-                </Link>
-              </p>
+              <CategoryPillLinks
+                heading="Utforska"
+                links={[
+                  {
+                    href: category.descriptionLink.href,
+                    label: category.descriptionLink.label,
+                    slug: "description-link",
+                  },
+                ]}
+                testId="category-description-pills"
+                className="mt-4"
+              />
+            ) : null}
+            {moreStylesLinks.length > 0 ? (
+              <CategoryPillLinks
+                heading="Fler stilar"
+                links={moreStylesLinks}
+                testId="category-more-styles-pills"
+                className="mt-4"
+              />
             ) : null}
           </div>
 
@@ -431,10 +450,7 @@ export default async function VinCollectionPage(props: {
     );
   }
 
-  const collection = await getCollection(slug);
-  if (!collection) {
-    notFound();
-  }
+  const collection = resolved.collection;
 
   if (collection.handle !== slug) {
     permanentRedirect(`/vin/${collection.handle}`);

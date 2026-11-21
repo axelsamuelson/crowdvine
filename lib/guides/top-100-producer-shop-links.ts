@@ -1,6 +1,5 @@
-import { producerPublicPath } from "@/lib/i18n/localized-routes";
+import { producerPublicHrefFromLegalName } from "@/lib/i18n/localized-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { generateProducerSlug } from "@/lib/producer-handle";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
@@ -34,7 +33,7 @@ export function top100ProducerShopLinkFromRow(
   if (!legalName) return null;
   const shown = row.displayName?.trim() || legalName;
   return {
-    href: producerPublicPath(generateProducerSlug(legalName), locale),
+    href: producerPublicHrefFromLegalName(legalName, locale),
     label: top100ProducerShopLinkLabel(locale, shown),
   };
 }

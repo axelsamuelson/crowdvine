@@ -184,7 +184,9 @@ describe("WIRED POST /api/checkout/quote (mode-scoped)", () => {
     expect(json.quote.rate_channel).toBe("direct_box");
     expect(json.quote.shipping_sek).toBe(149);
     expect(json.quote.shipping_sek).not.toBe(99);
-    expect(json.quote.total_sek).toBe(1349);
+    // Catalog 1200 → direct markup 1260 + 149 frakt (same as payment-intent).
+    expect(json.quote.subtotal_sek).toBe(1260);
+    expect(json.quote.total_sek).toBe(1409);
     expect(resolveAndChargeCheckoutShipping).toHaveBeenCalledWith(
       expect.objectContaining({ fulfillmentMode: "direct_box", pallet: null }),
     );

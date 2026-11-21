@@ -3,8 +3,7 @@ import Link from "next/link";
 import type { CollectionData } from "@/lib/crowdvine/collections-data";
 import { extractWineText } from "@/lib/i18n/wine-locale";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { producerPublicPath } from "@/lib/i18n/localized-routes";
-import { generateProducerSlug } from "@/lib/producer-handle";
+import { producerPublicHrefFromLegalName } from "@/lib/i18n/localized-routes";
 import { getProducerShopEditorialOverride } from "@/lib/producer-shop-content";
 import { formatProducerCertification } from "@/lib/product/wine-enrichment";
 import { isSeedLapsedOrganicProducer } from "@/lib/shop/verified-organic-producers";
@@ -81,16 +80,14 @@ export function ProducerShopEditorialBlock({
   const bio = producerShopEditorialBio(collection, locale);
   if (!bio) return null;
 
+  // collection.title is legal producers.name (see collections-data).
   const producerName = collection.title.trim();
   const shownProducerName = producerDisplayName({
     name: producerName,
     display_name: collection.displayName,
   });
   const specParts = producerShopSpecParts(collection, locale);
-  const profileHref = producerPublicPath(
-    generateProducerSlug(producerName),
-    locale,
-  );
+  const profileHref = producerPublicHrefFromLegalName(producerName, locale);
 
   return (
     <div className="p-sides mt-16 max-w-2xl border-t border-stone-100 pt-12">

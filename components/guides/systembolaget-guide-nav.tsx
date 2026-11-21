@@ -139,14 +139,14 @@ export function SystembolagetGuideNav({
           <div
             aria-hidden
             className={cn(
-              "pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-background to-transparent transition-opacity duration-200",
+              "pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background via-background/80 to-transparent transition-opacity duration-200",
               edges.left ? "opacity-100" : "opacity-0",
             )}
           />
           <div
             aria-hidden
             className={cn(
-              "pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-background to-transparent transition-opacity duration-200",
+              "pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background via-background/80 to-transparent transition-opacity duration-200",
               edges.right ? "opacity-100" : "opacity-0",
             )}
           />

@@ -59,9 +59,9 @@ export const TOP_100_WINES: TopWine[] = [
     type: "Orange",
     grapes: "Ribolla Gialla",
     description:
-      "Efter Gravners resa till Georgien 1997 började han vinifiera i qvevri nedgrävda i källargolvet. Ribolla Gialla får månader av skalkontakt utan temperaturkontroll och lagras därefter i stora fat i flera år innan release. Resultatet är bärnstensfärgat, tanninrikt och närmast te-liknande i aromatiken.",
+      "Efter en resa till Georgien 2000 började Gravner jäsa i qvevri nedgrävda i källaren från 2001 års skörd. Ribolla Gialla får månader av skalkontakt utan temperaturkontroll och lagras därefter i stora fat i flera år innan release. Resultatet är bärnstensfärgat, tanninrikt och närmast te-liknande i aromatiken.",
     descriptionEn:
-      "After Gravner's 1997 trip to Georgia he began vinifying in qvevri buried in the cellar floor. Ribolla Gialla gets months of skin contact without temperature control and is then aged in large casks for several years before release. The result is amber, tannic and almost tea-like in its aromatics.",
+      "After a trip to Georgia in 2000, Gravner began fermenting in qvevri buried in the cellar from the 2001 vintage. Ribolla Gialla gets months of skin contact without temperature control and is then aged in large casks for several years before release. The result is amber, tannic and almost tea-like in its aromatics.",
   },
   {
     rank: 4,
@@ -101,9 +101,9 @@ export const TOP_100_WINES: TopWine[] = [
     type: "Orange",
     grapes: "Rkatsiteli",
     description:
-      "Rkatsiteli är Georgiens mest odlade vita druva och här vinifieras den precis som den gjorts i åtta tusen år: hela klasar med skal och skaft i qvevri nedgrävda i marken, utan tillsatser. Vinet doftar av torkade aprikoser, valnöt och svart te.",
+      "Rkatsiteli är Georgiens mest odlade vita druva och här vinifieras den på traditionellt kakhetiskt vis: hela klasar med skal och skaft i qvevri nedgrävda i marken, utan tillsatser. Vinet doftar av torkade aprikoser, valnöt och svart te.",
     descriptionEn:
-      "Rkatsiteli is Georgia's most planted white grape, and here it is vinified exactly as it has been for eight thousand years: whole clusters with skins and stems in qvevri buried in the ground, without additives. The wine smells of dried apricot, walnut and black tea.",
+      "Rkatsiteli is Georgia's most planted white grape, and here it is vinified in the traditional Kakhetian way: whole clusters with skins and stems in qvevri buried in the ground, without additives. The wine smells of dried apricot, walnut and black tea.",
   },
   {
     rank: 7,
@@ -409,9 +409,9 @@ export const TOP_100_WINES: TopWine[] = [
     type: "Orange",
     grapes: "Ribolla Gialla",
     description:
-      "Radikons rena Ribolla Gialla, med lång skalkontakt i slavonsk ek. Tillsammans med Gravners version det vin som definierade Oslavje som orangevinets huvudstad.",
+      "Radikons rena Ribolla Gialla, med lång skalkontakt i slavonsk ek. Tillsammans med Gravners version det vin som gjorde byn Oslavia känd för skalmacererat vitt vin.",
     descriptionEn:
-      "Radikon's pure Ribolla Gialla, with long skin contact in Slavonian oak. Together with Gravner's version, the wine that defined Oslavje as the capital of orange wine.",
+      "Radikon's pure Ribolla Gialla, with long skin contact in Slavonian oak. Together with Gravner's version, the wine that made the village of Oslavia known for skin-contact white wine.",
   },
   {
     rank: 29,

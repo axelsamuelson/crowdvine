@@ -210,6 +210,8 @@ export interface Project {
   objective_id: string | null
   key_result_id: string | null
   owner_id: string | null
+  /** pact | dirtywine (migration 293). Default pact. */
+  company?: "pact" | "dirtywine"
   status: ProjectStatus
   priority: ProjectPriority
   start_date: string | null
@@ -238,6 +240,8 @@ export interface Task {
   objective_id: string | null
   parent_task_id: string | null
   assigned_to: string | null
+  /** Bot display name (ops_agents.name). Humans stay on assigned_to. Migration 293. */
+  owner_agent?: string | null
   /** All people assigned (junction); `assignee` / `assigned_to` reflect primary. */
   assignees?: AdminUserMin[]
   created_by: string
