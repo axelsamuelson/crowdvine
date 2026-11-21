@@ -183,6 +183,11 @@ import {
   resolveCheckoutShippingLabelState,
 } from "@/lib/checkout/shipping-label";
 import {
+  checkoutCtaMissingPostalHintKey,
+  resolveCheckoutShippingSummaryDisplay,
+  shippingSummaryUnavailableMessageKey,
+} from "@/lib/checkout/shipping-summary-display";
+import {
   buildCheckoutQuoteRequestBody,
   checkoutHasShippingQuoteContext,
   isQuoteBoundToChannel,
@@ -3811,7 +3816,8 @@ function CheckoutContent({
   ]);
   // Shipping is a SEK rate. formatSek converts it into the active currency.
   // Prefer authoritative quote; else public preview once postal is known.
-  // Never show "Beräknas efter postnummer" after step 1 — skeleton instead.
+  // After load settles, always show amount/free or unavailable copy (never an
+  // endless skeleton) — Kiruna out-of-zone left shippingSek null and hid the row.
   const chargedShippingLabel = formatCheckoutShippingLabel(
     resolveCheckoutShippingLabelState({
       hasShippingContext:
@@ -3829,6 +3835,31 @@ function CheckoutContent({
       formatSek,
     },
   );
+  const shippingSummaryDisplay = resolveCheckoutShippingSummaryDisplay({
+    hasPostalCode,
+    loading: shippingDisplayPending,
+    shippingSek: channelDisplayShippingSek,
+    channelUnavailable:
+      fulfillmentChannel === "shared_pallet" &&
+      !postalFulfillment.sharedPalletAvailable,
+    sharedUnavailableReason: postalFulfillment.sharedUnavailableReason,
+    noFulfillmentAvailable: postalFulfillment.noFulfillmentAvailable,
+  });
+  const shippingSummaryUnavailableLabel =
+    shippingSummaryDisplay.kind === "unavailable"
+      ? t(
+          `checkout.${shippingSummaryUnavailableMessageKey(
+            shippingSummaryDisplay.reason,
+          )}`,
+        )
+      : null;
+  const fillPostalCtaHintKey = checkoutCtaMissingPostalHintKey({
+    hasPostalCode,
+    cartMinimumBlocks: !isValidCart,
+  });
+  const fillPostalCtaHint = fillPostalCtaHintKey
+    ? t(`checkout.${fillPostalCtaHintKey}`)
+    : null;
   // Prefer channel-bound quote total; else same-channel client subtotal + shipping.
   const displayTotalSek = useMemo(
     () =>
@@ -4536,18 +4567,35 @@ function CheckoutContent({
                     )}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div
+                  className="flex items-center justify-between gap-3"
+                  data-testid="checkout-shipping-summary-row"
+                >
                   <span className="text-muted-foreground">
                     {t("checkout.shipping")}
                   </span>
-                  <span className="text-right tabular-nums text-foreground">
-                    {chargedShippingLabel ? (
-                      chargedShippingLabel
-                    ) : shippingDisplayPending || hasPostalCode ? (
+                  <span className="max-w-[65%] text-right tabular-nums text-foreground">
+                    {shippingSummaryDisplay.kind === "amount" ||
+                    shippingSummaryDisplay.kind === "free" ? (
+                      chargedShippingLabel ??
+                      (shippingSummaryDisplay.kind === "free"
+                        ? t("checkout.shippingFree")
+                        : formatChargedAmount(
+                            shippingSummaryDisplay.shippingSek,
+                          ))
+                    ) : shippingSummaryDisplay.kind === "loading" ? (
                       <span
                         className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
                         aria-hidden
+                        data-testid="checkout-shipping-summary-skeleton"
                       />
+                    ) : shippingSummaryDisplay.kind === "unavailable" ? (
+                        <span
+                        className="text-sm font-normal leading-snug text-muted-foreground"
+                        data-testid="checkout-shipping-summary-unavailable"
+                      >
+                        {shippingSummaryUnavailableLabel}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">
                         {t("checkout.shippingAfterAddress")}
@@ -4752,7 +4800,31 @@ function CheckoutContent({
                   className="mt-6 hidden min-[1280px]:block"
                   data-testid="dual-offer-continue-sticky"
                 >
-                  <DualOfferPurchaseActions model={dualOfferPurchase} />
+                  <DualOfferPurchaseActions
+                    model={{
+                      ...dualOfferPurchase,
+                      confirmNote:
+                        dualOfferPurchase.confirmNote ?? fillPostalCtaHint,
+                    }}
+                  />
+                </div>
+              ) : fillPostalCtaHint ? (
+                <div
+                  className="mt-6 hidden min-[1280px]:block"
+                  data-testid="checkout-fill-postal-cta"
+                >
+                  <DualOfferPurchaseActions
+                    model={{
+                      locale: shopping.locale === "en" ? "en" : "sv",
+                      variant: "continue",
+                      finalCtaLabel: t("checkout.payNow"),
+                      totalInclLine: null,
+                      legalLine: null,
+                      disabled: true,
+                      confirmNote: fillPostalCtaHint,
+                      onConfirm: () => {},
+                    }}
+                  />
                 </div>
               ) : null}
             </div>
@@ -4839,6 +4911,25 @@ function CheckoutContent({
                         {t("checkout.postalCodeHint")}
                       </p>
                     )}
+                    {fillPostalCtaHint ? (
+                      <div
+                        className="pt-2 min-[1280px]:hidden"
+                        data-testid="checkout-fill-postal-cta-step1"
+                      >
+                        <DualOfferPurchaseActions
+                          model={{
+                            locale: shopping.locale === "en" ? "en" : "sv",
+                            variant: "continue",
+                            finalCtaLabel: t("checkout.payNow"),
+                            totalInclLine: null,
+                            legalLine: null,
+                            disabled: true,
+                            confirmNote: fillPostalCtaHint,
+                            onConfirm: () => {},
+                          }}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -4894,11 +4985,13 @@ function CheckoutContent({
 
                     {!dualOfferReviewActive &&
                     !isUsConditional &&
+                    hasPostalCode &&
                     (selectedPallet != null ||
                       Boolean(zoneInfo.deliveryZone) ||
                       zoneInfo.selectedDeliveryZoneId != null ||
-                      (hasPostalCode &&
-                        postalFulfillment.directBoxAvailable)) ? (
+                      postalFulfillment.directBoxAvailable ||
+                      postalFulfillment.noFulfillmentAvailable ||
+                      !postalFulfillment.sharedPalletAvailable) ? (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-sm font-medium text-foreground">
@@ -4914,7 +5007,7 @@ function CheckoutContent({
                           ) : null}
                         </div>
                         <div
-                          className="flex items-start justify-between border-b border-border py-3"
+                          className="flex items-start justify-between py-3"
                           role="group"
                           aria-label={t("checkout.deliveryOptionAria")}
                         >
@@ -5109,17 +5202,27 @@ function CheckoutContent({
                           </div>
                           {showHemleveransTrailingAmount ? (
                             <div className="flex shrink-0 items-center gap-2">
-                              <span className="whitespace-nowrap text-sm tabular-nums text-foreground">
-                                {chargedShippingLabel ? (
-                                  chargedShippingLabel
-                                ) : channelDisplayShippingSek != null ? (
-                                  formatChargedAmount(channelDisplayShippingSek)
-                                ) : shippingDisplayPending || hasPostalCode ? (
+                              <span className="max-w-[10rem] text-right text-sm tabular-nums text-foreground">
+                                {shippingSummaryDisplay.kind === "amount" ||
+                                shippingSummaryDisplay.kind === "free" ? (
+                                  chargedShippingLabel ??
+                                  (channelDisplayShippingSek != null
+                                    ? formatChargedAmount(
+                                        channelDisplayShippingSek,
+                                      )
+                                    : null)
+                                ) : shippingSummaryDisplay.kind ===
+                                  "loading" ? (
                                   <span
                                     className="inline-block h-4 w-12 animate-pulse rounded bg-muted"
                                     aria-hidden
                                     data-testid="checkout-shipping-skeleton"
                                   />
+                                ) : shippingSummaryDisplay.kind ===
+                                  "unavailable" ? (
+                                  <span className="text-xs font-normal leading-snug text-muted-foreground">
+                                    {shippingSummaryUnavailableLabel}
+                                  </span>
                                 ) : lowestShippingSek != null ? (
                                   t("checkout.shippingFromAmount", {
                                     amount:
@@ -5134,16 +5237,29 @@ function CheckoutContent({
                     ) : null}
 
                     {!dualOfferReviewActive &&
-                    selectedPallet != null &&
+                    hasPostalCode &&
+                    (selectedPallet != null ||
+                      shippingSummaryDisplay.kind === "unavailable") &&
                     (producerDirectBoxOnly ||
-                      selectedPallet.current_pickup_producer?.name) ? (
-                      <div className="space-y-1.5">
+                      selectedPallet?.current_pickup_producer?.name ||
+                      shippingSummaryDisplay.kind === "unavailable") ? (
+                      <div
+                        className="space-y-1.5"
+                        data-testid="checkout-delivery-promise"
+                      >
                         <p className="text-xs text-muted-foreground">
                           {t("checkout.deliveryPromiseLabel")}
                         </p>
-                        {fulfillmentChannel === "direct_box" &&
-                        directBoxCheckoutEnabled &&
-                        producerDirectBoxOnly ? (
+                        {shippingSummaryDisplay.kind === "unavailable" ? (
+                          <p
+                            className="text-sm text-muted-foreground"
+                            data-testid="checkout-delivery-promise-unavailable"
+                          >
+                            {shippingSummaryUnavailableLabel}
+                          </p>
+                        ) : fulfillmentChannel === "direct_box" &&
+                          directBoxCheckoutEnabled &&
+                          producerDirectBoxOnly ? (
                           <DirectBoxDeliveryPromise
                             sourceType="producer"
                             enabled={directBoxCheckoutEnabled}
@@ -5153,7 +5269,7 @@ function CheckoutContent({
                             {t("commerce.sharedPalletDelivery")}
                           </p>
                         ) : null}
-                        {selectedPallet.current_pickup_producer?.name ? (
+                        {selectedPallet?.current_pickup_producer?.name ? (
                           <p className="text-xs text-muted-foreground">
                             {t("checkout.collectedFrom", {
                               name: selectedPallet.current_pickup_producer.name,
@@ -5304,6 +5420,7 @@ function CheckoutContent({
                             ? null
                             : `${t("checkout.orderBlocked")} – ${t("checkout.addBottlesRequirement")}`
                         }
+                        postalRequiredNote={fillPostalCtaHint}
                         onPurchaseActionsChange={handleDualOfferPurchaseChange}
                         onStateChange={setDualOfferSession}
                         sharedPalletCardStepUnlocked={dualOfferCardStepUnlocked}
@@ -5329,7 +5446,7 @@ function CheckoutContent({
                               }
                             : null
                         }
-                        className="pt-4 border-t border-border"
+                        className="pt-4"
                       />
                     ) : null}
                   </div>
@@ -5775,7 +5892,13 @@ function CheckoutContent({
                 className="py-6 border-b border-border last:border-0 min-[1280px]:hidden"
                 data-testid="dual-offer-continue-mobile"
               >
-                <DualOfferPurchaseActions model={dualOfferPurchase} />
+                <DualOfferPurchaseActions
+                  model={{
+                    ...dualOfferPurchase,
+                    confirmNote:
+                      dualOfferPurchase.confirmNote ?? fillPostalCtaHint,
+                  }}
+                />
               </section>
             ) : null}
 
@@ -6355,6 +6478,14 @@ function CheckoutContent({
                                           )
                                         : t("checkout.placeReservation")}
                               </Button>
+                              {fillPostalCtaHint ? (
+                                <p
+                                  className="text-sm text-muted-foreground"
+                                  data-testid="checkout-fill-postal-hint"
+                                >
+                                  {fillPostalCtaHint}
+                                </p>
+                              ) : null}
                             </div>
                           </>
                         )}
