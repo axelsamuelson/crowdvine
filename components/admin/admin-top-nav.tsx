@@ -72,6 +72,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   "b2b-orders": "B2B-ordrar",
   "b2b-inquiries": "B2B-förfrågningar",
   producers: "Producenter",
+  kallor: "Källor",
   wines: "Viner",
   "wine-tastings": "Vinprovningar",
   "price-sources": "Konkurrentpriser",

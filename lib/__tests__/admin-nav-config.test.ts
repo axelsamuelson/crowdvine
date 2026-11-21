@@ -86,6 +86,8 @@ describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
     );
     expect(names).toContain("Användare");
     expect(names).toContain("Producenter");
+    expect(names).toContain("Källor");
+    expect(hrefs).toContain("/admin/kallor");
     expect(names).toContain("Vinprovningar");
     expect(names).toContain("Konkurrentpriser");
     expect(names).toContain("Fulfillment-kostnader");

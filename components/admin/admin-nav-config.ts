@@ -31,6 +31,7 @@ import {
   ShieldCheck,
   Settings,
   Link2,
+  Warehouse,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -152,6 +153,7 @@ export const adminNavigationGroups: AdminNavGroup[] = [
     icon: Wine,
     items: [
       { name: "Producenter", href: "/admin/producers", icon: Wine },
+      { name: "Källor", href: "/admin/kallor", icon: Warehouse },
       { name: "Viner", href: "/admin/wines", icon: Wine },
       { name: "Vinprovningar", href: "/admin/wine-tastings", icon: Wine },
       {
