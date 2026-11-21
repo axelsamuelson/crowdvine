@@ -163,13 +163,10 @@ export function groupRecommendationIssuesByWeek(
   return issues.sort(compareIssueDesc);
 }
 
-/** "Vecka 44" / "Week 44". */
-export function formatIssueWeekHeading(
-  issueWeek: number,
-  locale: "en" | "sv",
-): string {
-  return locale === "sv" ? `Vecka ${issueWeek}` : `Week ${issueWeek}`;
-}
+/** @deprecated Prefer formatIssueWeekHeading from systembolaget-release-groups. */
+export {
+  formatIssueWeekHeading,
+} from "@/lib/guides/systembolaget-release-groups";
 
 const RECOMMENDATION_WINE_COLUMNS = [
   "id",

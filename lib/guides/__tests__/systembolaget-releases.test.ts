@@ -5,16 +5,19 @@ import { articlePath } from "@/lib/guides/guide-types";
 import { newNaturalWinesSystembolagetArticle } from "@/lib/guides/articles/new-natural-wines-systembolaget";
 import { SYSTEMBOLAGET_RANKED_LISTS } from "@/lib/guides/systembolaget-list-links";
 import {
+  formatIssueWeekHeading,
   formatReleaseCardLabel,
   formatReleaseGroupHeading,
   formatReleaseUpdatedLabel,
   groupReleaseWines,
+  groupWinesByLaunchIsoWeek,
+  isoWeekFromDateKey,
+  isoWeekFromLaunchDate,
   isOrderAssortment,
   type ReleaseWine,
 } from "@/lib/guides/systembolaget-release-groups";
 import { GUIDE_WINE_CATEGORIES } from "@/lib/systembolaget/guide-wine-categories";
 import {
-  formatIssueWeekHeading,
   groupRecommendationIssuesByWeek,
   type RecommendationIssueWine,
 } from "@/lib/systembolaget/recommendation-wines";
@@ -190,6 +193,59 @@ describe("Systembolaget release calendar", () => {
   it("formats issue week headings as Vecka / Week", () => {
     expect(formatIssueWeekHeading(46, "sv")).toBe("Vecka 46");
     expect(formatIssueWeekHeading(44, "en")).toBe("Week 44");
+  });
+
+  it("computes ISO 8601 weeks from Stockholm launch calendar dates", () => {
+    expect(isoWeekFromDateKey("2026-11-20")).toEqual({
+      isoYear: 2026,
+      isoWeek: 47,
+    });
+    expect(isoWeekFromDateKey("2026-11-13")).toEqual({
+      isoYear: 2026,
+      isoWeek: 46,
+    });
+    expect(isoWeekFromDateKey("2026-11-27")).toEqual({
+      isoYear: 2026,
+      isoWeek: 48,
+    });
+    // Year boundary: both belong to ISO week 53 of 2026.
+    expect(isoWeekFromDateKey("2026-12-31")).toEqual({
+      isoYear: 2026,
+      isoWeek: 53,
+    });
+    expect(isoWeekFromDateKey("2027-01-01")).toEqual({
+      isoYear: 2026,
+      isoWeek: 53,
+    });
+    // Sunday 22 Nov 2026 is still ISO week 47 (Mon 16–Sun 22).
+    expect(isoWeekFromDateKey("2026-11-22")).toEqual({
+      isoYear: 2026,
+      isoWeek: 47,
+    });
+    expect(isoWeekFromLaunchDate("2026-11-20T00:00:00.000Z")).toEqual({
+      isoYear: 2026,
+      isoWeek: 47,
+    });
+    expect(isoWeekFromLaunchDate(null)).toBeNull();
+  });
+
+  it("groups curated new wines by launch ISO week, newest first", () => {
+    const rows: ReleaseWine[] = [
+      wine(244, "Domaine de Cébène", "2026-11-20T00:00:00.000Z", 70, 0),
+      wine(245, "Maria Rigol Ordi", "2026-11-20T00:00:00.000Z", 80, 0),
+      wine(242, "Domaine aux Moines", "2026-11-13T00:00:00.000Z", 75, 0),
+      wine(243, "Podere San Cristofero", "2026-11-13T00:00:00.000Z", 65, 0),
+      wine(999, "No date", null),
+    ];
+
+    const issues = groupWinesByLaunchIsoWeek(rows);
+    expect(issues.map((issue) => issue.isoWeek)).toEqual([47, 46]);
+    expect(issues[0]?.wines.map((row) => row.producer_name)).toEqual([
+      "Maria Rigol Ordi",
+      "Domaine de Cébène",
+    ]);
+    expect(issues[1]?.wines.map((row) => row.id)).toEqual([242, 243]);
+    expect(issues.every((issue) => issue.isoYear === 2026)).toBe(true);
   });
 
   it("groups recommendation wines by issue week, newest first", () => {
