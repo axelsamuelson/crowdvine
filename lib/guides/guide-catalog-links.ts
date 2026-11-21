@@ -2,7 +2,7 @@ import { TOP_100_WINES, type TopWine } from "@/lib/guides/top-100-wines";
 import { TOP_100_PRODUCERS } from "@/lib/guides/top-100-producers";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
-  producerPublicPath,
+  producerPublicHrefFromLegalName,
   productPublicPath,
 } from "@/lib/i18n/localized-routes";
 import { generateProducerSlug } from "@/lib/producer-handle";
@@ -63,7 +63,8 @@ export async function getLiveProducerPublicLinksBySlug(
         ? row.display_name.trim()
         : name;
     const link: GuideCatalogProducerLink = {
-      href: producerPublicPath(slug, locale),
+      // slug from legal producers.name — never display_name
+      href: producerPublicHrefFromLegalName(name, locale),
       label: display,
     };
     links[slug] = link;
