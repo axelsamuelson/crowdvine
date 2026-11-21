@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   let allowShrink = false;
+  let resumeRawBackfill = false;
   const raw = await request.text();
   if (raw.trim()) {
     let body: unknown;
@@ -24,15 +25,24 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
-    allowShrink =
-      typeof body === "object" &&
-      body !== null &&
-      "confirmShrink" in body &&
-      (body as { confirmShrink: unknown }).confirmShrink === true;
+    if (typeof body === "object" && body !== null) {
+      const obj = body as {
+        confirmShrink?: unknown;
+        resumeRawBackfill?: unknown;
+      };
+      allowShrink = obj.confirmShrink === true;
+      resumeRawBackfill = obj.resumeRawBackfill === true;
+    }
   }
 
   try {
-    const result = await runSystembolagetSync({ allowShrink });
+    const result = await runSystembolagetSync({
+      allowShrink,
+      resumeRawBackfill,
+    });
+    if ("resumed" in result && result.resumed) {
+      return NextResponse.json(result);
+    }
     if (!result.ok && result.reason === "shrink_guard") {
       return NextResponse.json(result, { status: 409 });
     }
