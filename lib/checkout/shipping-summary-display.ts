@@ -122,10 +122,15 @@ export function resolveCheckoutSummaryTotalSek(input: {
   const promo = Math.max(0, Number(input.promoDiscountSek) || 0);
   const subtotalNet = Math.max(0, input.subtotalSek - pact - promo);
 
+  // Before postal / while rates load: never leave an endless Totalt skeleton —
+  // show the known subtotal as "exkl. frakt" (same as no-delivery).
   if (
     input.shippingSummary.kind === "after_postal" ||
     input.shippingSummary.kind === "loading"
   ) {
+    if (subtotalNet > 0) {
+      return { amountSek: subtotalNet, exclShipping: true };
+    }
     return { amountSek: null, exclShipping: false };
   }
 

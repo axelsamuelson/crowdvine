@@ -77,8 +77,31 @@ describe("checkout step 1 delivery copy (leveranstexter)", () => {
     const en = loadMessages("en");
     expect(sv.checkout.shippingNotAvailable).toBe("Ej tillgänglig");
     expect(en.checkout.shippingNotAvailable).toBe("Not available");
-    // Full explanation stays on the red line under options.
-    expect(sv.checkout.noDeliveryZoneYet).toMatch(/område/i);
-    expect(en.checkout.noDeliveryZoneYet).toMatch(/area/i);
+    // Full explanation stays on the red line under options (postal, no expand promise).
+    expect(sv.checkout.noDeliveryZoneYet).toBe(
+      "Vi levererar inte till ditt postnummer ännu.",
+    );
+    expect(en.checkout.noDeliveryZoneYet).toBe(
+      "We don't deliver to your postal code yet.",
+    );
+    expect(sv.checkout.noDeliveryZoneYet).not.toMatch(/expanderar|snart/i);
+    expect(en.checkout.noDeliveryZoneYet).not.toMatch(/expanding|soon/i);
+  });
+
+  it("locks address step and explains direct postal unavailability", () => {
+    const sv = loadMessages("sv");
+    const en = loadMessages("en");
+    expect(sv.checkout.stepAddressChangePostal).toBe(
+      "Byt postnummer för att gå vidare.",
+    );
+    expect(en.checkout.stepAddressChangePostal).toBe(
+      "Change your postal code to continue.",
+    );
+    expect(sv.checkout.directBoxPostalUnavailable).toBe(
+      "Direktleverans är inte tillgänglig för ditt postnummer.",
+    );
+    expect(en.checkout.directBoxPostalUnavailable).toBe(
+      "Direct delivery is not available for your postal code.",
+    );
   });
 });

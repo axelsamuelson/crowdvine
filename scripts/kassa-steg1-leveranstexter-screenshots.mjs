@@ -1,6 +1,6 @@
 /**
- * Evidence for kassa steg 1 leveranstexter (v3 — full page).
- * artifacts/kassa-steg1/v3/ (gitignored) + /opt/cursor/artifacts + agent store.
+ * Evidence for kassa steg 1 leveranstexter (v4 — full page).
+ * artifacts/kassa-steg1/v4/ (gitignored) + /opt/cursor/artifacts + agent store.
  * TEST only — msdfjrrokcmjifetuwgc. Never commit. No auth emails. No Vercel writes.
  *
  * Cases: utan-postnummer | stockholm | kiruna-direkt | ingen-leverans
@@ -28,9 +28,9 @@ import { createClient } from "@supabase/supabase-js";
 const BASE = process.env.APP_URL || "http://localhost:3000";
 const WINE_ID =
   process.env.KASSA_TEST_WINE_ID || "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
-const OUT_REPO = join(process.cwd(), "artifacts", "kassa-steg1", "v3");
-const OUT_OPT = "/opt/cursor/artifacts/kassa-steg1/v3";
-const OUT_STORE = "/cursor/stores/self/artifacts/kassa-steg1/v3";
+const OUT_REPO = join(process.cwd(), "artifacts", "kassa-steg1", "v4");
+const OUT_OPT = "/opt/cursor/artifacts/kassa-steg1/v4";
+const OUT_STORE = "/cursor/stores/self/artifacts/kassa-steg1/v4";
 for (const d of [OUT_REPO, OUT_OPT, OUT_STORE]) mkdirSync(d, { recursive: true });
 
 function loadEnvLocal() {
@@ -106,13 +106,13 @@ async function ensureSyntheticUser() {
   const admin = createClient(url, service, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const email = `kassa.steg1.v3.${Date.now()}@example.com`;
+  const email = `kassa.steg1.v4.${Date.now()}@example.com`;
   const password = `Synth-${Date.now()}-Aa1!`;
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: "Kassa Steg1 V2 Syntetisk" },
+    user_metadata: { full_name: "Kassa Steg1 V4 Syntetisk" },
   });
   if (error) throw error;
   const userId = data.user?.id;
@@ -257,8 +257,24 @@ async function main() {
     [
       {
         name: "utan-postnummer",
-        setup: async () => {
-          /* empty postal already */
+        setup: async (page) => {
+          try {
+            await page.waitForFunction(
+              () => {
+                const t = document.body?.innerText || "";
+                const hasExcl =
+                  /exkl\. frakt|excl\. shipping/i.test(t) &&
+                  /1\s*032|1032/.test(t);
+                const noPulse = !document.querySelector(
+                  '[data-testid="checkout-summary-total"] .animate-pulse',
+                );
+                return hasExcl && noPulse;
+              },
+              { timeout: 20000 },
+            );
+          } catch {
+            console.warn("utan-postnummer wait soft-fail");
+          }
         },
       },
       {
@@ -299,18 +315,26 @@ async function main() {
                   /149\s*kr|149\s*SEK/i.test(t) ||
                   /Direktleverans|Direct delivery/i.test(t);
                 const noRedArea =
-                  !/Vi levererar inte till ditt område|We don't deliver to your area/i.test(
+                  !/Vi levererar inte till ditt postnummer|We don't deliver to your postal/i.test(
                     t,
                   );
                 const etaOk =
                   /5–10\s+arbetsdagar|5–10\s+business days/i.test(t) &&
                   !(/Direct delivery|per box|bottle price/i.test(t) &&
                     /arbetsdagar/i.test(t));
+                const hasShipsFrom =
+                  /Skickas från|Ships from/i.test(t) &&
+                  Boolean(
+                    document.querySelector(
+                      '[data-testid="checkout-delivery-promise"]',
+                    ),
+                  );
                 return (
                   (directSelected || /Direktleverans|Direct delivery/i.test(t)) &&
                   hasDirectPrice &&
                   noRedArea &&
                   etaOk &&
+                  hasShipsFrom &&
                   /utanför leveranszonen|outside the delivery zone|not available for your postal/i.test(
                     t,
                   )
@@ -360,7 +384,15 @@ async function main() {
                   t,
                 );
                 const redOnce =
-                  /Vi levererar inte till ditt område|We don't deliver to your area/i.test(
+                  /Vi levererar inte till ditt postnummer ännu|We don't deliver to your postal code yet/i.test(
+                    t,
+                  );
+                const addressLocked =
+                  /Byt postnummer för att gå vidare|Change your postal code to continue/i.test(
+                    t,
+                  );
+                const directPostalUnavailable =
+                  /Direktleverans är inte tillgänglig för ditt postnummer|Direct delivery is not available for your postal code/i.test(
                     t,
                   );
                 const noYellowTemp =
@@ -370,6 +402,8 @@ async function main() {
                 return (
                   (Boolean(row) || shortUnavailable) &&
                   redOnce &&
+                  addressLocked &&
+                  directPostalUnavailable &&
                   noYellowTemp &&
                   /exkl\. frakt|excl\. shipping/i.test(t)
                 );
@@ -392,7 +426,7 @@ async function main() {
 
   writeFileSync(
     join(OUT_REPO, "README.txt"),
-    "kassa-steg1/v3 full-page screenshots — light, SV/EN, 390/1440. TEST only. Do not commit.\n",
+    "kassa-steg1/v4 full-page screenshots — light, SV/EN, 390/1440. TEST only. Do not commit.\n",
   );
   for (const d of [OUT_OPT, OUT_STORE]) {
     copyFileSync(join(OUT_REPO, "README.txt"), join(d, "README.txt"));

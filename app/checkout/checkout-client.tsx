@@ -5169,38 +5169,41 @@ function CheckoutContent({
                                         {t("checkout.dualOfferDirectTitle")}
                                       </span>
                                       <span className="mt-0.5 block min-h-[2.75rem] text-muted-foreground tabular-nums leading-snug">
-                                        {typeof directShippingSek === "number"
-                                          ? t(
-                                              "checkout.fulfillmentDirectSubtitle",
-                                              {
-                                                shipping: formatChargedAmount(
-                                                  directPerBoxShippingSek,
-                                                ),
-                                                estimate: directBoxEtaLabel,
-                                                percent: String(
-                                                  directBoxMarkupPercent,
-                                                ),
-                                              },
-                                            )
-                                          : shippingDisplayPending
-                                            ? null
-                                            : t(
-                                                "checkout.fulfillmentDirectHint",
-                                                {
-                                                  estimate: directBoxEtaLabel,
-                                                },
-                                              )}
-                                        {typeof directShippingSek !==
-                                          "number" && shippingDisplayPending ? (
+                                        {postalFulfillment.noFulfillmentAvailable ||
+                                        (!directBoxAvailability.deliverySelectable &&
+                                          !postalFulfillment.sharedPalletAvailable) ? (
+                                          t(
+                                            "checkout.directBoxPostalUnavailable",
+                                          )
+                                        ) : typeof directShippingSek ===
+                                          "number" ? (
+                                          t(
+                                            "checkout.fulfillmentDirectSubtitle",
+                                            {
+                                              shipping: formatChargedAmount(
+                                                directPerBoxShippingSek,
+                                              ),
+                                              estimate: directBoxEtaLabel,
+                                              percent: String(
+                                                directBoxMarkupPercent,
+                                              ),
+                                            },
+                                          )
+                                        ) : shippingDisplayPending ? (
                                           <span
                                             className="mt-1 inline-block h-3 w-36 animate-pulse rounded bg-muted"
                                             aria-hidden
                                           />
-                                        ) : null}
+                                        ) : (
+                                          t("checkout.fulfillmentDirectHint", {
+                                            estimate: directBoxEtaLabel,
+                                          })
+                                        )}
                                       </span>
                                       {/* Temporary quote failure only — not when no delivery exists at all. */}
                                       {!directBoxAvailability.deliverySelectable &&
-                                      !postalFulfillment.noFulfillmentAvailable ? (
+                                      !postalFulfillment.noFulfillmentAvailable &&
+                                      postalFulfillment.sharedPalletAvailable ? (
                                         <span className="mt-0.5 block text-amber-500">
                                           {t(
                                             "checkout.directBoxChannelUnavailable",
@@ -5255,38 +5258,66 @@ function CheckoutContent({
                       </div>
                     ) : null}
 
-                    {!dualOfferReviewActive &&
-                    selectedPallet != null &&
-                    (producerDirectBoxOnly ||
-                      selectedPallet.current_pickup_producer?.name) ? (
-                      <div
-                        className="space-y-1.5"
-                        data-testid="checkout-delivery-promise"
-                      >
-                        <p className="text-xs text-muted-foreground">
-                          {t("checkout.deliveryPromiseLabel")}
-                        </p>
-                        {fulfillmentChannel === "direct_box" &&
+                    {(() => {
+                      const shipsFromName =
+                        selectedPallet?.current_pickup_producer?.name?.trim() ||
+                        orderLines
+                          .map((line) =>
+                            producerDisplayName({
+                              name: line.merchandise.product.producerName,
+                              display_name:
+                                line.merchandise.product.producerDisplayName,
+                            }),
+                          )
+                          .find((n) => Boolean(n?.trim())) ||
+                        null;
+                      const showDirectPromise =
+                        fulfillmentChannel === "direct_box" &&
                         directBoxCheckoutEnabled &&
-                        producerDirectBoxOnly ? (
-                          <DirectBoxDeliveryPromise
-                            sourceType="producer"
-                            enabled={directBoxCheckoutEnabled}
-                          />
-                        ) : fulfillmentChannel === "shared_pallet" ? (
-                          <p className="text-sm text-muted-foreground">
-                            {t("commerce.sharedPalletDelivery")}
-                          </p>
-                        ) : null}
-                        {selectedPallet.current_pickup_producer?.name ? (
+                        directBoxAvailability.deliverySelectable;
+                      const showSharedPromise =
+                        fulfillmentChannel === "shared_pallet" &&
+                        selectedPallet != null;
+                      if (
+                        dualOfferReviewActive ||
+                        (!showDirectPromise && !showSharedPromise)
+                      ) {
+                        return null;
+                      }
+                      if (!showDirectPromise && !shipsFromName && !producerDirectBoxOnly) {
+                        return null;
+                      }
+                      return (
+                        <div
+                          className="space-y-1.5"
+                          data-testid="checkout-delivery-promise"
+                        >
                           <p className="text-xs text-muted-foreground">
-                            {t("checkout.collectedFrom", {
-                              name: selectedPallet.current_pickup_producer.name,
-                            })}
+                            {t("checkout.deliveryPromiseLabel")}
                           </p>
-                        ) : null}
-                      </div>
-                    ) : null}
+                          {showDirectPromise ? (
+                            <DirectBoxDeliveryPromise
+                              locale={
+                                shopping.locale === "en" ? "en" : "sv"
+                              }
+                              sourceType="producer"
+                              enabled={directBoxCheckoutEnabled}
+                            />
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              {t("commerce.sharedPalletDelivery")}
+                            </p>
+                          )}
+                          {shipsFromName ? (
+                            <p className="text-xs text-muted-foreground">
+                              {t("checkout.collectedFrom", {
+                                name: shipsFromName,
+                              })}
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
 
                     {!zoneLoading &&
                     zoneFetchCompleted &&
@@ -5467,7 +5498,9 @@ function CheckoutContent({
             <section
               className={cn(
                 "py-6",
-                !deliveryPreviewReady && "opacity-50",
+                (!deliveryPreviewReady ||
+                  postalFulfillment.noFulfillmentAvailable) &&
+                  "opacity-50",
               )}
             >
               <div className="space-y-4">
@@ -5478,6 +5511,10 @@ function CheckoutContent({
                 {!hasPostalCode ? (
                   <p className="text-sm text-muted-foreground">
                     {t("checkout.stepAddressLocked")}
+                  </p>
+                ) : postalFulfillment.noFulfillmentAvailable ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("checkout.stepAddressChangePostal")}
                   </p>
                 ) : !deliveryPreviewReady ? (
                   <p className="text-sm text-muted-foreground">

@@ -133,6 +133,26 @@ describe("resolveCheckoutSummaryTotalSek", () => {
     ).toEqual({ amountSek: 1032, exclShipping: true });
   });
 
+  it("before postal: shows subtotal excl. shipping (no endless skeleton)", () => {
+    expect(
+      resolveCheckoutSummaryTotalSek({
+        shippingSummary: { kind: "after_postal" },
+        subtotalSek: 1032,
+        shippingSek: null,
+      }),
+    ).toEqual({ amountSek: 1032, exclShipping: true });
+  });
+
+  it("while shipping loads: known subtotal stays visible excl. shipping", () => {
+    expect(
+      resolveCheckoutSummaryTotalSek({
+        shippingSummary: { kind: "loading" },
+        subtotalSek: 1032,
+        shippingSek: null,
+      }),
+    ).toEqual({ amountSek: 1032, exclShipping: true });
+  });
+
   it("Stockholm with quoted shipping: includes shipping in total", () => {
     expect(
       resolveCheckoutSummaryTotalSek({
