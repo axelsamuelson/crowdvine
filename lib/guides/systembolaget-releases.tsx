@@ -24,7 +24,11 @@ import {
   RankedWineRow,
   wineNameParts,
 } from "@/lib/guides/systembolaget-ranked-list";
-import { formatReleaseUpdatedLabel } from "@/lib/guides/systembolaget-release-groups";
+import {
+  formatIssueWeekHeading,
+  formatReleaseUpdatedLabel,
+  groupWinesByLaunchIsoWeek,
+} from "@/lib/guides/systembolaget-release-groups";
 import {
   articlePath,
   articleVisibleForLocale,
@@ -38,14 +42,12 @@ import {
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
+  freshestSyncedAt,
+  getGuideWines,
   systembolagetImageUrl,
   systembolagetProductUrl,
   type SystembolagetGuideWine,
 } from "@/lib/systembolaget/guide-wines";
-import {
-  formatIssueWeekHeading,
-  getPublishedRecommendationIssues,
-} from "@/lib/systembolaget/recommendation-wines";
 
 const EMPTY_COPY = {
   sv: "Inga nya naturviner just nu. Listan uppdateras när Systembolaget släpper nya viner.",
@@ -98,13 +100,18 @@ export async function renderSystembolagetReleasesPage(
   content: GuideArticleContent,
   locale: AppLocale,
 ) {
-  // Public page reads all published weekly issues from
-  // systembolaget_recommendations (via systembolaget_recommendation_wines).
-  // The view only includes availability_state available|limited, so sold-out
-  // wines (and empty weeks) drop off automatically.
-  const { issues, latestPublishedAt } =
-    await getPublishedRecommendationIssues();
+  // Published curated category "new" only. Weeks are ISO 8601 from
+  // product_launch_date (Europe/Stockholm calendar day) — not editorial
+  // issue_week on systembolaget_recommendations.
+  const wines = await getGuideWines("new", "recommended");
+  const issues = groupWinesByLaunchIsoWeek(wines);
   const shown = issues.flatMap((issue) => issue.wines);
+  const latestPublishedAt =
+    shown
+      .map((wine) => wine.first_published_at)
+      .filter((value): value is string => Boolean(value))
+      .sort()
+      .at(-1) ?? freshestSyncedAt(shown);
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
@@ -238,11 +245,11 @@ export async function renderSystembolagetReleasesPage(
           ) : (
             <div className="mt-10 space-y-12">
               {issues.map((issue) => {
-                const headingId = `releases-week-${issue.issueYear}-${issue.issueWeek}`;
+                const headingId = `releases-week-${issue.isoYear}-${issue.isoWeek}`;
                 return (
                   <section key={headingId} aria-labelledby={headingId}>
                     <h2 id={headingId} className={ARTICLE_GUIDE_H2_CLASS}>
-                      {formatIssueWeekHeading(issue.issueWeek, locale)}
+                      {formatIssueWeekHeading(issue.isoWeek, locale)}
                     </h2>
                     <ol className="mt-6 list-none p-0">
                       {issue.wines.map((wine) => {
