@@ -212,6 +212,7 @@ export function AnalyticsFilterBar({
         >
           <option value="include">Inkludera</option>
           <option value="exclude">Exkludera</option>
+          <option value="only">Bara inbjudna vänner</option>
         </select>
       </label>
       <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">

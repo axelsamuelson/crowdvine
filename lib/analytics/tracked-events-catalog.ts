@@ -344,6 +344,13 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "shipping_preview_failed",
+    category: "checkout",
+    description:
+      "Public /api/checkout/shipping-preview could not show a price (E9). Metadata: delivery_type (shared_pallet|direct_box|all), reason (preview_error|preview_timeout|rate_missing|invalid_request|unknown). Deduped once per analytics session+reason. Never postal codes, addresses, or free text. Not emitted on AbortError.",
+    sources: ["client"],
+  },
+  {
     eventType: "checkout_error",
     category: "checkout",
     description:

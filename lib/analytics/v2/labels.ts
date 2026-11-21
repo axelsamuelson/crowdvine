@@ -51,16 +51,17 @@ export const CHECKOUT_STEP_LABELS_SV: Record<string, string> = {
   payment: "Betalning",
 };
 
-/** Known checkout_abandoned.abandon_reason codes → Swedish. */
+/** Known checkout_abandoned.abandon_reason codes → Swedish (bilaga C). */
 export const ABANDON_REASON_LABELS_SV: Record<string, string> = {
   incomplete_fields: "Ofullständiga fält",
   left_checkout: "Lämnade kassan",
-  validation_error: "Valideringsfel",
+  validation_error: "Felaktiga uppgifter",
+  no_pickup_for_cart: "Ingen leverans möjlig för varukorgen",
   postal_out_of_zone: "Postnummer utanför zon",
   market_not_available: "Marknad ej tillgänglig",
   carrier_unconfigured: "Transportör saknas",
   payment_error: "Betalfel",
-  login_wall: "Inloggningsvägg",
+  login_wall: "Stoppades av inloggning",
   flag_off: "Funktion avstängd",
 };
 
@@ -107,7 +108,7 @@ export function abandonReasonLabelSv(
   reason: string | null | undefined,
 ): string {
   if (!reason) return "Okänd orsak";
-  return ABANDON_REASON_LABELS_SV[reason] ?? reason;
+  return ABANDON_REASON_LABELS_SV[reason] ?? "Okänd orsak";
 }
 
 export function fulfillmentLabelSv(

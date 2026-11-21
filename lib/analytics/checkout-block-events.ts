@@ -52,6 +52,54 @@ export function shippingQuoteFailedEmitKey(
   return `shipping_quote_failed:${getCheckoutSessionId()}:${deliveryType}:${reason}`;
 }
 
+export type ShippingPreviewDeliveryType =
+  | "shared_pallet"
+  | "direct_box"
+  | "all";
+
+export type ShippingPreviewFailReason =
+  | "preview_error"
+  | "preview_timeout"
+  | "rate_missing"
+  | "invalid_request"
+  | "unknown";
+
+/**
+ * Dedupe key for E9: once per analytics session + reason (spec 10 / AC24).
+ * Uses analytics_session_id when available; falls back to checkout session.
+ */
+export function shippingPreviewFailedEmitKey(reason: string): string {
+  let sessionKey = getCheckoutSessionId();
+  try {
+    const analyticsId =
+      typeof sessionStorage !== "undefined"
+        ? sessionStorage.getItem("analytics_session_id")
+        : null;
+    if (analyticsId) sessionKey = analyticsId;
+  } catch {
+    // ignore
+  }
+  return `shipping_preview_failed:${sessionKey}:${reason}`;
+}
+
+function sanitizePreviewReason(reason: string | null | undefined): string {
+  const raw = (reason ?? "unknown").trim() || "unknown";
+  return /^[a-z0-9_]{1,64}$/i.test(raw) ? raw.toLowerCase() : "unknown";
+}
+
+function sanitizePreviewDeliveryType(
+  deliveryType: string | null | undefined,
+): ShippingPreviewDeliveryType {
+  if (
+    deliveryType === "shared_pallet" ||
+    deliveryType === "direct_box" ||
+    deliveryType === "all"
+  ) {
+    return deliveryType;
+  }
+  return "all";
+}
+
 /**
  * Emit once per checkout session + step + reason when the shopper actually
  * tries to advance (Fortsätt / locked step / blocked CTA) — not on field status.
@@ -95,4 +143,27 @@ export function trackShippingQuoteFailed(input: {
       });
     },
   );
+}
+
+/**
+ * E9 (H13 / D15): public shipping-preview failure.
+ * Once per analytics session + reason. No postal codes, addresses, or free text.
+ * Do not call for AbortError / cancelled fetches.
+ */
+export function trackShippingPreviewFailed(input: {
+  deliveryType?: ShippingPreviewDeliveryType | string | null;
+  reason?: ShippingPreviewFailReason | string | null;
+}): boolean {
+  const safeReason = sanitizePreviewReason(input.reason);
+  const deliveryType = sanitizePreviewDeliveryType(input.deliveryType);
+  return emitOnce(shippingPreviewFailedEmitKey(safeReason), () => {
+    void AnalyticsTracker.trackEvent({
+      eventType: "shipping_preview_failed",
+      eventCategory: "checkout",
+      metadata: {
+        delivery_type: deliveryType,
+        reason: safeReason,
+      },
+    });
+  });
 }

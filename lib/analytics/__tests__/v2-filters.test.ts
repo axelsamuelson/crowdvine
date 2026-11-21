@@ -66,9 +66,10 @@ describe("parseAnalyticsV2Filters", () => {
     expect(again.compare).toBe("none");
   });
 
-  it("ignores invited=only in etapp 1 (maps to include)", () => {
+  it("parses invited=only (etapp 2: bara inbjudna vänner)", () => {
     const f = parseAnalyticsV2Filters(new URLSearchParams("invited=only"));
-    expect(f.invited).toBe("include");
+    expect(f.invited).toBe("only");
+    expect(toQueryString(f)).toContain("invited=only");
   });
 });
 

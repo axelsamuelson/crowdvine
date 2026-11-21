@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       status,
       rows,
       notice:
-        "Kampanjtrafik kan klassas som Direkt eller Hänvisning tills UTM first-touch är rättat.",
+        "utm_medium=paid_social räknas som Kampanj i v2. Sessions-UTM-kolumner (content/term) kommer i nästa del-PR (M3).",
     });
   } catch {
     return NextResponse.json(

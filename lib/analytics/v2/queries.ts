@@ -155,13 +155,13 @@ function rpcFilterArgs(filters: AnalyticsV2FilterState) {
     p_market: filters.market === "all" ? null : filters.market,
     p_channel: filters.channel,
     p_device: filters.device,
-    p_invited: filters.invited === "exclude" ? "exclude" : "include",
+    p_invited: filters.invited,
   };
 }
 
 /**
- * Apply shared dimension filters. Invited (etapp 1):
- * include = all rows, exclude = is_invited_friend=false.
+ * Apply shared dimension filters. Invited (etapp 2):
+ * include = all, exclude = non-friends, only = friends.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyRollupFilters(query: any, filters: AnalyticsV2FilterState) {
@@ -185,6 +185,8 @@ function applyRollupFilters(query: any, filters: AnalyticsV2FilterState) {
 
   if (filters.invited === "exclude") {
     q = q.eq("is_invited_friend", false);
+  } else if (filters.invited === "only") {
+    q = q.eq("is_invited_friend", true);
   }
 
   return q;
@@ -192,7 +194,7 @@ function applyRollupFilters(query: any, filters: AnalyticsV2FilterState) {
 
 /**
  * Shared clean-session filters for analytics_session_facts queries.
- * Invited exclude + soft bot flags (prerender / geo).
+ * Invited exclude/only + soft bot flags (prerender / geo).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function applyCleanFactsFilters(query: any, filters: AnalyticsV2FilterState) {
@@ -208,6 +210,8 @@ export function applyCleanFactsFilters(query: any, filters: AnalyticsV2FilterSta
   if (filters.device) q = q.eq("device", filters.device);
   if (filters.invited === "exclude") {
     q = q.eq("is_invited_friend", false);
+  } else if (filters.invited === "only") {
+    q = q.eq("is_invited_friend", true);
   }
   if (filters.market === "SE") {
     q = q.eq("country_code", "SE");

@@ -15,8 +15,8 @@ export const ANALYTICS_V2_EARLIEST = "2026-08-07";
 
 export type AnalyticsV2Site = "pact" | "dirtywine";
 export type AnalyticsV2Grain = "day" | "week" | "month";
-/** Etapp 1: include | exclude only. "only" (bara vänner) is etapp 2. */
-export type AnalyticsV2Invited = "include" | "exclude";
+/** Etapp 2: include | exclude | only (bara inbjudna vänner). */
+export type AnalyticsV2Invited = "include" | "exclude" | "only";
 export type AnalyticsV2Compare = "none" | "previous" | "mom";
 export type AnalyticsV2Device = "mobile" | "desktop" | "tablet";
 
@@ -94,8 +94,8 @@ function parseMarket(raw: string | null): string {
 }
 
 function parseInvited(raw: string | null): AnalyticsV2Invited {
-  // v1.2 etapp 1: only include/exclude. "only" ignored until etapp 2.
   if (raw === "exclude") return "exclude";
+  if (raw === "only") return "only";
   return "include";
 }
 

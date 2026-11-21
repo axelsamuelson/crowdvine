@@ -588,6 +588,9 @@ export async function POST(request: Request) {
     if (typeof body?.visitor_id === "string" && body.visitor_id.trim()) {
       form.append("visitor_id", body.visitor_id.trim());
     }
+    if (typeof body?.session_id === "string" && body.session_id.trim()) {
+      form.append("session_id", body.session_id.trim());
+    }
     if (body?.first_touch != null) {
       form.append(
         "first_touch",

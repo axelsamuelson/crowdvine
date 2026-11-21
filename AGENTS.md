@@ -66,8 +66,8 @@ CI (`.github/workflows/ci.yml`): on push/PR to `main` → install → `pnpm test
 **Rules for new migrations**
 
 1. Add new migrations under **`migrations/`** only.
-2. Use the **next integer prefix** after the highest existing numbered file (today: **241_…**).
-3. Prefer a short descriptive snake_case suffix: `241_short_description.sql`.
+2. Use the **next integer prefix** after the highest existing numbered file (today: **314_…** after etapp 2 data foundation 310–313).
+3. Prefer a short descriptive snake_case suffix: `314_short_description.sql`.
 4. Never add day-to-day schema changes under `supabase/migrations/` or `docs/archives/**`.
 5. Never store **PII** in `user_events.event_metadata` (no names, emails, phones, streets, free-text addresses, dates of birth, etc.). Use booleans / codes / digits-only postal flags when checkout analytics need field state. See `lib/analytics/checkout-draft-metadata.ts` and migration `239_scrub_user_events_pii.sql`.
 6. Check the latest migration number on `main` right before merging so two PRs do not claim the same prefix.

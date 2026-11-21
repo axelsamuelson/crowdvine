@@ -98,6 +98,7 @@ import { assertDirectBoxConfirmIntentBinding } from "@/lib/commerce/direct-box-p
 import {
   buildDirectBoxReservationInsertPatch,
   isDirectBoxSchemaUnreadyError,
+  isMissingSchemaColumnError,
   resolveCheckoutGroupPalletAssignment,
 } from "@/lib/commerce/direct-box-reservation-persistence";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
@@ -218,6 +219,7 @@ export async function POST(request: Request) {
       const stripeIntentTypeField = formData.get("stripe_intent_type");
       const marketDropIdField = formData.get("market_drop_id");
       const visitorIdField = formData.get("visitor_id");
+      const sessionIdField = formData.get("session_id");
       const firstTouchField = formData.get("first_touch");
       const internalField = formData.get("internal");
       body = {
@@ -267,6 +269,8 @@ export async function POST(request: Request) {
             : undefined,
         visitor_id:
           typeof visitorIdField === "string" ? visitorIdField : undefined,
+        session_id:
+          typeof sessionIdField === "string" ? sessionIdField : undefined,
         first_touch:
           typeof firstTouchField === "string" ? firstTouchField : undefined,
         internal:
@@ -1833,6 +1837,15 @@ export async function POST(request: Request) {
           /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
           shipping_revenue_gross_cents: groupShippingShareForPersist,
           is_test_purchase: promoIsTestkop,
+          // M9: analytics session linkage (nullable; ignored if columns not migrated yet).
+          ...(typeof body.session_id === "string" &&
+          body.session_id.trim() &&
+          !body.session_id.trim().startsWith("server_")
+            ? { session_id: body.session_id.trim().slice(0, 128) }
+            : {}),
+          ...(typeof body.visitor_id === "string" && body.visitor_id.trim()
+            ? { visitor_id: body.visitor_id.trim().slice(0, 128) }
+            : {}),
           // Only primary row carries the client idempotency key (UNIQUE).
           ...(idempotencyKey && createdReservations.length === 0
             ? { idempotency_key: idempotencyKey }
@@ -1869,6 +1882,24 @@ export async function POST(request: Request) {
           .insert(groupBaseInsert)
           .select("id")
           .single();
+
+        // M9 columns may lag behind code on some envs — retry without them.
+        if (
+          insErr &&
+          (isMissingSchemaColumnError(insErr, "session_id") ||
+            isMissingSchemaColumnError(insErr, "visitor_id"))
+        ) {
+          const {
+            session_id: _s,
+            visitor_id: _v,
+            ...withoutAnalyticsSession
+          } = groupBaseInsert;
+          ({ data: row, error: insErr } = await sbAdmin
+            .from("order_reservations")
+            .insert(withoutAnalyticsSession)
+            .select("id")
+            .single());
+        }
 
         // Migration 277 required for direct_box — fail closed (no charge_blocked_reason fallback).
         if (
@@ -2022,6 +2053,14 @@ export async function POST(request: Request) {
         /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
         shipping_revenue_gross_cents: shippingGrossCentsTotal,
         is_test_purchase: promoIsTestkop,
+        ...(typeof body.session_id === "string" &&
+        body.session_id.trim() &&
+        !body.session_id.trim().startsWith("server_")
+          ? { session_id: body.session_id.trim().slice(0, 128) }
+          : {}),
+        ...(typeof body.visitor_id === "string" && body.visitor_id.trim()
+          ? { visitor_id: body.visitor_id.trim().slice(0, 128) }
+          : {}),
         ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
         ...(reservationLegalExtra ?? {}),
         ...usReservationExtra,
@@ -2049,6 +2088,23 @@ export async function POST(request: Request) {
         .insert(singleBaseInsert)
         .select("id")
         .single();
+
+      if (
+        reservationError &&
+        (isMissingSchemaColumnError(reservationError, "session_id") ||
+          isMissingSchemaColumnError(reservationError, "visitor_id"))
+      ) {
+        const {
+          session_id: _s,
+          visitor_id: _v,
+          ...withoutAnalyticsSession
+        } = singleBaseInsert;
+        ({ data: resRow, error: reservationError } = await sbAdmin
+          .from("order_reservations")
+          .insert(withoutAnalyticsSession)
+          .select("id")
+          .single());
+      }
 
       if (
         reservationError &&
@@ -3005,6 +3061,12 @@ export async function POST(request: Request) {
     const visitorIdRaw =
       typeof body.visitor_id === "string" ? body.visitor_id.trim() : "";
     const visitorId = visitorIdRaw || fromCookies.visitorId;
+    const analyticsSessionIdRaw =
+      typeof body.session_id === "string" ? body.session_id.trim() : "";
+    const analyticsSessionId =
+      analyticsSessionIdRaw && !analyticsSessionIdRaw.startsWith("server_")
+        ? analyticsSessionIdRaw.slice(0, 128)
+        : null;
     const firstTouch: FirstTouch | null =
       parseFirstTouchPayload(body.first_touch) || fromCookies.firstTouch;
     const countryCode = fromCookies.countryCode;
@@ -3172,12 +3234,15 @@ export async function POST(request: Request) {
         userId: currentUser?.id ?? null,
         visitorId,
         countryCode,
+        sessionId: analyticsSessionId,
         eventType: "reservation_completed",
         eventCategory: "checkout",
         firstTouch,
         internal: markInternal,
         metadata: {
           reservation_id: ev.reservation_id,
+          session_id: analyticsSessionId,
+          visitor_id: visitorId || null,
           step: "payment",
           market: address.countryCode || countryCode || null,
           currency: "SEK",
@@ -3186,6 +3251,10 @@ export async function POST(request: Request) {
           payment_mode: paymentMode,
           payment_status: paymentStatus,
           is_b2b: isB2BSite,
+          fulfillment_channel:
+            typeof body.fulfillment_channel === "string"
+              ? body.fulfillment_channel
+              : null,
           ...(checkoutGroupId ? { checkout_group_id: checkoutGroupId } : {}),
           ...(intentId ? { intent_id: intentId } : {}),
           ...(reservationIsTestPurchase
