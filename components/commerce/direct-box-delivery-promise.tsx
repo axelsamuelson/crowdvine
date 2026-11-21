@@ -1,7 +1,6 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
 import {
-  B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
   DIRECT_BOX_DELIVERY_MESSAGE_KEY,
   isProducerSourcedWine,
 } from "@/lib/commerce/direct-box-delivery";
@@ -11,7 +10,7 @@ import { cn } from "@/lib/utils";
 /**
  * Customer-facing B2C delivery promise: direct box from producer.
  * Hidden unless DIRECT_BOX_CHECKOUT_ENABLED (same gate as checkout direct row).
- * No pallet fill / capacity. Optional time string only via marked TODO constant.
+ * No pallet fill / capacity. Window copy comes from locale messages only.
  */
 export function DirectBoxDeliveryPromise({
   locale = "sv",
@@ -33,12 +32,6 @@ export function DirectBoxDeliveryPromise({
   if (!isProducerSourcedWine(sourceType)) return null;
 
   const promise = translate(locale, DIRECT_BOX_DELIVERY_MESSAGE_KEY);
-  const timeTodo = B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim() || null;
-  // Message key already includes the window ("… – 5–10 arbetsdagar"); do not
-  // repeat it on a second line when the TODO string is embedded in the promise.
-  const showTimeTodo =
-    Boolean(timeTodo) &&
-    !promise.toLowerCase().includes(String(timeTodo).toLowerCase());
 
   return (
     <div className={cn("min-w-0", className)}>
@@ -49,9 +42,6 @@ export function DirectBoxDeliveryPromise({
         )}
       >
         {promise}
-        {showTimeTodo ? (
-          <span className="block text-muted-foreground/80">{timeTodo}</span>
-        ) : null}
       </p>
     </div>
   );

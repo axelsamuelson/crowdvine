@@ -38,7 +38,7 @@ export const CHECKOUT_PALLET_DELIVERY_LINE_EN =
 export const DIRECT_BOX_DELIVERY_COPY_SV =
   "Direktleverans – 5–10 arbetsdagar · signatur och ålderskontroll";
 export const DIRECT_BOX_DELIVERY_COPY_EN =
-  "Direct delivery – 5–10 working days · signature and age check";
+  "Direct delivery – 5–10 business days · signature and age check";
 
 function applyDatum(template: string, datum: string): string {
   return template.replace(/\{datum\}/g, datum);
