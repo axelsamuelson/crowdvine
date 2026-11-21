@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { LabelComparisonTable } from "@/components/guides/label-comparison-table";
 import { Footer } from "@/components/layout/footer";
 import {
@@ -39,23 +42,31 @@ import {
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
+import {
+  getLiveProducerPublicLinksBySlug,
+  resolveProducerPublicHrefAgainstLive,
+} from "@/lib/guides/guide-catalog-links";
 
 function ProducerLinks({
   producers,
 }: {
-  producers: { name: string; href: string }[];
+  producers: { name: string; href: string | null }[];
 }) {
   return (
     <p>
       {producers.map((producer, index) => (
-        <span key={producer.href}>
+        <span key={`${producer.name}-${producer.href ?? "plain"}`}>
           {index > 0 ? ", " : null}
-          <Link
-            href={producer.href}
-            className="underline underline-offset-4 hover:text-foreground"
-          >
-            {producer.name}
-          </Link>
+          {producer.href ? (
+            <Link
+              href={producer.href}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              {producer.name}
+            </Link>
+          ) : (
+            producer.name
+          )}
         </span>
       ))}
     </p>
@@ -91,6 +102,20 @@ export async function renderNaturalVsOrganicGuidePage() {
   const copy = guideCopy("en");
   const pageUrl = `${seoBaseUrl}${NATURAL_VS_ORGANIC_PATH}`;
   const hubPath = "/guides";
+  const [liveProducerLinks, guideShopLinks] = await Promise.all([
+    getLiveProducerPublicLinksBySlug("en"),
+    loadGuideShopLinks(NATURAL_VS_ORGANIC_PATH, "en"),
+  ]);
+  const producerGroups = naturalVsOrganicProducerGroups.map((group) => ({
+    heading: group.heading,
+    producers: group.producers.map((producer) => ({
+      name: producer.name,
+      href: resolveProducerPublicHrefAgainstLive(
+        producer.href,
+        liveProducerLinks,
+      ),
+    })),
+  }));
 
   const authorPerson = buildGuideAuthorPersonJsonLd(
     naturalVsOrganicAuthor,
@@ -348,7 +373,7 @@ export async function renderNaturalVsOrganicGuidePage() {
                   PACT works with small producers in the Languedoc, around
                   Béziers. Their farming status, as recorded in our database:
                 </p>
-                {naturalVsOrganicProducerGroups.map((group) => (
+                {producerGroups.map((group) => (
                   <div key={group.heading}>
                     <p>
                       <strong>{group.heading}</strong>
@@ -366,6 +391,7 @@ export async function renderNaturalVsOrganicGuidePage() {
             <GuideShopLinksBlock
               guidePath={NATURAL_VS_ORGANIC_PATH}
               locale="en"
+              links={guideShopLinks}
             />
 
             <section>

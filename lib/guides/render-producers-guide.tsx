@@ -5,7 +5,10 @@ import type { ReactNode } from "react";
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
 import { GuideRankNumber } from "@/components/guides/guide-rank-number";
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { ProducerRankChange } from "@/components/guides/producer-rank-change";
 import { SystembolagetBagIcon } from "@/components/guides/systembolaget-bag-icon";
 import { SystembolagetProducerMark } from "@/components/guides/systembolaget-producer-mark";
@@ -200,11 +203,14 @@ function ProducerShopLink({
 }
 
 export async function renderProducersGuidePage(locale: AppLocale) {
-  const [{ seoBaseUrl }, availability, shopLinks] = await Promise.all([
-    getGuideSeoOwnership(),
-    getSystembolagetProducerAvailability(),
-    getTop100ProducerShopLinks(locale),
-  ]);
+  const producersGuidePath = guidePath("producers", locale);
+  const [{ seoBaseUrl }, availability, shopLinks, guideShopLinks] =
+    await Promise.all([
+      getGuideSeoOwnership(),
+      getSystembolagetProducerAvailability(),
+      getTop100ProducerShopLinks(locale),
+      loadGuideShopLinks(producersGuidePath, locale),
+    ]);
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const winesPath = guidePath("wines", locale);
@@ -554,8 +560,9 @@ export async function renderProducersGuidePage(locale: AppLocale) {
         </section>
 
         <GuideShopLinksBlock
-          guidePath={guidePath("producers", locale)}
+          guidePath={producersGuidePath}
           locale={locale}
+          links={guideShopLinks}
         />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">

@@ -63,11 +63,14 @@ export async function getLiveProducerPublicLinksBySlug(
         ? row.display_name.trim()
         : name;
     const link: GuideCatalogProducerLink = {
-      // slug from legal producers.name — never display_name
+      // href slug from legal producers.name — never display_name
       href: producerPublicHrefFromLegalName(name, locale),
       label: display,
     };
     links[slug] = link;
+    // Lookup aliases so hard-coded / guide display-name slugs still resolve.
+    const displaySlug = generateProducerSlug(display);
+    if (displaySlug && displaySlug !== slug) links[displaySlug] = link;
     if (id) idToLink.set(id, link);
   }
 
@@ -80,6 +83,65 @@ export async function getLiveProducerPublicLinksBySlug(
   }
 
   return links;
+}
+
+const PRODUCER_PUBLIC_HREF_RE =
+  /^\/(?:producers|producenter)\/([^/?#]+)\/?$/;
+
+export function producerSlugFromPublicHref(href: string): string | null {
+  const match = href.trim().match(PRODUCER_PUBLIC_HREF_RE);
+  return match?.[1] ?? null;
+}
+
+/**
+ * Map a requested producer slug (SEO / display / legal) onto a live profile
+ * href. Exact key first; then suffix/prefix match so prod
+ * `domaine-jean-foillard` resolves to TEST `jean-foillard` when that is the
+ * live legal-name slug.
+ */
+export function resolveLiveProducerLinkForSlug(
+  requestedSlug: string,
+  live: Record<string, GuideCatalogProducerLink>,
+): GuideCatalogProducerLink | null {
+  const slug = requestedSlug.trim();
+  if (!slug) return null;
+  if (live[slug]) return live[slug]!;
+
+  const matches = Object.keys(live).filter((key) => {
+    if (!key || key === slug) return false;
+    return (
+      slug.endsWith(`-${key}`) ||
+      key.endsWith(`-${slug}`) ||
+      slug.endsWith(key) ||
+      key.endsWith(slug)
+    );
+  });
+  if (matches.length === 0) return null;
+  matches.sort((a, b) => b.length - a.length);
+  return live[matches[0]!] ?? null;
+}
+
+export function resolveProducerPublicHrefAgainstLive(
+  href: string,
+  live: Record<string, GuideCatalogProducerLink>,
+): string | null {
+  const slug = producerSlugFromPublicHref(href);
+  if (!slug) return href;
+  return resolveLiveProducerLinkForSlug(slug, live)?.href ?? null;
+}
+
+export async function resolveGuideShopLinksAgainstLiveCatalog(
+  links: readonly { href: string; anchor: string }[],
+  locale: AppLocale,
+): Promise<{ href: string; anchor: string }[]> {
+  const live = await getLiveProducerPublicLinksBySlug(locale);
+  const resolved: { href: string; anchor: string }[] = [];
+  for (const link of links) {
+    const nextHref = resolveProducerPublicHrefAgainstLive(link.href, live);
+    if (!nextHref) continue;
+    resolved.push({ href: nextHref, anchor: link.anchor });
+  }
+  return resolved;
 }
 
 type ProducerWineRow = {

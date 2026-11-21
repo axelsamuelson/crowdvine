@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 
 import { GuideHubBrowse } from "@/components/guides/guide-hub-browse";
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import {
   GuideBreadcrumbs,
@@ -50,7 +53,11 @@ export async function buildGuideHubMetadata(
 export async function renderGuideHubPage(locale: AppLocale) {
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
-  const shopRegionLinks = await getIndexableRegionLinks(locale);
+  const hubGuidePath = guidePath("hub", locale);
+  const [shopRegionLinks, guideShopLinks] = await Promise.all([
+    getIndexableRegionLinks(locale),
+    loadGuideShopLinks(hubGuidePath, locale),
+  ]);
   const sections = withIndexableShopRegionSection(
     copy.hubSections,
     locale,
@@ -94,8 +101,9 @@ export async function renderGuideHubPage(locale: AppLocale) {
 
         <div className="mx-auto mt-14 max-w-3xl px-sides">
           <GuideShopLinksBlock
-            guidePath={guidePath("hub", locale)}
+            guidePath={hubGuidePath}
             locale={locale}
+            links={guideShopLinks}
           />
         </div>
       </div>

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  resolveLiveProducerLinkForSlug,
+  resolveProducerPublicHrefAgainstLive,
+} from "@/lib/guides/guide-catalog-links";
 import { GUIDE_SHOP_LINKS } from "@/lib/guides/shop-links";
 import { top100ProducerShopLinkFromRow } from "@/lib/guides/top-100-producer-shop-links";
 import {
@@ -154,5 +158,37 @@ describe("producer public slug source", () => {
     expect(producerPublicPath(legalSlug, "en")).toBe(
       "/producers/domaine-jean-foillard",
     );
+  });
+
+  it("rewrites SEO producer slugs onto the live legal-name slug when present", () => {
+    const live = {
+      "jean-foillard": {
+        href: "/producenter/jean-foillard",
+        label: "Jean Foillard",
+      },
+      "ugo-lestelle": {
+        href: "/producers/ugo-lestelle",
+        label: "Ugo Lestelle",
+      },
+    };
+
+    expect(
+      resolveLiveProducerLinkForSlug("domaine-jean-foillard", live)?.href,
+    ).toBe("/producenter/jean-foillard");
+    expect(
+      resolveProducerPublicHrefAgainstLive(
+        "/producers/domaine-jean-foillard",
+        live,
+      ),
+    ).toBe("/producenter/jean-foillard");
+    expect(
+      resolveProducerPublicHrefAgainstLive("/producers/ugo-lestelle", live),
+    ).toBe("/producers/ugo-lestelle");
+    expect(
+      resolveProducerPublicHrefAgainstLive("/producers/mas-des-mesures", live),
+    ).toBeNull();
+    expect(
+      resolveProducerPublicHrefAgainstLive("/wine/orange-natural-wine", live),
+    ).toBe("/wine/orange-natural-wine");
   });
 });

@@ -3,7 +3,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuideRankEntry } from "@/components/guides/guide-rank-entry";
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
@@ -135,7 +138,9 @@ export async function renderWinesGuidePage(locale: AppLocale) {
   const beginner = beginnerPickCopy(locale);
   const hubPath = guidePath("hub", locale);
   const producersPath = guidePath("producers", locale);
-  const pageUrl = `${seoBaseUrl}${guidePath("wines", locale)}`;
+  const winesGuidePath = guidePath("wines", locale);
+  const pageUrl = `${seoBaseUrl}${winesGuidePath}`;
+  const guideShopLinks = await loadGuideShopLinks(winesGuidePath, locale);
   const shopNatural =
     locale === "sv" ? "/vin" : "/wine";
   const bestList = SYSTEMBOLAGET_RANKED_LISTS.find(
@@ -486,8 +491,9 @@ export async function renderWinesGuidePage(locale: AppLocale) {
         </section>
 
         <GuideShopLinksBlock
-          guidePath={guidePath("wines", locale)}
+          guidePath={winesGuidePath}
           locale={locale}
+          links={guideShopLinks}
         />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">

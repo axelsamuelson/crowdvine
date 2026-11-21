@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { SystembolagetGuideNav } from "@/components/guides/systembolaget-guide-nav";
 import { Footer } from "@/components/layout/footer";
 import { newNaturalWinesSystembolagetTitle } from "@/lib/guides/articles/new-natural-wines-systembolaget";
@@ -106,6 +109,7 @@ export async function renderSystembolagetReleasesPage(
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const pagePath = articlePath(content, locale);
+  const guideShopLinks = await loadGuideShopLinks(pagePath, locale);
   const pageUrl = `${seoBaseUrl}${pagePath}`;
   const intro = content.lede?.[locale] ?? content.hubCard.description[locale];
   const updatedLabel = formatReleaseUpdatedLabel(latestPublishedAt, locale);
@@ -272,7 +276,11 @@ export async function renderSystembolagetReleasesPage(
             <p className="mt-6 text-sm text-muted-foreground">{updatedLabel}</p>
           ) : null}
 
-          <GuideShopLinksBlock guidePath={pagePath} locale={locale} />
+          <GuideShopLinksBlock
+            guidePath={pagePath}
+            locale={locale}
+            links={guideShopLinks}
+          />
 
           {faqs.length > 0 ? (
             <section className="mt-14 border-t border-border pt-14">

@@ -4,7 +4,10 @@ import {
   ArticleGuideShell,
   type ArticleGuideShellBlock,
 } from "@/lib/guides/article-guide-shell";
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { ArticleShopCta } from "@/lib/guides/article-shop-cta";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
 import {
@@ -24,10 +27,7 @@ import {
 } from "@/lib/guides/guide-json-ld";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
-import {
-  getGuideShopLinks,
-  shouldShowGuideShopCta,
-} from "@/lib/guides/shop-links";
+import { shouldShowGuideShopCta } from "@/lib/guides/shop-links";
 import {
   articleParagraphs,
   articlePath,
@@ -143,7 +143,7 @@ export async function renderArticleGuidePage(
           lead: copy.shopCtaLead,
         };
 
-  const shopLinks = getGuideShopLinks(pagePath);
+  const shopLinks = await loadGuideShopLinks(pagePath, locale);
 
   /**
    * Shop-links card (+ black primary button when CTA is allowed).

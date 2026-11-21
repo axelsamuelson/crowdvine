@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
-import { GuideShopLinksBlock } from "@/components/guides/guide-shop-links-block";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
@@ -68,9 +71,11 @@ export async function buildWorldsBestOrangeWinesMetadata(
 }
 
 export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
-  const [{ seoBaseUrl }, catalogLinks] = await Promise.all([
+  const orangeGuidePath = guidePath("orangeWines", locale);
+  const [{ seoBaseUrl }, catalogLinks, guideShopLinks] = await Promise.all([
     getGuideSeoOwnership(),
     resolveTopWineCatalogLinks(locale),
+    loadGuideShopLinks(orangeGuidePath, locale),
   ]);
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
@@ -280,8 +285,9 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
             </section>
 
             <GuideShopLinksBlock
-              guidePath={guidePath("orangeWines", locale)}
+              guidePath={orangeGuidePath}
               locale={locale}
+              links={guideShopLinks}
             />
 
             <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
@@ -350,8 +356,9 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
             </section>
 
             <GuideShopLinksBlock
-              guidePath={guidePath("orangeWines", locale)}
+              guidePath={orangeGuidePath}
               locale={locale}
+              links={guideShopLinks}
             />
 
             <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
