@@ -37,6 +37,8 @@ import {
 const DASHBOARD_CARD =
   "rounded-xl border border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]";
 
+const EDIT_BUTTON_CLASS = `${ADMIN_OUTLINE_BUTTON_CLASS} text-xs`;
+
 type EditForm = {
   name: string;
   contact_email: string;
@@ -60,7 +62,14 @@ function emptyForm(row: KallorSourceRow): EditForm {
 }
 
 function MissingWarnings({ row }: { row: KallorSourceRow }) {
-  if (!row.emailMissing && !row.addressMissing) return null;
+  if (!row.emailMissing && !row.addressMissing && row.recordExists) return null;
+  if (!row.emailMissing && !row.addressMissing && row.kind !== "wholesaler") {
+    return null;
+  }
+  const showMissing =
+    row.emailMissing || row.addressMissing || (!row.recordExists && row.kind === "wholesaler");
+  if (!showMissing) return null;
+
   return (
     <div className="mt-1.5 space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs dark:border-amber-800/50 dark:bg-amber-900/20">
       {row.emailMissing ? (
@@ -77,7 +86,7 @@ function MissingWarnings({ row }: { row: KallorSourceRow }) {
       ) : null}
       {!row.recordExists && row.kind === "wholesaler" ? (
         <p className="text-amber-800 dark:text-amber-300/90">
-          Ingen sparad grossistrad ännu — fyll i och spara.
+          Inga uppgifter sparade ännu. Fyll i och spara.
         </p>
       ) : null}
     </div>
@@ -97,6 +106,17 @@ function SourceKindLabel({ kind }: { kind: KallorSourceRow["kind"] }) {
   );
 }
 
+function SourceKeyLine({ sourceKey }: { sourceKey: string }) {
+  return (
+    <p
+      className="mt-0.5 truncate font-mono text-[11px] text-gray-500 dark:text-zinc-500"
+      title={sourceKey}
+    >
+      {sourceKey}
+    </p>
+  );
+}
+
 function FieldOrDash({
   value,
   missing,
@@ -106,9 +126,7 @@ function FieldOrDash({
 }) {
   const v = String(value ?? "").trim();
   if (!v || missing) {
-    return (
-      <span className="text-amber-800 dark:text-amber-300">—</span>
-    );
+    return <span className="text-gray-400 dark:text-zinc-500">—</span>;
   }
   return <>{v}</>;
 }
@@ -116,12 +134,16 @@ function FieldOrDash({
 function MobileFieldRow({
   label,
   children,
+  className = "",
 }: {
   label: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-2 dark:border-zinc-800/50">
+    <div
+      className={`flex flex-col gap-0.5 border-t border-gray-100 pt-2 dark:border-zinc-800/50 ${className}`}
+    >
       <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
         {label}
       </span>
@@ -129,6 +151,56 @@ function MobileFieldRow({
         {children}
       </div>
     </div>
+  );
+}
+
+function EditRowButton({
+  className = "",
+  onClick,
+}: {
+  className?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      className={`${EDIT_BUTTON_CLASS} ${className}`}
+      onClick={onClick}
+    >
+      <Pencil className="mr-1.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+      Redigera
+    </Button>
+  );
+}
+
+function RowAction({
+  row,
+  fullWidth,
+  onEditWholesaler,
+}: {
+  row: KallorSourceRow;
+  fullWidth?: boolean;
+  onEditWholesaler: (row: KallorSourceRow) => void;
+}) {
+  const widthClass = fullWidth ? "h-10 w-full" : "";
+  if (row.kind === "wholesaler") {
+    return (
+      <EditRowButton
+        className={widthClass}
+        onClick={() => onEditWholesaler(row)}
+      />
+    );
+  }
+  if (!row.producerId) return null;
+  return (
+    <Link
+      href={`/admin/producers/${row.producerId}`}
+      className={fullWidth ? "block" : "inline-flex"}
+    >
+      <EditRowButton className={widthClass} />
+    </Link>
   );
 }
 
@@ -202,8 +274,8 @@ export function KallorSourcesTable({ sources }: { sources: KallorSourceRow[] }) 
             eller adress
           </p>
           <p className="mt-1 text-xs text-amber-800 dark:text-amber-300/90">
-            Källmejl skickas aldrig medan SOURCE_EMAILS_ENABLED är AV. Fyll i
-            kontaktuppgifter innan strömbrytaren slås på.
+            Källmejl skickas aldrig medan huvudströmbrytaren för källmejl är
+            avstängd. Fyll i kontaktuppgifter innan den slås på.
           </p>
         </div>
       ) : null}
@@ -233,9 +305,7 @@ export function KallorSourcesTable({ sources }: { sources: KallorSourceRow[] }) 
                     <div className="font-medium leading-snug text-gray-900 dark:text-zinc-100">
                       {row.name}
                     </div>
-                    <p className="mt-0.5 break-all font-mono text-[11px] text-gray-500 dark:text-zinc-500">
-                      {row.sourceKey}
-                    </p>
+                    <SourceKeyLine sourceKey={row.sourceKey} />
                     <div className="mt-1.5">
                       <SourceKindLabel kind={row.kind} />
                     </div>
@@ -255,40 +325,21 @@ export function KallorSourcesTable({ sources }: { sources: KallorSourceRow[] }) 
                         missing={row.addressMissing}
                       />
                     </MobileFieldRow>
-                    <MobileFieldRow label="Språk">
-                      <span className="uppercase">{row.contactLocale}</span>
-                    </MobileFieldRow>
-                    <MobileFieldRow label="Viner">
-                      {row.liveWineCount}
-                    </MobileFieldRow>
+                    <div className="grid grid-cols-2 gap-2">
+                      <MobileFieldRow label="Språk">
+                        <span className="uppercase">{row.contactLocale}</span>
+                      </MobileFieldRow>
+                      <MobileFieldRow label="Viner">
+                        {row.liveWineCount}
+                      </MobileFieldRow>
+                    </div>
                   </div>
 
-                  {row.kind === "wholesaler" ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className={`h-10 w-full ${ADMIN_OUTLINE_BUTTON_CLASS}`}
-                      onClick={() => openEdit(row)}
-                    >
-                      <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                      Redigera
-                    </Button>
-                  ) : row.producerId ? (
-                    <Link
-                      href={`/admin/producers/${row.producerId}`}
-                      className="block"
-                    >
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className={`h-10 w-full ${ADMIN_OUTLINE_BUTTON_CLASS}`}
-                      >
-                        Producent
-                      </Button>
-                    </Link>
-                  ) : null}
+                  <RowAction
+                    row={row}
+                    fullWidth
+                    onEditWholesaler={openEdit}
+                  />
                 </li>
               ))}
             </ul>
@@ -328,13 +379,13 @@ export function KallorSourcesTable({ sources }: { sources: KallorSourceRow[] }) 
                       className="border-b border-gray-100 hover:bg-gray-50 dark:border-zinc-800/50 dark:hover:bg-zinc-800/50"
                     >
                       <TableCell className="align-top">
-                        <div className="font-medium text-gray-900 dark:text-zinc-100">
-                          {row.name}
+                        <div className="min-w-0 max-w-[16rem]">
+                          <div className="font-medium text-gray-900 dark:text-zinc-100">
+                            {row.name}
+                          </div>
+                          <SourceKeyLine sourceKey={row.sourceKey} />
+                          <MissingWarnings row={row} />
                         </div>
-                        <p className="mt-0.5 font-mono text-[11px] text-gray-500 dark:text-zinc-500">
-                          {row.sourceKey}
-                        </p>
-                        <MissingWarnings row={row} />
                       </TableCell>
                       <TableCell className="align-top">
                         <SourceKindLabel kind={row.kind} />
@@ -358,29 +409,7 @@ export function KallorSourcesTable({ sources }: { sources: KallorSourceRow[] }) 
                         {row.liveWineCount}
                       </TableCell>
                       <TableCell className="align-top text-right">
-                        {row.kind === "wholesaler" ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className={ADMIN_OUTLINE_BUTTON_CLASS}
-                            onClick={() => openEdit(row)}
-                          >
-                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                            Redigera
-                          </Button>
-                        ) : row.producerId ? (
-                          <Link href={`/admin/producers/${row.producerId}`}>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className={ADMIN_OUTLINE_BUTTON_CLASS}
-                            >
-                              Producent
-                            </Button>
-                          </Link>
-                        ) : null}
+                        <RowAction row={row} onEditWholesaler={openEdit} />
                       </TableCell>
                     </TableRow>
                   ))}
