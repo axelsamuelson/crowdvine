@@ -5,6 +5,7 @@ import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { emitOnce } from "@/lib/analytics/emit-once";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
+import { useB2BModeServerHint } from "@/lib/context/b2b-mode-context";
 import { cn } from "@/lib/utils";
 
 export type SixPackRuleSurface = "pdp_info" | "first_add" | "cart";
@@ -25,6 +26,7 @@ export function MinSixBottlesHint({
   compact?: boolean;
   trackSurface?: SixPackRuleSurface;
 }) {
+  const isDirtywine = useB2BModeServerHint();
   const text = translate(locale, "commerce.minSixMix");
   const tracked = useRef(false);
 
@@ -39,6 +41,8 @@ export function MinSixBottlesHint({
       });
     });
   }, [trackSurface]);
+
+  if (isDirtywine) return null;
 
   return (
     <p

@@ -3,17 +3,15 @@ import { notFound } from "next/navigation";
 
 import { ProductViewTracker } from "@/app/product/[handle]/components/product-view-tracker";
 import { ProductPdpLayout } from "@/components/product/product-pdp-layout";
+import { PdpRecommendationsAsync } from "@/components/product/pdp-recommendations-async";
 import { WineBoxDiscountInfo } from "@/components/products/wine-box-discount-info";
-import { isB2BHost } from "@/lib/b2b-site";
-import {
-  fetchCachedProductForLocale,
-  getPdpRequestHost,
-} from "@/lib/crowdvine/pdp-product-cache";
+import { fetchCachedProductForLocale } from "@/lib/crowdvine/pdp-product-cache";
+import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
+import { buildDirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
+import { getCachedExchangeRateMap } from "@/lib/exchange-rates/cached-rate";
 import { isProductPdpIndexable } from "@/lib/seo/product-indexable";
 import { buildProductPdpJsonLd } from "@/lib/seo/product-json-ld";
-import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { getOffersByWineId } from "@/lib/external-prices/db";
-import { buildDirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
@@ -31,7 +29,7 @@ import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
-import { getSiteConfig } from "@/lib/site-config-server";
+import { getPublicSiteConfig } from "@/lib/site-config-server";
 import { formatPrice } from "@/lib/shopify/utils";
 import type { Product } from "@/lib/shopify/types";
 
@@ -41,12 +39,14 @@ function getVintageFromTitle(title: string | null | undefined): number | null {
   return match ? parseInt(match[1], 10) : null;
 }
 
+/** Anonymous B2C host for ISR — Dirtywine hydrates client-side. */
+const PDP_ISR_HOST: string | null = null;
+
 export async function fetchProductForLocale(
   handle: string,
   locale: AppLocale,
 ): Promise<Product | null> {
-  const host = await getPdpRequestHost();
-  return fetchCachedProductForLocale(handle, locale, host);
+  return fetchCachedProductForLocale(handle, locale, PDP_ISR_HOST);
 }
 
 export async function buildProductPdpMetadata(
@@ -67,7 +67,7 @@ export async function buildProductPdpMetadata(
   const canonical = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
   const title = product.seo.title || product.title;
   const description = product.seo.description || product.description || "";
-  const config = await getSiteConfig();
+  const config = getPublicSiteConfig();
   const ogImages = url
     ? [
         {
@@ -114,27 +114,93 @@ export async function buildProductPdpMetadata(
   };
 }
 
+type CompetitorOfferRow = {
+  price_source_name: string | null;
+  pdp_url: string;
+  price_amount_sek: number | null;
+  vintage: number | null;
+  rating: number | null;
+};
+
+async function loadCompetitorOffers(
+  product: Product,
+): Promise<CompetitorOfferRow[]> {
+  if (product.productType !== "wine" || !product.id) return [];
+
+  try {
+    const offers = await getOffersByWineId(product.id);
+    const approved = offers.filter((o) => (o.match_confidence ?? 0) >= 0.4);
+    const currencies = [
+      ...new Set(
+        approved
+          .map((o) => (o.currency ?? "SEK").toUpperCase())
+          .filter((c) => c && c !== "SEK"),
+      ),
+    ];
+    const rateMap = await getCachedExchangeRateMap(currencies, "SEK");
+
+    return approved.map((o) => {
+      const amount = o.price_amount != null ? Number(o.price_amount) : null;
+      const currency = (o.currency ?? "SEK").toUpperCase();
+      const rate = rateMap[currency] ?? 1;
+      const price_amount_sek =
+        amount != null ? Math.round(amount * rate * 100) / 100 : null;
+      return {
+        price_source_name: o.price_source?.name ?? null,
+        pdp_url: o.pdp_url,
+        price_amount_sek,
+        vintage: getVintageFromTitle(o.title_raw),
+        rating: o.rating != null ? Number(o.rating) : null,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function loadAnonymousPalletStatus(product: Product) {
+  if (product.productType !== "wine") return null;
+  return getCachedPalletZoneStatusForHandle(
+    product.handle,
+    PDP_ISR_HOST,
+    true,
+  ).catch(() => null);
+}
+
 export async function renderProductPdpPage(options: {
   handle: string;
   locale: AppLocale;
   pathSegment: ProductPathSegment;
 }) {
   const { handle, locale, pathSegment } = options;
-  const host = await getPdpRequestHost();
   const [product, config] = await Promise.all([
-    fetchCachedProductForLocale(handle, locale, host),
-    getSiteConfig(),
+    fetchCachedProductForLocale(handle, locale, PDP_ISR_HOST),
+    Promise.resolve(getPublicSiteConfig()),
   ]);
 
   if (!product) notFound();
 
   const productUrl = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
-  const includeB2cReturnPolicy = !isB2BHost(host);
-  // InStock when direct delivery is selectable for SE; otherwise PreOrder
-  // (shared pallet only). See resolveProductOfferAvailability.
+  const includeB2cReturnPolicy = true;
   const directDeliveryAvailable =
     includeB2cReturnPolicy &&
     buildDirectBoxUiAvailability({ countryCode: "SE" }).deliverySelectable;
+
+  const recommendationsPromise =
+    product.productType === "wine"
+      ? fetchPdpRecommendationsForWine(product, { host: PDP_ISR_HOST }).catch(
+          () => ({
+            sameProducer: [],
+            similar: [],
+            items: [],
+          }),
+        )
+      : Promise.resolve(null);
+
+  const [competitorOffers, initialPalletStatus] = await Promise.all([
+    loadCompetitorOffers(product),
+    loadAnonymousPalletStatus(product),
+  ]);
 
   const productJsonLd = buildProductPdpJsonLd({
     title: product.title,
@@ -151,8 +217,6 @@ export async function renderProductPdpPage(options: {
     availableForSale: product.availableForSale,
     directDeliveryAvailable,
     sku: product.handle || product.id,
-    // TEST DB (msdfjrrokcmjifetuwgc): no wines.ean/gtin/barcode column —
-    // all 66 wines lack EAN. Omit rather than invent.
     ean: null,
     priceCurrency: product.currencyCode,
     price: product.priceRange.minVariantPrice.amount,
@@ -211,81 +275,6 @@ export async function renderProductPdpPage(options: {
     ],
   };
 
-  let competitorOffers: Array<{
-    price_source_name: string | null;
-    pdp_url: string;
-    price_amount_sek: number | null;
-    vintage: number | null;
-    rating: number | null;
-  }> = [];
-
-  if (product.productType === "wine" && product.id) {
-    try {
-      const offers = await getOffersByWineId(product.id);
-      const approved = offers.filter((o) => (o.match_confidence ?? 0) >= 0.4);
-      const currencies = [
-        ...new Set(
-          approved
-            .map((o) => (o.currency ?? "SEK").toUpperCase())
-            .filter((c) => c && c !== "SEK"),
-        ),
-      ];
-      const rateMap: Record<string, number> = { SEK: 1 };
-      if (currencies.length > 0) {
-        const base = getAppUrl();
-        const internalHeaders = getInternalFetchHeaders();
-        await Promise.all(
-          currencies.map(async (c) => {
-            try {
-              const res = await fetch(
-                `${base}/api/exchange-rates?from=${c}&to=SEK`,
-                { cache: "no-store", headers: internalHeaders },
-              );
-              const data = res.ok ? await res.json() : null;
-              if (data?.rate && Number.isFinite(data.rate)) {
-                rateMap[c] = data.rate;
-              }
-            } catch {
-              /* ignore */
-            }
-          }),
-        );
-      }
-      competitorOffers = approved.map((o) => {
-        const amount = o.price_amount != null ? Number(o.price_amount) : null;
-        const currency = (o.currency ?? "SEK").toUpperCase();
-        const rate = rateMap[currency] ?? 1;
-        const price_amount_sek =
-          amount != null ? Math.round(amount * rate * 100) / 100 : null;
-        return {
-          price_source_name: o.price_source?.name ?? null,
-          pdp_url: o.pdp_url,
-          price_amount_sek,
-          vintage: getVintageFromTitle(o.title_raw),
-          rating: o.rating != null ? Number(o.rating) : null,
-        };
-      });
-    } catch {
-      competitorOffers = [];
-    }
-  }
-
-  const recommendations =
-    product.productType === "wine"
-      ? await fetchPdpRecommendationsForWine(product, { host }).catch(() => ({
-          sameProducer: [],
-          similar: [],
-          items: [],
-        }))
-      : null;
-
-  const initialPalletStatus =
-    product.productType === "wine"
-      ? await getCachedPalletZoneStatusForHandle(product.handle, host).catch(
-          () => null,
-        )
-      : null;
-
   return (
     <>
       <script
@@ -307,8 +296,15 @@ export async function renderProductPdpPage(options: {
         product={product}
         locale={locale}
         competitorOffers={competitorOffers}
-        recommendations={recommendations}
         initialPalletStatus={initialPalletStatus}
+        belowFold={
+          <PdpRecommendationsAsync
+            product={product}
+            locale={locale}
+            host={PDP_ISR_HOST}
+            recommendationsPromise={recommendationsPromise}
+          />
+        }
         compareAtPrice={
           product.compareAtPrice ? (
             <span className="text-lg line-through opacity-30 lg:text-xl 2xl:text-2xl">

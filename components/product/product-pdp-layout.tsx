@@ -32,7 +32,6 @@ import { ProductHeroPrice } from "@/app/product/[handle]/components/product-hero
 import { PdpSiblingWinesSection } from "@/components/product/pdp-sibling-wines-section";
 import { WineProducerMap } from "@/components/product/wine-producer-map";
 import { PdpB2BLink } from "@/components/product/pdp-b2b-link";
-import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 
 // Below-fold carousel (framer-motion + ProductCard). Keep enrichment SSR'd in the
 // sticky sidebar so deferred mount does not inflate desktop CLS.
@@ -56,6 +55,11 @@ interface ProductPdpLayoutProps {
   locale?: AppLocale;
   competitorOffers?: CompetitorOffer[];
   recommendations?: PdpRecommendationsResult | null;
+  /**
+   * Streamed below-fold recommendations (siblings + carousel).
+   * When set, replaces the sync `recommendations` render path.
+   */
+  belowFold?: ReactNode;
   /** SSR pallet fill snapshot for no-JS / first paint. */
   initialPalletStatus?: ZoneStatusPayload | null;
   compareAtPrice?: ReactNode;
@@ -67,18 +71,18 @@ interface ProductPdpLayoutProps {
   addToCartPreviewDisabled?: boolean;
 }
 
-export async function ProductPdpLayout({
+export function ProductPdpLayout({
   product,
   locale = "en",
   competitorOffers = [],
   recommendations = null,
+  belowFold = null,
   initialPalletStatus = null,
   compareAtPrice,
   beforeSidebar,
   devPreview,
   addToCartPreviewDisabled = false,
 }: ProductPdpLayoutProps) {
-  const isDirtywine = await getIsDirtywineSiteFromHeaders();
   const showProducerMap =
     product.productType === "wine" &&
     Boolean(product.producerName) &&
@@ -166,7 +170,6 @@ export async function ProductPdpLayout({
                       />
                     }
                     showCaseHelp={
-                      !isDirtywine &&
                       product.productType === "wine" &&
                       Boolean(product.producerId)
                     }
@@ -199,7 +202,7 @@ export async function ProductPdpLayout({
                       }
                     />
                     {/* Info block below buy / ×6 selector: 6-bottle rule + seller/consumer + delivery (PACT). */}
-                    {!isDirtywine && product.productType === "wine" ? (
+                    {product.productType === "wine" ? (
                       <>
                         <MinSixBottlesHint locale={locale} trackSurface="pdp_info" />
                         <PactSellerConsumerInfo
@@ -218,7 +221,7 @@ export async function ProductPdpLayout({
                           enabled
                         />
                       ) : null}
-                      {!isDirtywine && product.productType === "wine" ? (
+                      {product.productType === "wine" ? (
                         <PactSellerConsumerInfo
                           locale={locale}
                           showSeller={false}
@@ -230,9 +233,7 @@ export async function ProductPdpLayout({
                     <PalletStatusBar
                       sourceType={product.sourceType}
                       showDirectBoxPromise={isDirectBoxCheckoutEnabled()}
-                      showSharedPalletPromise={
-                        !isDirtywine && product.productType === "wine"
-                      }
+                      showSharedPalletPromise={product.productType === "wine"}
                     />
                     {product.productType === "wine" &&
                     (
@@ -306,7 +307,9 @@ export async function ProductPdpLayout({
           <div className="md:hidden">{producerMap}</div>
         ) : null}
 
-        {siblingWines.length > 0 && shownProducerName ? (
+        {belowFold}
+
+        {!belowFold && siblingWines.length > 0 && shownProducerName ? (
           <PdpSiblingWinesSection
             producerName={shownProducerName}
             locale={locale}
@@ -314,7 +317,8 @@ export async function ProductPdpLayout({
           />
         ) : null}
 
-        {recommendations &&
+        {!belowFold &&
+        recommendations &&
         (recommendations.sameProducer.length > 0 ||
           recommendations.similar.length > 0) ? (
           <PdpRecommendationsSection recommendations={recommendations} />

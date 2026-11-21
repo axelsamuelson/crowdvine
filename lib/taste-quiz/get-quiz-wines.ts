@@ -4,9 +4,6 @@ import { extractWineText } from "@/lib/i18n/wine-locale";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/messages";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { headers } from "next/headers";
-import { isB2BHost } from "@/lib/b2b-site";
-import { fetchHiddenB2BWineIds } from "@/lib/b2b-pallet-stock";
 
 export type TasteQuizWine = {
   id: string;
@@ -76,7 +73,8 @@ export async function getQuizWines(locale: AppLocale): Promise<TasteQuizWine[]> 
     .not("tags", "is", null);
 
   if (wineError) {
-    throw new Error(wineError.message);
+    console.warn("getQuizWines: Supabase unavailable:", wineError.message);
+    return [];
   }
 
   const rows = (wineRows ?? []) as WineRow[];
@@ -97,7 +95,8 @@ export async function getQuizWines(locale: AppLocale): Promise<TasteQuizWine[]> 
       .in("id", producerIds);
 
     if (producerError) {
-      throw new Error(producerError.message);
+      console.warn("getQuizWines: producers query failed:", producerError.message);
+      return [];
     }
 
     for (const producer of producers ?? []) {
@@ -107,18 +106,7 @@ export async function getQuizWines(locale: AppLocale): Promise<TasteQuizWine[]> 
     }
   }
 
-  const headerList = await headers();
-  const hiddenWineIds = isB2BHost(
-    headerList.get("x-forwarded-host") ?? headerList.get("host"),
-  )
-    ? await fetchHiddenB2BWineIds(
-        sb,
-        rows.map((row) => row.id),
-      )
-    : new Set<string>();
-
   return rows
-    .filter((row) => !hiddenWineIds.has(row.id))
     .map((row) => {
       const styleScale = Number(row.style_scale);
       if (!Number.isFinite(styleScale) || styleScale < 1 || styleScale > 5) {

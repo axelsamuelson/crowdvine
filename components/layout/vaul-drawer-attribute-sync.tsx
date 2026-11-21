@@ -8,24 +8,20 @@ import {
 } from "@/lib/vaul-drawer-routes";
 
 /** Keeps the server-rendered vaul wrapper attribute in sync after client navigations. */
-export function VaulDrawerAttributeSync({
-  ssrPathname,
-}: {
-  ssrPathname: string;
-}) {
+export function VaulDrawerAttributeSync() {
   const pathname = usePathname();
 
   useEffect(() => {
     const el = document.getElementById(VAUL_DRAWER_WRAPPER_ID);
     if (!el) return;
 
-    const needsWrapper = pathnameNeedsVaulDrawerWrapper(pathname || ssrPathname);
+    const needsWrapper = pathnameNeedsVaulDrawerWrapper(pathname || "/");
     if (needsWrapper) {
       el.setAttribute("data-vaul-drawer-wrapper", "true");
     } else {
       el.removeAttribute("data-vaul-drawer-wrapper");
     }
-  }, [pathname, ssrPathname]);
+  }, [pathname]);
 
   return null;
 }

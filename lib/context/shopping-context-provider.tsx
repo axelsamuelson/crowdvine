@@ -146,17 +146,19 @@ export function ShoppingContextProvider({
     }
   }, [context.locale]);
 
-  // Keep shopping.locale aligned with the URL (/en/…) so the language switcher
-  // reflects the active page locale after client navigations.
+  // ISR shell seeds a static fallback; sync path locale + fetch user/zone prefs
+  // client-side. Do not gate on availableLocales (fallback seeds []).
   useEffect(() => {
     const pathLocale = localeFromShopPath(pathname || "");
-    if (!pathLocale || pathLocale === context.locale) return;
-    if (!context.availableLocales.includes(pathLocale)) return;
-    setLocaleCookie(pathLocale);
-    setContext((prev) =>
-      applyLocalePolicyToContext({ ...prev, locale: pathLocale }),
-    );
-  }, [pathname, context.locale, context.availableLocales]);
+    if (pathLocale) {
+      setContext((prev) => {
+        if (prev.locale === pathLocale) return prev;
+        setLocaleCookie(pathLocale);
+        return applyLocalePolicyToContext({ ...prev, locale: pathLocale });
+      });
+    }
+    void refresh();
+  }, [pathname, refresh]);
 
   useEffect(() => {
     return () => refreshAbortRef.current?.abort("unmount");

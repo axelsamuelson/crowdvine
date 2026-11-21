@@ -1,24 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { isSupabaseAuthCookieName } from "@/lib/auth/session-errors";
-
-function requestHeadersWithPathname(
-  request: NextRequest,
-  pathname?: string,
-): Headers {
-  const headers = new Headers(request.headers);
-  if (pathname) {
-    headers.set("x-pathname", pathname);
-  }
-  return headers;
-}
+import { buildPactRequestHeaders } from "@/lib/middleware/request-headers";
 
 function nextWithForwardedCookies(
   request: NextRequest,
-  pathname?: string,
+  _pathname?: string,
 ): NextResponse {
   return NextResponse.next({
-    request: { headers: requestHeadersWithPathname(request, pathname) },
+    request: { headers: buildPactRequestHeaders(request) },
   });
 }
 

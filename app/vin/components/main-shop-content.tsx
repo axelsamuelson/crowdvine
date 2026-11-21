@@ -1,48 +1,41 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { headers } from "next/headers";
 
 import ProductList from "@/app/vin/components/product-list";
+import { B2cOnly } from "@/components/commerce/b2c-only";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
 import { CategoryPillLinks } from "@/components/shop/category-pill-links";
 import { ShopRegionLinks } from "@/components/shop/shop-region-links";
-import { isB2BHost } from "@/lib/b2b-site";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
-import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
 import { getIndexableRegionLinks } from "@/lib/shop/indexable-region-links";
+import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
 import { getShopRootStylePillLinks } from "@/lib/shop/style-category-links-server";
 import { getShopRootNaturalWineContent } from "@/lib/shop/shop-root-natural-wine-content";
 import {
-  DEFAULT_B2B_SHOP_SORT,
   DEFAULT_B2C_SHOP_SORT,
   storeCatalog,
 } from "@/lib/shopify/constants";
 import { mapSortKeys } from "@/lib/shopify/utils";
-import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
-import { getCachedShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { getSiteConfig } from "@/lib/site-config-server";
+import { getPublicSiteConfig } from "@/lib/site-config-server";
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 
 async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
-  const config = await getSiteConfig();
-  const headerList = await headers();
-  const isB2BSite = isB2BHost(
-    headerList.get("x-forwarded-host") ?? headerList.get("host"),
-  );
-  const content = getShopRootNaturalWineContent(locale, { isB2BSite });
-  const shoppingContext = await getCachedShoppingContextFromRequest().catch(
-    () => fallbackShoppingContext(),
-  );
-  const defaultSort = isB2BSite ? DEFAULT_B2B_SHOP_SORT : DEFAULT_B2C_SHOP_SORT;
-  const { sortKey, reverse } = mapSortKeys(defaultSort, "product");
-  const rawProducts = await getCachedShopProducts({
-    sortKey,
-    reverse,
-    isB2BSite,
-    displayCurrencyCode: shoppingContext.currencyCode,
-    sekToDisplayRate: shoppingContext.sekToDisplayRate,
-    locale,
-  });
+  const content = getShopRootNaturalWineContent(locale, { isB2BSite: false });
+  const config = getPublicSiteConfig();
+  const { sortKey, reverse } = mapSortKeys(DEFAULT_B2C_SHOP_SORT, "product");
+  let rawProducts: Awaited<ReturnType<typeof getCachedShopProducts>> = [];
+  try {
+    rawProducts = await getCachedShopProducts({
+      sortKey,
+      reverse,
+      isB2BSite: false,
+      displayCurrencyCode: "SEK",
+      sekToDisplayRate: 1,
+      locale,
+    });
+  } catch (error) {
+    console.warn("ShopRootJsonLd: failed to fetch products:", error);
+  }
   const mapped = mapProductDataToShopProducts(rawProducts);
   const shopPath = locale === "sv" ? "/vin" : "/wine";
   const productPrefix = locale === "sv" ? "/produkt" : "/product";
@@ -128,14 +121,8 @@ async function ShopRootJsonLd({ locale }: { locale: "sv" | "en" }) {
   );
 }
 
-async function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
-  const headerList = await headers();
-  const isDirtywineSite = isB2BHost(
-    headerList.get("x-forwarded-host") ?? headerList.get("host"),
-  );
-  const content = getShopRootNaturalWineContent(locale, {
-    isB2BSite: isDirtywineSite,
-  });
+function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
+  const content = getShopRootNaturalWineContent(locale, { isB2BSite: false });
   const exploreHref =
     locale === "sv" ? "/vin/rott-naturvin" : "/wine/red-natural-wine";
   const exploreLabel =
@@ -209,22 +196,20 @@ async function ShopRootBelowFold({ locale }: { locale: "sv" | "en" }) {
             >
               {exploreLabel}
             </Link>
-            {!isDirtywineSite ? (
-              <>
-                <Link
-                  href={guideHref}
-                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                >
-                  {guideLabel}
-                </Link>
-                <Link
-                  href={deliveryGuideHref}
-                  className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
-                >
-                  {deliveryGuideLabel}
-                </Link>
-              </>
-            ) : null}
+            <B2cOnly>
+              <Link
+                href={guideHref}
+                className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+              >
+                {guideLabel}
+              </Link>
+              <Link
+                href={deliveryGuideHref}
+                className="text-sm text-stone-600 underline underline-offset-4 hover:text-stone-900"
+              >
+                {deliveryGuideLabel}
+              </Link>
+            </B2cOnly>
           </div>
         </div>
       </div>
@@ -244,14 +229,10 @@ export async function MainShopContent({
   locale: "sv" | "en";
 }) {
   const sp = await searchParams;
-  const headerList = await headers();
-  const isB2BSite = isB2BHost(
-    headerList.get("x-forwarded-host") ?? headerList.get("host"),
-  );
-  const content = getShopRootNaturalWineContent(locale, { isB2BSite });
+  const content = getShopRootNaturalWineContent(locale, { isB2BSite: false });
   const [regionLinks, styleLinks] = await Promise.all([
     getIndexableRegionLinks(locale),
-    getShopRootStylePillLinks(locale, isB2BSite),
+    getShopRootStylePillLinks(locale, false),
   ]);
   const styleHeading =
     locale === "sv" ? "Utforska per stil" : "Explore by style";
@@ -268,7 +249,6 @@ export async function MainShopContent({
           </h1>
           <p className="leading-relaxed text-foreground/75">{content.intro}</p>
         </div>
-        {/* PLP: no seller / ångerrätt / delad-pall rows (link-rules §5). */}
         <CategoryPillLinks
           heading={styleHeading}
           links={styleLinks}
@@ -282,7 +262,11 @@ export async function MainShopContent({
           className="mt-4 mb-6"
         />
       </div>
-      <ProductList collection={storeCatalog.rootCategoryId} searchParams={sp} />
+      <ProductList
+        collection={storeCatalog.rootCategoryId}
+        searchParams={sp}
+        locale={locale}
+      />
       <ShopRootBelowFold locale={locale} />
     </>
   );

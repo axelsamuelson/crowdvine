@@ -6,6 +6,7 @@ import {
 } from "@/lib/home/render-home-page";
 
 // ISR: regenerate homepage HTML periodically (shopping prefs hydrate client-side).
+export const dynamic = "force-static";
 export const revalidate = 600;
 
 export function generateMetadata(): Promise<Metadata> {
