@@ -19,7 +19,7 @@ import { producerDisplayName } from "@/lib/producer-display-name";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
-  producerPublicPath,
+  producerPublicHrefFromLegalName,
   shopPathForLocale,
 } from "@/lib/i18n/localized-routes";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
@@ -94,7 +94,7 @@ export function producersFromProducts(
         display_name: product.producerDisplayName,
       }),
       legalName,
-      href: producerPublicPath(generateProducerSlug(legalName), locale),
+      href: producerPublicHrefFromLegalName(legalName, locale),
       wineCount: 1,
       subregion: product.producerLocation?.subregion?.trim() || null,
     });

@@ -106,6 +106,7 @@ export async function ProductPdpLayout({
     />
   ) : null;
 
+  // Slug from legal producers.name only — never display_name / shownProducerName.
   const producerSlug =
     product.producerName?.trim() &&
     product.producerName.trim() !== "Unknown Producer"
@@ -245,6 +246,7 @@ export async function ProductPdpLayout({
                       <WineEnrichmentSpecs
                         enrichment={product.wineEnrichment}
                         producerName={shownProducerName}
+                        producerSlug={producerSlug}
                       />
                     ) : null}
                     {product.wineEnrichment?.style_scale != null &&

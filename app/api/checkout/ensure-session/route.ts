@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/supabase-server";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  createEphemeralAuthClient,
+  getSupabaseAdmin,
+} from "@/lib/supabase-admin";
 import { isPlatformOpen } from "@/lib/platform-open";
 import {
   finalizeSignupAfterAuth,
@@ -23,7 +26,7 @@ function requiresLoginResponse() {
   return NextResponse.json(
     {
       requiresLogin: true,
-      error: "Sign in required to continue checkout.",
+      error: "Logga in för att fortsätta till kassan.",
     },
     { status: 409 },
   );
@@ -41,7 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Guest checkout session is only available when the platform is open.",
+          "Gästkassa är bara tillgänglig när plattformen är öppen.",
       },
       { status: 403 },
     );
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     const retryAfter = Math.ceil((resetTime - Date.now()) / 1000);
     return NextResponse.json(
       {
-        error: "Too many attempts. Please try again later.",
+        error: "För många försök. Försök igen senare.",
         retryAfter,
       },
       {
@@ -80,11 +83,14 @@ export async function POST(request: NextRequest) {
 
   if (!isValidEmail(email)) {
     return NextResponse.json(
-      { error: "A valid email is required." },
+      { error: "En giltig e-postadress krävs." },
       { status: 400 },
     );
   }
 
+  // Privileged DB + admin.generateLink only. Never call verifyOtp on this client:
+  // verifyOtp replaces Authorization with the user JWT and subsequent profiles
+  // writes run as authenticated (prod: 42501 permission denied for table profiles).
   const sb = getSupabaseAdmin();
 
   try {
@@ -102,7 +108,7 @@ export async function POST(request: NextRequest) {
     if (linkError || !linkData?.user?.id) {
       console.error("[checkout/ensure-session] generateLink:", linkError);
       return NextResponse.json(
-        { error: "Could not prepare checkout account." },
+        { error: "Kunde inte förbereda kassakontot. Försök igen." },
         { status: 500 },
       );
     }
@@ -112,7 +118,7 @@ export async function POST(request: NextRequest) {
     if (!tokenHash) {
       console.error("[checkout/ensure-session] generateLink missing hashed_token");
       return NextResponse.json(
-        { error: "Could not prepare checkout session." },
+        { error: "Kunde inte förbereda kassasessionen. Försök igen." },
         { status: 500 },
       );
     }
@@ -130,21 +136,8 @@ export async function POST(request: NextRequest) {
       return requiresLoginResponse();
     }
 
-    const { data: verified, error: verifyError } = await sb.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: "email",
-    });
-
-    if (verifyError || !verified.session) {
-      console.error("[checkout/ensure-session] verifyOtp:", verifyError);
-      return NextResponse.json(
-        { error: "Could not start checkout session." },
-        { status: 500 },
-      );
-    }
-
+    // Create the profile with the still-privileged admin client BEFORE verifyOtp.
     const now = new Date().toISOString();
-    // Insert-only: never upsert role onto an existing profile (admins included).
     const { data: existingProfile, error: existingProfileError } = await sb
       .from("profiles")
       .select("id")
@@ -156,7 +149,7 @@ export async function POST(request: NextRequest) {
         existingProfileError,
       );
       return NextResponse.json(
-        { error: "Could not prepare profile." },
+        { error: "Kunde inte förbereda profilen. Försök igen." },
         { status: 500 },
       );
     }
@@ -172,10 +165,26 @@ export async function POST(request: NextRequest) {
       if (profileError) {
         console.error("[checkout/ensure-session] profile insert:", profileError);
         return NextResponse.json(
-          { error: "Could not prepare profile." },
+          { error: "Kunde inte förbereda profilen. Försök igen." },
           { status: 500 },
         );
       }
+    }
+
+    // Exchange token on a separate ephemeral client so the admin instance
+    // never holds a user session.
+    const authClient = createEphemeralAuthClient();
+    const { data: verified, error: verifyError } = await authClient.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "email",
+    });
+
+    if (verifyError || !verified.session) {
+      console.error("[checkout/ensure-session] verifyOtp:", verifyError);
+      return NextResponse.json(
+        { error: "Kunde inte starta kassasessionen. Försök igen." },
+        { status: 500 },
+      );
     }
 
     const cookies = signupCookiesFromRequest(request);
@@ -204,7 +213,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          err instanceof Error ? err.message : "Internal server error",
+          err instanceof Error
+            ? err.message
+            : "Ett internt fel uppstod. Försök igen.",
       },
       { status: 500 },
     );

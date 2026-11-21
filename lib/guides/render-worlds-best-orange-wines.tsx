@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
@@ -10,7 +14,9 @@ import {
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import { buildGuideFaqPageJsonLd } from "@/lib/guides/guide-json-ld";
 import { countryLabel, regionLabel } from "@/lib/guides/guide-labels";
+import { resolveTopWineCatalogLinks } from "@/lib/guides/guide-catalog-links";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
@@ -65,7 +71,12 @@ export async function buildWorldsBestOrangeWinesMetadata(
 }
 
 export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
-  const { seoBaseUrl } = await getGuideSeoOwnership();
+  const orangeGuidePath = guidePath("orangeWines", locale);
+  const [{ seoBaseUrl }, catalogLinks, guideShopLinks] = await Promise.all([
+    getGuideSeoOwnership(),
+    resolveTopWineCatalogLinks(locale),
+    loadGuideShopLinks(orangeGuidePath, locale),
+  ]);
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const orangeWines = getOrangeWinesFromTop100();
@@ -111,21 +122,9 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
     })),
   };
 
+  /** FAQ section is EN-only on this guide — no FAQPage for SV. */
   const faqJsonLd =
-    locale === "en"
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: guide.faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: faq.answer,
-            },
-          })),
-        }
-      : null;
+    locale === "en" ? buildGuideFaqPageJsonLd(guide.faqs) : null;
 
   const h2Class = "mb-4 border-b border-border pb-3 text-xl font-semibold";
 
@@ -204,10 +203,31 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
                       `Missing English orange-wine copy for rank ${wine.rank} (${wine.wine})`,
                     );
                   }
+                  const links = catalogLinks[wine.rank];
+                  const producerNode = links?.producer ? (
+                    <Link
+                      href={links.producer.href}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {wine.producer}
+                    </Link>
+                  ) : (
+                    wine.producer
+                  );
+                  const wineNode = links?.wine ? (
+                    <Link
+                      href={links.wine.href}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {wine.wine}
+                    </Link>
+                  ) : (
+                    wine.wine
+                  );
                   return (
                     <article key={wine.rank}>
                       <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                        {index + 1}. {wine.producer}, {wine.wine}
+                        {index + 1}. {producerNode}, {wineNode}
                       </h3>
                       <p className="mt-1 text-sm italic leading-relaxed text-muted-foreground">
                         {blurb.origin}
@@ -264,6 +284,12 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
               </div>
             </section>
 
+            <GuideShopLinksBlock
+              guidePath={orangeGuidePath}
+              locale={locale}
+              links={guideShopLinks}
+            />
+
             <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
               <h2 className="mb-4 text-xl font-semibold text-foreground">
                 {guide.furtherReadingHeading}
@@ -298,15 +324,42 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
                   { key: "region", label: copy.region },
                   { key: "country", label: copy.country },
                 ]}
-                rows={orangeWines.map((wine, index) => ({
-                  rank: index + 1,
-                  wine: wine.wine,
-                  producer: wine.producer,
-                  region: regionLabel(wine.region, locale),
-                  country: countryLabel(wine.country, locale),
-                }))}
+                rows={orangeWines.map((wine, index) => {
+                  const links = catalogLinks[wine.rank];
+                  return {
+                    rank: index + 1,
+                    wine: links?.wine ? (
+                      <Link
+                        href={links.wine.href}
+                        className="underline underline-offset-4 hover:text-foreground"
+                      >
+                        {wine.wine}
+                      </Link>
+                    ) : (
+                      wine.wine
+                    ),
+                    producer: links?.producer ? (
+                      <Link
+                        href={links.producer.href}
+                        className="underline underline-offset-4 hover:text-foreground"
+                      >
+                        {wine.producer}
+                      </Link>
+                    ) : (
+                      wine.producer
+                    ),
+                    region: regionLabel(wine.region, locale),
+                    country: countryLabel(wine.country, locale),
+                  };
+                })}
               />
             </section>
+
+            <GuideShopLinksBlock
+              guidePath={orangeGuidePath}
+              locale={locale}
+              links={guideShopLinks}
+            />
 
             <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
               {guide.links

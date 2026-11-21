@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { LabelComparisonTable } from "@/components/guides/label-comparison-table";
 import { Footer } from "@/components/layout/footer";
 import {
@@ -26,29 +30,43 @@ import {
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import {
+  buildGuideAuthorPersonJsonLd,
+  buildGuideFaqPageJsonLd,
+  guideArticleAuthorRef,
+  guideAuthorPersonId,
+} from "@/lib/guides/guide-json-ld";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import {
   defaultOpenGraphImages,
   pageTwitterCard,
 } from "@/lib/seo/default-social";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
+import {
+  getLiveProducerPublicLinksBySlug,
+  resolveProducerPublicHrefAgainstLive,
+} from "@/lib/guides/guide-catalog-links";
 
 function ProducerLinks({
   producers,
 }: {
-  producers: { name: string; href: string }[];
+  producers: { name: string; href: string | null }[];
 }) {
   return (
     <p>
       {producers.map((producer, index) => (
-        <span key={producer.href}>
+        <span key={`${producer.name}-${producer.href ?? "plain"}`}>
           {index > 0 ? ", " : null}
-          <Link
-            href={producer.href}
-            className="underline underline-offset-4 hover:text-foreground"
-          >
-            {producer.name}
-          </Link>
+          {producer.href ? (
+            <Link
+              href={producer.href}
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              {producer.name}
+            </Link>
+          ) : (
+            producer.name
+          )}
         </span>
       ))}
     </p>
@@ -84,17 +102,29 @@ export async function renderNaturalVsOrganicGuidePage() {
   const copy = guideCopy("en");
   const pageUrl = `${seoBaseUrl}${NATURAL_VS_ORGANIC_PATH}`;
   const hubPath = "/guides";
+  const [liveProducerLinks, guideShopLinks] = await Promise.all([
+    getLiveProducerPublicLinksBySlug("en"),
+    loadGuideShopLinks(NATURAL_VS_ORGANIC_PATH, "en"),
+  ]);
+  const producerGroups = naturalVsOrganicProducerGroups.map((group) => ({
+    heading: group.heading,
+    producers: group.producers.map((producer) => ({
+      name: producer.name,
+      href: resolveProducerPublicHrefAgainstLive(
+        producer.href,
+        liveProducerLinks,
+      ),
+    })),
+  }));
 
-  const authorPerson = {
-    "@type": "Person" as const,
-    name: naturalVsOrganicAuthor.name,
-    jobTitle: naturalVsOrganicAuthor.jobTitle,
-    worksFor: {
-      "@type": "Organization" as const,
-      name: "PACT",
-      url: seoBaseUrl,
-    },
-  };
+  const authorPerson = buildGuideAuthorPersonJsonLd(
+    naturalVsOrganicAuthor,
+    seoBaseUrl,
+  );
+  const authorPersonId = guideAuthorPersonId(
+    naturalVsOrganicAuthor.name,
+    seoBaseUrl,
+  );
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -109,25 +139,14 @@ export async function renderNaturalVsOrganicGuidePage() {
       name: "PACT",
       url: seoBaseUrl,
     },
-    author: authorPerson,
+    author: guideArticleAuthorRef(authorPersonId),
     about: {
       "@type": "Thing",
       name: "Natural, organic and biodynamic wine labels",
     },
   };
 
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: naturalVsOrganicFaqs.map((faq) => ({
-      "@type": "Question",
-      name: faq.question,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: faq.answer,
-      },
-    })),
-  };
+  const faqJsonLd = buildGuideFaqPageJsonLd(naturalVsOrganicFaqs)!;
 
   const breadcrumbCrumbs = [
     { label: copy.home, href: homePathForLocale("en") },
@@ -163,6 +182,10 @@ export async function renderNaturalVsOrganicGuidePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(authorPerson) }}
       />
 
       <div className="mx-auto max-w-3xl px-6 pt-top-spacing pb-16 font-sans">
@@ -350,7 +373,7 @@ export async function renderNaturalVsOrganicGuidePage() {
                   PACT works with small producers in the Languedoc, around
                   Béziers. Their farming status, as recorded in our database:
                 </p>
-                {naturalVsOrganicProducerGroups.map((group) => (
+                {producerGroups.map((group) => (
                   <div key={group.heading}>
                     <p>
                       <strong>{group.heading}</strong>
@@ -364,6 +387,12 @@ export async function renderNaturalVsOrganicGuidePage() {
                 </p>
               </div>
             </section>
+
+            <GuideShopLinksBlock
+              guidePath={NATURAL_VS_ORGANIC_PATH}
+              locale="en"
+              links={guideShopLinks}
+            />
 
             <section>
               <h2 className={ARTICLE_GUIDE_H2_CLASS}>

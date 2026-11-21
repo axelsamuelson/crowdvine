@@ -1,6 +1,11 @@
 import Link from "next/link";
 
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { SystembolagetBottleImage } from "@/components/guides/systembolaget-bottle-image";
+import { SystembolagetRankStatusBadge } from "@/components/guides/systembolaget-rank-status-badge";
 import { Footer } from "@/components/layout/footer";
 import {
   ARTICLE_GUIDE_BODY_CLASS,
@@ -28,13 +33,21 @@ import {
   systembolagetListLabel,
 } from "@/lib/guides/systembolaget-list-links";
 import {
+  buildGuideAuthorPersonJsonLd,
+  buildGuideFaqPageJsonLd,
+  guideArticleAuthorRef,
+  guideAuthorPersonId,
+} from "@/lib/guides/guide-json-ld";
+import {
   articleParagraphs,
   articlePath,
+  articleVisibleForLocale,
   isGuideArticlePublished,
   type GuideArticleBlock,
   type GuideArticleContent,
 } from "@/lib/guides/guide-types";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { translate } from "@/lib/i18n/messages";
 import { getGuideSeoOwnership } from "@/lib/guides/guide-seo-ownership";
 import { resolveRankTokens } from "@/lib/guides/resolve-rank-tokens";
 import {
@@ -540,8 +553,8 @@ export function RankedWineRow({
   /** Rank number. Ranked lists leave this on. */
   showRank?: boolean;
   /**
-   * Up/down or "Ny" under the rank, compared with the previous visible place.
-   * The release calendar turns this off.
+   * ↑/↓ under the rank, compared with the previous visible place.
+   * List-«Ny» is not shown. The release calendar turns this off.
    */
   showMovement?: boolean;
   /**
@@ -568,10 +581,15 @@ export function RankedWineRow({
   headingClassName?: string;
 }) {
   const { producer, secondary } = wineNameParts(wine);
-  const badge = showMovement
+  const showLaunchBadge = wine.show_launch_badge === true;
+  const launchBadgeLabel = showLaunchBadge
+    ? translate(locale, "systembolagetGuides.launchBadge")
+    : null;
+  /** ↑/↓ only — list-«Ny»/«New» is not shown on type guides. */
+  const arrowBadge = showMovement
     ? formatPlacementBadge(rank, wine.previous_rank, locale)
     : null;
-  const showRankBadge = Boolean(badge);
+  const showRankBadge = Boolean(launchBadgeLabel || arrowBadge);
   const meta = wineMetaParts(wine, locale);
   const assortment = assortmentLabel(wine.assortment_text, locale);
   const limitedLabel =
@@ -616,7 +634,18 @@ export function RankedWineRow({
             {rank}
           </span>
           {showRankBadge ? (
-            <span className="text-xs text-muted-foreground">{badge}</span>
+            <span className="flex flex-col items-center gap-1.5">
+              {launchBadgeLabel ? (
+                <SystembolagetRankStatusBadge>
+                  {launchBadgeLabel}
+                </SystembolagetRankStatusBadge>
+              ) : null}
+              {arrowBadge ? (
+                <span className="text-xs text-muted-foreground">
+                  {arrowBadge}
+                </span>
+              ) : null}
+            </span>
           ) : null}
         </div>
         ) : null}
@@ -799,6 +828,7 @@ export async function renderSystembolagetRankedListPage(
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const pagePath = articlePath(content, locale);
+  const guideShopLinks = await loadGuideShopLinks(pagePath, locale);
   const pageUrl = `${seoBaseUrl}${pagePath}`;
   const intro =
     content.lede?.[locale] ?? content.hubCard.description[locale];
@@ -850,6 +880,22 @@ export async function renderSystembolagetRankedListPage(
             name: content.jsonLdAbout.name,
           };
 
+  /**
+   * Named author Person only when the SV byline is shown (matches visible page).
+   * Separate Person script + Article.author `@id` — no nested Person duplicate.
+   */
+  const visibleAuthorByline =
+    locale === "sv" ? content.author?.byline.sv?.trim() : undefined;
+  const showAuthorPerson = Boolean(content.author && visibleAuthorByline);
+  const authorPerson =
+    showAuthorPerson && content.author
+      ? buildGuideAuthorPersonJsonLd(content.author, seoBaseUrl)
+      : null;
+  const authorPersonId =
+    showAuthorPerson && content.author
+      ? guideAuthorPersonId(content.author.name, seoBaseUrl)
+      : null;
+
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -864,16 +910,8 @@ export async function renderSystembolagetRankedListPage(
       url: seoBaseUrl,
     },
     about,
-    ...(locale === "sv" && content.author
-      ? {
-          author: {
-            "@type": "Person" as const,
-            name: content.author.name,
-            ...(content.author.jobTitle
-              ? { jobTitle: content.author.jobTitle }
-              : {}),
-          },
-        }
+    ...(authorPersonId
+      ? { author: guideArticleAuthorRef(authorPersonId) }
       : {}),
     ...(dateModified ? { dateModified } : {}),
   };
@@ -890,29 +928,22 @@ export async function renderSystembolagetRankedListPage(
     content.h1[locale],
   );
 
-  const faqs = (content.faqs ?? []).map((faq) => ({
-    ...faq,
-    answer: {
-      en: answerWithPriceRange(faq.answer.en, wines, "en"),
-      sv: answerWithPriceRange(faq.answer.sv, wines, "sv"),
-    },
-  }));
-  const faqJsonLd =
-    faqs.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          name: content.h1[locale],
-          mainEntity: faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question[locale],
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: faq.answer[locale],
-            },
-          })),
-        }
-      : null;
+  const faqs = articleVisibleForLocale(content.faqs ?? [], locale).map(
+    (faq) => ({
+      ...faq,
+      answer: {
+        en: answerWithPriceRange(faq.answer.en, wines, "en"),
+        sv: answerWithPriceRange(faq.answer.sv, wines, "sv"),
+      },
+    }),
+  );
+  const faqJsonLd = buildGuideFaqPageJsonLd(
+    faqs.map((faq) => ({
+      question: faq.question[locale],
+      answer: faq.answer[locale],
+    })),
+    { name: content.h1[locale] },
+  );
 
   const isParentList = category === "best";
   const styleLists = isParentList ? siblingSystembolagetLists(category) : [];
@@ -943,6 +974,12 @@ export async function renderSystembolagetRankedListPage(
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      ) : null}
+      {authorPerson ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(authorPerson) }}
         />
       ) : null}
 
@@ -1140,6 +1177,12 @@ export async function renderSystembolagetRankedListPage(
                 ) : null}
               </section>
             ))}
+
+            <GuideShopLinksBlock
+              guidePath={pagePath}
+              locale={locale}
+              links={guideShopLinks}
+            />
 
             {faqs.length > 0 ? (
               <section>

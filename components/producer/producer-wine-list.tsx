@@ -43,11 +43,29 @@ const COLOR_GROUP_LABELS: Record<ColorGroupKey, Record<AppLocale, string>> = {
   other: { sv: "Övrigt", en: "Other" },
 };
 
+const ROW_ARROW = (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="size-[18px] shrink-0 text-foreground/80 transition-transform group-hover:translate-x-0.5"
+    aria-hidden="true"
+  >
+    <path d="M5 12h14" />
+    <path d="m12 5 7 7-7 7" />
+  </svg>
+);
+
 type Props = {
   wines: ProducerWineListItem[];
   locale: AppLocale;
-  intlLocale: string;
   emptyMessage: string;
+  /** When true, skip color group headers entirely (e.g. short sibling lists). */
+  hideColorGroups?: boolean;
 };
 
 function colorGroupKey(color: string | null | undefined): ColorGroupKey {
@@ -85,17 +103,77 @@ function groupWinesByColorThenPrice(
   );
 }
 
+/** Same SEK display as PDP ServerListPrice (`280 kr` on EN too). */
+function formatWineListPrice(priceSek: number, locale: AppLocale): string {
+  const intlLocale = locale === "en" ? "en-SE" : "sv-SE";
+  return formatPrice(priceSek, "SEK", intlLocale);
+}
+
+function WineRows({
+  wines,
+  locale,
+}: {
+  wines: ProducerWineListItem[];
+  locale: AppLocale;
+}) {
+  return (
+    <ul className="divide-y divide-border border-t border-border">
+      {wines.map((wine) => {
+        const blurb = (wine.summary ?? wine.description ?? "").trim() || null;
+        const href = productPublicPath(wine.handle, locale);
+
+        return (
+          <li key={wine.id} className="border-b border-border">
+            <Link
+              href={href}
+              className="group flex min-h-11 items-center justify-between gap-4 py-3 text-foreground no-underline transition-colors hover:bg-muted/40"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-medium tracking-[-0.01em] text-foreground">
+                  {wine.wine_name}
+                  {wine.vintage?.trim() ? (
+                    <span className="ml-1.5 font-normal text-muted-foreground">
+                      {wine.vintage.trim()}
+                    </span>
+                  ) : null}
+                </p>
+                {blurb ? (
+                  <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
+                    {blurb}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <p className="tabular-nums text-sm font-medium text-foreground">
+                  {formatWineListPrice(wine.price_sek, locale)}
+                </p>
+                {ROW_ARROW}
+              </div>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function ProducerWineList({
   wines,
   locale,
-  intlLocale,
   emptyMessage,
+  hideColorGroups = false,
 }: Props) {
   if (wines.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
   const groups = groupWinesByColorThenPrice(wines);
+  const showColorChips = !hideColorGroups && groups.length > 1;
+
+  if (!showColorChips) {
+    const flat = groups.flatMap((group) => group.wines);
+    return <WineRows wines={flat} locale={locale} />;
+  }
 
   return (
     <div className="space-y-8">
@@ -116,41 +194,7 @@ export function ProducerWineList({
               {group.wines.length}
             </span>
           </div>
-
-          <ul className="divide-y divide-border">
-            {group.wines.map((wine) => {
-              const blurb = wine.summary ?? wine.description ?? null;
-              const href = productPublicPath(wine.handle, locale);
-
-              return (
-                <li key={wine.id}>
-                  <Link
-                    href={href}
-                    className="group flex items-baseline justify-between gap-4 py-3 transition-colors hover:bg-muted/40"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground group-hover:underline group-hover:underline-offset-4">
-                        {wine.wine_name}
-                        {wine.vintage ? (
-                          <span className="ml-1.5 font-normal text-muted-foreground">
-                            {wine.vintage}
-                          </span>
-                        ) : null}
-                      </p>
-                      {blurb ? (
-                        <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
-                          {blurb}
-                        </p>
-                      ) : null}
-                    </div>
-                    <p className="shrink-0 tabular-nums text-sm font-medium text-foreground">
-                      {formatPrice(wine.price_sek, "SEK", intlLocale)}
-                    </p>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <WineRows wines={group.wines} locale={locale} />
         </section>
       ))}
     </div>

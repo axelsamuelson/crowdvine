@@ -52,15 +52,15 @@ describe("direct-box quote UI contract", () => {
         fulfillmentChannel: "direct_box",
         quote: null,
         quoteStatus: "loading",
-      }).block,
-    ).toBe(true);
+      }),
+    ).toEqual({ block: true, reason: "quote_loading" });
     expect(
       shouldBlockCheckoutOnQuote({
         fulfillmentChannel: "direct_box",
         quote: directQuote,
         quoteStatus: "stale",
-      }).block,
-    ).toBe(true);
+      }),
+    ).toEqual({ block: true, reason: "quote_stale" });
     expect(
       shouldBlockCheckoutOnQuote({
         fulfillmentChannel: "direct_box",
