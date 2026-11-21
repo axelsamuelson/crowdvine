@@ -18,6 +18,15 @@ function linesForResult(payload: SyncAlertPayload): string[] {
       `error: ${errorMessage ?? "unknown"}`,
     ];
   }
+  if (result.ok && "resumed" in result && result.resumed) {
+    return [
+      `outcome: raw_backfill_resume`,
+      `duration_ms: ${result.durationMs}`,
+      `upserted: ${result.rawBackfill.upserted}`,
+      `done: ${result.rawBackfill.done}`,
+      `next_cursor: ${result.rawBackfill.nextCursor ?? "(none)"}`,
+    ];
+  }
   if (result.ok) {
     return [
       `outcome: promoted`,
@@ -26,6 +35,13 @@ function linesForResult(payload: SyncAlertPayload): string[] {
       `new_count: ${result.newCount}`,
       `duration_ms: ${result.durationMs}`,
       `direct_fetched: ${result.directFetched.length}`,
+      ...(result.rawBackfill
+        ? [
+            `raw_backfill_done: ${result.rawBackfill.done}`,
+            `raw_backfill_upserted: ${result.rawBackfill.upserted}`,
+            `raw_backfill_next_offset: ${result.rawBackfill.nextOffset}`,
+          ]
+        : []),
     ];
   }
   if (result.reason === "timeout_guard") {

@@ -5,6 +5,14 @@ import {
   TILLFALLIGT_SYNC_COUNTRIES,
 } from "@/lib/guides/systembolaget-producer-availability";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import {
+  backfillSystembolagetRaw,
+  drainRawBackfillFromStaging,
+  enqueueRawBackfillPending,
+  RAW_BACKFILL_CHUNK_SIZE,
+  RAW_BACKFILL_DEFAULT_BUDGET_MS,
+  type RawBackfillProgress,
+} from "@/lib/systembolaget/raw-backfill";
 import { alertSystembolagetPartitionCap } from "@/lib/systembolaget/sync-alert";
 import { listTopProducerCoverageGaps } from "@/lib/systembolaget/top-producer-coverage";
 
@@ -18,15 +26,19 @@ const MAX_PAGES_PER_FILTER = 500;
 const INSERT_CHUNK_SIZE = 500;
 /**
  * Measured post-fetch work (direct fetch + staging + promote + raw backfill)
- * is about 55s. Producer-name textQuery union needs ~20s. Route maxDuration is
- * 300s. Abort assortment + country walks at 200s:
- * 300_000 - 55_000 - 25_000 - 20_000 = 200_000.
+ * is about 55–100s depending on raw-backfill chunking. Producer-name textQuery
+ * union needs ~20s. Route maxDuration is 300s. Abort assortment + country walks
+ * at 180s so raw backfill keeps a ~90s budget:
+ * 300_000 - 90_000 - 25_000 - 20_000 = 165_000… use 180_000 walk cap with a
+ * separate remaining-time budget on the raw backfill itself.
  * Tillfälligt-per-country runs in the same walk budget as Ordervaror countries.
  * If that walk is incomplete or errors, promote is aborted.
  */
-const MEASURED_POST_FETCH_BUDGET_MS = 55_000;
+const MEASURED_POST_FETCH_BUDGET_MS = 90_000;
 const ROUTE_MAX_DURATION_MS = 300_000;
 const PRODUCER_UNION_BUDGET_MS = 20_000;
+/** Keep a little room under maxDuration for coverage probe + sync_log. */
+const RAW_BACKFILL_ROUTE_RESERVE_MS = 15_000;
 const FETCH_TIMEOUT_GUARD_MS =
   ROUTE_MAX_DURATION_MS -
   MEASURED_POST_FETCH_BUDGET_MS -
@@ -452,6 +464,21 @@ export type SyncSuccessResult = {
   mirrorTotal: number;
   directFetched: string[];
   timing: SyncTiming;
+  /** Present after RPC promote when raw jsonb is written in resumable batches. */
+  rawBackfill?: RawBackfillProgress & { pendingEnqueued?: number };
+};
+
+export type RawBackfillResumeResult = {
+  ok: true;
+  resumed: true;
+  durationMs: number;
+  rawBackfill: {
+    done: boolean;
+    nextCursor: string | null;
+    upserted: number;
+    durationMs: number;
+    chunkSize: number;
+  };
 };
 
 export type SyncTimeoutResult = {
@@ -475,14 +502,32 @@ export type SyncShrinkResult = {
   timing: Pick<SyncTiming, "walkMs" | "directMs" | "stageMs">;
 };
 
-export type SyncResult = SyncSuccessResult | SyncTimeoutResult | SyncShrinkResult;
+export type SyncResult =
+  | SyncSuccessResult
+  | SyncTimeoutResult
+  | SyncShrinkResult
+  | RawBackfillResumeResult;
 
 export type SyncLogOutcome = "promoted" | "guard_blocked" | "timeout" | "error";
 
 export type SyncOptions = {
   /** Admin override. The cron must leave this false. */
   allowShrink?: boolean;
+  /**
+   * Skip the assortment walk and only drain staging rows left by an
+   * incomplete raw backfill (product_number + raw). Idempotent.
+   */
+  resumeRawBackfill?: boolean;
+  /** Override raw-backfill start offset (in-memory path / tests). */
+  rawBackfillOffset?: number;
+  /** Override raw-backfill wall-clock budget (tests). */
+  rawBackfillBudgetMs?: number;
 };
+
+export {
+  RAW_BACKFILL_CHUNK_SIZE,
+  RAW_BACKFILL_DEFAULT_BUDGET_MS,
+} from "@/lib/systembolaget/raw-backfill";
 
 /** True when newCount is more than 5% below oldCount. An empty live table never trips. */
 export function shrinkExceedsLimit(oldCount: number, newCount: number): boolean {
@@ -817,6 +862,21 @@ export async function runSystembolagetSync(
   let timedOut = false;
   let walkMs = 0;
   let assortmentBreakdown: Record<string, number> = {};
+
+  if (options.resumeRawBackfill) {
+    const sb = getSupabaseAdmin();
+    const drained = await drainRawBackfillFromStaging(sb, {
+      budgetMs: options.rawBackfillBudgetMs ?? RAW_BACKFILL_DEFAULT_BUDGET_MS,
+      chunkSize: RAW_BACKFILL_CHUNK_SIZE,
+    });
+    console.log("[systembolaget-sync] raw backfill resume", drained);
+    return {
+      ok: true,
+      resumed: true,
+      durationMs: Date.now() - started,
+      rawBackfill: drained,
+    };
+  }
 
   console.log("[systembolaget-sync] start", {
     filters: ASSORTMENT_FILTERS.length,
@@ -1196,6 +1256,23 @@ export async function runSystembolagetSync(
       "systembolaget_products",
     );
 
+    // Finish any raw rows left in staging by a previous budget-stopped run
+    // before we clear staging for this sync's promote.
+    try {
+      const prior = await drainRawBackfillFromStaging(sb, {
+        budgetMs: Math.min(30_000, options.rawBackfillBudgetMs ?? 30_000),
+        chunkSize: RAW_BACKFILL_CHUNK_SIZE,
+      });
+      if (prior.upserted > 0 || !prior.done) {
+        console.log("[systembolaget-sync] drained prior raw backfill", prior);
+      }
+    } catch (priorErr) {
+      console.warn(
+        "[systembolaget-sync] prior raw drain failed — continuing sync",
+        priorErr instanceof Error ? priorErr.message : priorErr,
+      );
+    }
+
     const stageStarted = Date.now();
     const { error: clearErr } = await sb
       .from("systembolaget_products_staging")
@@ -1358,27 +1435,47 @@ export async function runSystembolagetSync(
     const markedUnavailable = markedUnavailableRaw ?? 0;
 
     let backfillMs = 0;
+    let rawBackfill: (RawBackfillProgress & { pendingEnqueued?: number }) | undefined;
     if (promotePath === "rpc") {
-      const backfillStarted = Date.now();
-      for (let offset = 0; offset < rows.length; offset += INSERT_CHUNK_SIZE) {
-        const chunk = rows.slice(offset, offset + INSERT_CHUNK_SIZE).map((row) => ({
-          ...row,
-          last_seen_at: new Date().toISOString(),
-          consecutive_misses: 0,
-        }));
-        const { error: rawErr } = await sb
-          .from("systembolaget_products")
-          .upsert(chunk, { onConflict: "product_number" });
-        if (rawErr) {
-          throw new Error(
-            `Raw backfill failed at offset ${offset}: ${rawErr.message}`,
-          );
-        }
-      }
-      backfillMs = Date.now() - backfillStarted;
-      console.log("[systembolaget-sync] raw backfill done", {
-        rows: rows.length,
+      const elapsedBeforeBackfill = Date.now() - started;
+      const remainingMs = Math.max(
+        5_000,
+        ROUTE_MAX_DURATION_MS -
+          RAW_BACKFILL_ROUTE_RESERVE_MS -
+          elapsedBeforeBackfill,
+      );
+      const budgetMs = Math.min(
+        options.rawBackfillBudgetMs ?? RAW_BACKFILL_DEFAULT_BUDGET_MS,
+        remainingMs,
+      );
+      const progress = await backfillSystembolagetRaw(sb, rows, {
+        startOffset: options.rawBackfillOffset ?? 0,
+        chunkSize: RAW_BACKFILL_CHUNK_SIZE,
+        budgetMs,
+        shouldAbort: () => timedOut,
       });
+      backfillMs = progress.durationMs;
+      rawBackfill = progress;
+      if (!progress.done) {
+        const pending = rows.slice(progress.nextOffset);
+        const pendingEnqueued = await enqueueRawBackfillPending(sb, pending, {
+          chunkSize: RAW_BACKFILL_CHUNK_SIZE,
+        });
+        rawBackfill = { ...progress, pendingEnqueued };
+        console.warn("[systembolaget-sync] raw backfill incomplete — enqueued", {
+          nextOffset: progress.nextOffset,
+          total: progress.total,
+          pendingEnqueued,
+          budgetMs,
+        });
+      } else {
+        console.log("[systembolaget-sync] raw backfill done", {
+          rows: rows.length,
+          upserted: progress.upserted,
+          chunkSize: progress.chunkSize,
+          durationMs: progress.durationMs,
+        });
+      }
     }
 
     let coverageGapCount = 0;
@@ -1429,6 +1526,7 @@ export async function runSystembolagetSync(
       mirrorTotal,
       directFetched: direct.added,
       timing,
+      rawBackfill,
     });
 
     await writeSyncLog({
@@ -1456,7 +1554,12 @@ export async function runSystembolagetSync(
       directFetched: direct.added,
       productNumbers,
       previousProductNumbers,
-      timing,
+      timing: {
+        ...timing,
+        rawBackfillDone: rawBackfill?.done ? 1 : 0,
+        rawBackfillNextOffset: rawBackfill?.nextOffset ?? 0,
+        rawBackfillPendingEnqueued: rawBackfill?.pendingEnqueued ?? 0,
+      },
       largestOrdervarorPartition: largestPartition,
       coverageGapCount,
       missingInMirrorCount,
@@ -1485,6 +1588,7 @@ export async function runSystembolagetSync(
       mirrorTotal,
       directFetched: direct.added,
       timing,
+      rawBackfill,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

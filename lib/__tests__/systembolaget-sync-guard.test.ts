@@ -9,9 +9,9 @@ import {
 } from "@/lib/systembolaget/sync";
 
 describe("FETCH_TIMEOUT_MS", () => {
-  it("aborts the fetch phase at 200s for post-fetch + producer-union budget", () => {
-    // 300s route − 55s post-fetch − 25s safety − 20s producer union = 200s
-    expect(FETCH_TIMEOUT_MS).toBe(200_000);
+  it("aborts the fetch phase at 165s for post-fetch + producer-union budget", () => {
+    // 300s route − 90s post-fetch (incl. batched raw backfill) − 25s safety − 20s producer union = 165s
+    expect(FETCH_TIMEOUT_MS).toBe(165_000);
   });
 });
 
