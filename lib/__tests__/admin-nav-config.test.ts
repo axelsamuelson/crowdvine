@@ -70,7 +70,20 @@ describe("admin nav config (ops approval 648d5e92 / f297c243 step 1)", () => {
   });
 
   it("uses Swedish labels for stayed pages", () => {
-    expect(adminTopLevelNav.map((i) => i.name)).toEqual(["Översikt", "Analys"]);
+    expect(adminTopLevelNav.map((i) => i.name)).toEqual(["Översikt"]);
+    const analys = adminNavigationGroups.find((g) => g.name === "Analys");
+    expect(analys).toBeDefined();
+    expect(analys!.items.map((i) => i.href)).toEqual(
+      expect.arrayContaining([
+        "/admin/analytics",
+        "/admin/analytics/tratt",
+        "/admin/analytics/kanaler",
+        "/admin/analytics/marknader",
+        "/admin/analytics/produkter",
+        "/admin/analytics/releaser",
+        "/admin/analytics/datakvalitet",
+      ]),
+    );
     expect(names).toContain("Användare");
     expect(names).toContain("Producenter");
     expect(names).toContain("Vinprovningar");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Sidebar } from "@/components/admin/sidebar";
 import { AdminTopNav } from "@/components/admin/admin-top-nav";
 import { AdminBreadcrumbDetailProvider } from "@/components/admin/admin-breadcrumb-detail-context";
@@ -194,12 +194,14 @@ export function AdminLayoutClient({
           lang="sv-SE"
           className="flex h-dvh max-h-dvh min-h-0 w-full bg-white pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] dark:bg-[#0F0F12]"
         >
-          <Sidebar
-            userEmail={userEmail}
-            onSignOut={handleSignOut}
-            mobileOpen={mobileOpen}
-            onMobileClose={() => setMobileOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <Sidebar
+              userEmail={userEmail}
+              onSignOut={handleSignOut}
+              mobileOpen={mobileOpen}
+              onMobileClose={() => setMobileOpen(false)}
+            />
+          </Suspense>
 
           <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
             <header className="flex h-16 w-full flex-shrink-0 items-center border-b border-gray-200 bg-white dark:border-[#1F1F23] dark:bg-[#0F0F12]">

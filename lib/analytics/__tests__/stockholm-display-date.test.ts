@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { formatStockholmDisplayDate } from "../stockholm-time";
+import {
+  formatStockholmDateTimeClock,
+  formatStockholmDisplayDate,
+} from "../stockholm-time";
 
 describe("formatStockholmDisplayDate", () => {
   it("formats YYYY-MM-DD as Swedish short date with month period", () => {
@@ -37,6 +40,15 @@ describe("formatStockholmDisplayDate", () => {
     // 2026-08-15 22:30 UTC = 16 aug 00:30 Stockholm (CEST)
     expect(formatStockholmDisplayDate("2026-08-15T22:30:00.000Z")).toBe(
       "16 aug. 2026",
+    );
+  });
+});
+
+describe("formatStockholmDateTimeClock", () => {
+  it("formats as YYYY-MM-DD HH:MM in Stockholm", () => {
+    // 2026-11-19 23:05 UTC = 2026-11-20 00:05 Stockholm (CET)
+    expect(formatStockholmDateTimeClock("2026-11-19T23:05:00.000Z")).toBe(
+      "2026-11-20 00:05",
     );
   });
 });
