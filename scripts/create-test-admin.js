@@ -78,7 +78,7 @@ async function createTestAdmin() {
     console.log(`   Email: ${testEmail}`);
     console.log(`   Password: ${testPassword}`);
     console.log("");
-    console.log("🌐 Login URL: http://localhost:3000/admin/login");
+    console.log("🌐 Login URL: http://localhost:3000/admin-auth/login");
   } catch (error) {
     console.error("❌ Unexpected error:", error);
   }

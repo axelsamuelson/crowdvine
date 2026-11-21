@@ -12,15 +12,16 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Footer } from "@/components/layout/footer";
+import { ProducerGuideList } from "@/components/producer/producer-guide-list";
 import { ProducersDirectoryMapLazy } from "@/components/producer/producers-directory-map-lazy";
 import { ProducerWineList } from "@/components/producer/producer-wine-list";
+import { cn } from "@/lib/utils";
 import { fetchIndexableProducersFromDb } from "@/lib/crowdvine/indexable-producers";
 import { getProducerBySlugForLocale } from "@/lib/crowdvine/producer-by-slug-data";
 import { fetchCollectionProductsData } from "@/lib/crowdvine/products-data";
 import { isB2BHost } from "@/lib/b2b-site";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { intlLocaleForAppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
   producerPagePath,
@@ -35,6 +36,7 @@ import {
   parseGrapeVarieties,
   uniqueGrapesPreserveCasing,
 } from "@/lib/curated-grape-categories";
+import { guidesMentioningProducer } from "@/lib/guides/guides-for-producer";
 import { getProducerGuideNote } from "@/lib/guides/producer-guide-notes";
 import {
   instagramProfileUrl,
@@ -296,7 +298,6 @@ export async function renderProducerPublicPage(options: {
   const { producer } = data;
   const wines = visibleWines;
   const t = (key: string) => translate(locale, key);
-  const intlLocale = intlLocaleForAppLocale(locale);
   const paths = localizedPathsForLocale(locale);
 
   const mapProducers = (
@@ -320,6 +321,19 @@ export async function renderProducerPublicPage(options: {
       subregion: row.subregion,
     };
   });
+
+  const hasMapCoordinates =
+    (producer.lat != null &&
+      producer.lon != null &&
+      Number.isFinite(producer.lat) &&
+      Number.isFinite(producer.lon)) ||
+    mapProducers.some(
+      (row) =>
+        row.lat != null &&
+        row.lon != null &&
+        Number.isFinite(row.lat) &&
+        Number.isFinite(row.lon),
+    );
 
   const heroParts = heroMetaParts(producer, locale);
   const foundedLabel =
@@ -449,7 +463,7 @@ export async function renderProducerPublicPage(options: {
       {
         "@type": "ListItem",
         position: 1,
-        name: locale === "sv" ? "Alla viner" : "Shop",
+        name: t("nav.shopAll"),
         item: `${config.baseUrl}${paths.shop}`,
       },
       {
@@ -486,6 +500,15 @@ export async function renderProducerPublicPage(options: {
     wines.flatMap((wine) => parseGrapeVarieties(wine.grape_varieties)),
   );
   const guideNote = getProducerGuideNote(slug, locale);
+  const mentionedGuides = guidesMentioningProducer(slug, locale, {
+    producerName: producer.name,
+    displayName: producer.display_name,
+    producerId: producer.id,
+  });
+  const guidesHeading =
+    locale === "sv"
+      ? `Guider om ${shownProducerName}`
+      : `Guides featuring ${shownProducerName}`;
 
   return (
     <>
@@ -501,13 +524,25 @@ export async function renderProducerPublicPage(options: {
           __html: JSON.stringify(breadcrumbJsonLd),
         }}
       />
-      <div className="grid min-h-screen grid-cols-1 pt-top-spacing lg:grid-cols-2">
-        <div className="w-full px-6 pb-12 lg:px-10 xl:px-14">
+      <div
+        className={cn(
+          "min-h-screen pt-top-spacing",
+          hasMapCoordinates
+            ? "grid grid-cols-1 lg:grid-cols-2"
+            : "grid grid-cols-1",
+        )}
+      >
+        <div
+          className={cn(
+            "w-full px-6 pb-12 lg:px-10 xl:px-14",
+            !hasMapCoordinates && "mx-auto max-w-[720px]",
+          )}
+        >
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href={paths.shop}>Shop</Link>
+                  <Link href={paths.shop}>{t("nav.shopAll")}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -532,10 +567,10 @@ export async function renderProducerPublicPage(options: {
             </p>
           ) : null}
 
-          {producer.bio_short ? (
+          {producer.bio_short?.trim() ? (
             <div className="mt-6 rounded-xl border bg-white p-6">
               <p className="text-sm leading-relaxed text-foreground">
-                {producer.bio_short}
+                {producer.bio_short.trim()}
               </p>
             </div>
           ) : null}
@@ -580,16 +615,13 @@ export async function renderProducerPublicPage(options: {
           <ProducerWineList
             wines={wines}
             locale={locale}
-            intlLocale={intlLocale}
             emptyMessage={noWinesMessage}
           />
 
           {producerGrapes.length > 0 ? (
             <section className="mt-10">
               <h2 className="text-xl font-semibold">
-                {locale === "sv"
-                  ? "Druvor vi arbetar med"
-                  : "Grapes we work with"}
+                {locale === "sv" ? "Druvor" : "Grapes"}
               </h2>
               <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-stone-600">
                 {producerGrapes.map((grape) => (
@@ -623,6 +655,13 @@ export async function renderProducerPublicPage(options: {
             </section>
           ) : null}
 
+          {mentionedGuides.length > 0 ? (
+            <section className="mt-12 border-t pt-10">
+              <h2 className="text-xl font-semibold">{guidesHeading}</h2>
+              <ProducerGuideList guides={mentionedGuides} />
+            </section>
+          ) : null}
+
           <nav className="mt-12 space-y-3 border-t border-border pt-8 text-sm">
             <Link
               href={locale === "sv" ? "/guider" : "/guides"}
@@ -635,15 +674,17 @@ export async function renderProducerPublicPage(options: {
           </nav>
         </div>
 
-        <div className="sticky top-top-spacing h-[calc(100vh-var(--top-spacing))] max-lg:hidden">
-          <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-zinc-800 to-zinc-950">
-            <ProducersDirectoryMapLazy
-              producers={mapProducers}
-              highlightedProducerId={producer.id}
-              className="h-full w-full"
-            />
+        {hasMapCoordinates ? (
+          <div className="sticky top-top-spacing hidden h-[calc(100vh-var(--top-spacing))] lg:block">
+            <div className="relative h-full w-full overflow-hidden bg-gradient-to-b from-zinc-800 to-zinc-950">
+              <ProducersDirectoryMapLazy
+                producers={mapProducers}
+                highlightedProducerId={producer.id}
+                className="h-full w-full"
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
       <Footer />
     </>

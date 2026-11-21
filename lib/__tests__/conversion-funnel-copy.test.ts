@@ -55,8 +55,10 @@ describe("conversion funnel copy (sv)", () => {
 
   it("uses Margaux PLP intro without Stockholm / Budbee", () => {
     const intro = getShopRootNaturalWineContent("sv").intro;
-    expect(intro).toContain("levereras hem till dig när pallen stänger");
+    expect(intro).toContain("naturvin online från små producenter i hela Frankrike");
+    expect(intro).toContain("levereras inom Sverige");
     expect(intro).not.toMatch(/Stockholm|Budbee/i);
+    expect(getShopRootNaturalWineContent("sv").h1).toBe("Naturvin");
     expect(getShopRootNaturalWineContent("sv").longDescription).toMatch(
       /skickas den hem till dig\.?$/,
     );
@@ -135,7 +137,7 @@ describe("conversion funnel copy (en)", () => {
     expect(translate("en", "cart.bottlesCount", { count: 1 })).toBe("1 bottle");
     expect(translate("en", "cart.bottlesCount", { count: 2 })).toBe("2 bottles");
     expect(translate("en", "commerce.directBoxDeliveryPromise")).toBe(
-      "Direct delivery – 5–10 working days",
+      "Direct delivery – 5–10 business days",
     );
     expect(translate("en", "cart.checkoutLockedCta")).toBe(
       "Complete your boxes to continue",

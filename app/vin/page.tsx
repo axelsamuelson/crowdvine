@@ -5,6 +5,7 @@ import {
   MainShopContent,
   shopSkeleton,
 } from "@/app/vin/components/main-shop-content";
+import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopSearchParamsRobots } from "@/lib/seo/shop-search-robots";
 import {
   defaultOpenGraphImages,
@@ -22,15 +23,18 @@ export async function generateMetadata(props: {
   const searchParams = await props.searchParams;
   const config = await getSiteConfig();
   const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin`;
-  const titleBase = "Naturvin: köp naturvin online";
-  const title = `${titleBase} | ${config.siteName}`;
+  // Strip suffix so root layout title.template does not double "| PACT Wines".
+  const title = categoryPageTitle(
+    "Naturvin online från små producenter i Frankrike | PACT Wines",
+    config.siteName,
+  );
   const description =
     config.baseUrl === DIRTY_WINE_CONFIG.baseUrl
       ? "Naturvin. Ekologiskt och biodynamiskt. För restauranger i Stockholm."
-      : "Bläddra bland naturviner. Ekologiskt och biodynamiskt. Hemleverans i Stockholm.";
+      : "Naturvin online från små producenter i hela Frankrike. Vi samlar köpen på delade pallar från Languedoc och levererar inom Sverige.";
 
   return {
-    title: { absolute: title },
+    title,
     description,
     robots: shopSearchParamsRobots(searchParams),
     alternates: {

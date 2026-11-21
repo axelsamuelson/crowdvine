@@ -112,7 +112,7 @@ export const jacquesSelosseArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Selosse's argument is the same argument the natural wine movement makes elsewhere: that place matters more than process, and that the winemaker's job is to express something rather than construct something.",
+          "Selosse's argument is the same argument the [natural wine](/guides/what-is-natural-wine) movement makes elsewhere: that place matters more than process, and that the winemaker's job is to express something rather than construct something.",
           "That idea proved as powerful in the most industrialised fine-wine category in the world as it did in the Jura or Beaujolais. Jacques Selosse ranks #5 on PACT's list of the world's 100 best natural wine producers — not despite making champagne, but because of what champagne became when a vigneron in Avize refused to blend it away.",
         ],
         sv: "Selosses argument är detsamma som naturvinsrörelsen gör: att plats spelar större roll än process, att vinmakarens jobb är att uttrycka något snarare än att konstruera något. Det argumentet visade sig lika kraftfullt i den mest industrialiserade vinkategorin i världen som i Jura eller Beaujolais. Räckvidden av den idén är det som gör Selosse till en av de mest inflytelserika producenterna inom naturvin — trots att han gör champagne.",
@@ -120,6 +120,16 @@ export const jacquesSelosseArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Jacques Selosse is ranked #5 on our list of the world's 100 best natural wine producers →",

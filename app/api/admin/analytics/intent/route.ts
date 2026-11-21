@@ -4,6 +4,7 @@ import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import {
   buildIntentSessionsFromCleanEvents,
   buildWeeklyFunnelFromCleanEvents,
+  computeMetrics28d,
   type CleanEventRow,
   type IntentSessionRow,
   type IntentWine,
@@ -14,58 +15,128 @@ import {
   type AnalyticsSiteFilter,
 } from "@/lib/analytics/analytics-site";
 import { canonicalizeEventType } from "@/lib/analytics/event-aliases";
+import {
+  fetchEventsInDateChunks,
+  type PageQueryArgs,
+} from "@/lib/analytics/fetch-events-window";
+
+/** Clean-view attempt budget — parallel date chunks finish far under this. */
+const CLEAN_VIEW_TIMEOUT_MS = 12_000;
 
 async function fetchCleanEvents(
   sb: ReturnType<typeof getSupabaseAdmin>,
   sinceIso: string,
   site: AnalyticsSiteFilter,
-): Promise<{ rows: CleanEventRow[]; fromCleanView: boolean }> {
+  opts?: { lean?: boolean },
+): Promise<{
+  rows: CleanEventRow[];
+  fromCleanView: boolean;
+  truncated: boolean;
+  earliestCoveredDate: string | null;
+}> {
   const pageSize = 1000;
-  const maxRows = 30000;
-  const selectCols =
-    "session_id, visitor_id, user_id, event_type, event_metadata, created_at, page_url, site";
+  const maxRows = 100_000;
+  const untilIso = new Date().toISOString();
+  const lean = opts?.lean === true;
+  // Lean keeps event_metadata (needed for identical intent_sessions counts)
+  // but drops page_url to shrink payloads for metrics-only dashboard loads.
+  const selectCols = lean
+    ? "session_id, visitor_id, user_id, event_type, event_metadata, created_at, site"
+    : "session_id, visitor_id, user_id, event_type, event_metadata, created_at, page_url, site";
 
-  async function paged(table: string, selectOverride?: string, extra?: (q: any) => any) {
-    const out: CleanEventRow[] = [];
+  async function paged(
+    table: string,
+    selectOverride?: string,
+    extra?: (q: any) => any,
+    pageOpts?: { signal?: AbortSignal },
+  ) {
     const cols =
       selectOverride ??
       (table === "user_events"
-        ? "session_id, visitor_id, user_id, event_type, event_metadata, created_at, page_url"
+        ? lean
+          ? "session_id, visitor_id, user_id, event_type, event_metadata, created_at"
+          : "session_id, visitor_id, user_id, event_type, event_metadata, created_at, page_url"
         : selectCols);
-    for (let from = 0; from < maxRows; from += pageSize) {
-      let q = sb
-        .from(table)
-        .select(cols)
-        .gte("created_at", sinceIso)
-        .order("created_at", { ascending: true })
-        .range(from, from + pageSize - 1);
-      if (extra) q = extra(q);
-      const { data, error } = await q;
-      if (error) return { rows: out, error };
-      const batch = (data ?? []) as CleanEventRow[];
-      out.push(...batch);
-      if (batch.length < pageSize) break;
-    }
-    return { rows: out, error: null as null };
+    return fetchEventsInDateChunks<CleanEventRow>({
+      sinceIso,
+      untilIso,
+      pageSize,
+      maxRows,
+      chunkDays: 7,
+      concurrency: 6,
+      signal: pageOpts?.signal,
+      queryPage: async ({ gteIso, ltIso, from, to, signal }: PageQueryArgs) => {
+        let q = sb
+          .from(table)
+          .select(cols)
+          .gte("created_at", gteIso)
+          .order("created_at", { ascending: true })
+          .range(from, to);
+        if (ltIso) q = q.lt("created_at", ltIso);
+        if (extra) q = extra(q);
+        if (signal) q = q.abortSignal(signal);
+        return q;
+      },
+    });
   }
 
-  let clean = await paged(
-    "analytics_sessions_clean",
-    undefined,
-    site === "all" ? undefined : (q) => q.eq("site", site),
-  );
+  async function pagedClean(
+    selectOverride?: string,
+  ): Promise<Awaited<ReturnType<typeof paged>>> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CLEAN_VIEW_TIMEOUT_MS);
+    try {
+      const result = await paged(
+        "analytics_sessions_clean",
+        selectOverride,
+        site === "all" ? undefined : (q) => q.eq("site", site),
+        { signal: controller.signal },
+      );
+      if (controller.signal.aborted && !result.error) {
+        return {
+          rows: [],
+          truncated: false,
+          earliestCoveredDate: null,
+          latestCoveredDate: null,
+          error: {
+            message: `client timeout after ${CLEAN_VIEW_TIMEOUT_MS}ms`,
+          },
+          complete: false,
+        };
+      }
+      return result;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "clean view fetch failed";
+      return {
+        rows: [],
+        truncated: false,
+        earliestCoveredDate: null,
+        latestCoveredDate: null,
+        error: { message },
+        complete: false,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  let clean = await pagedClean();
   if (
     clean.error &&
     /visitor_id|schema cache|Could not find/i.test(clean.error.message || "")
   ) {
-    clean = await paged(
-      "analytics_sessions_clean",
+    clean = await pagedClean(
       "session_id, user_id, event_type, event_metadata, created_at, page_url, site",
-      site === "all" ? undefined : (q) => q.eq("site", site),
     );
   }
   if (!clean.error) {
-    return { rows: clean.rows, fromCleanView: true };
+    return {
+      rows: clean.rows,
+      fromCleanView: true,
+      truncated: clean.truncated,
+      earliestCoveredDate: clean.earliestCoveredDate,
+    };
   }
 
   console.warn(
@@ -114,7 +185,12 @@ async function fetchCleanEvents(
     })
     .map((e) => ({ ...e, site: sessionSite.get(e.session_id) ?? null }));
 
-  return { rows, fromCleanView: false };
+  return {
+    rows,
+    fromCleanView: false,
+    truncated: fallback.truncated,
+    earliestCoveredDate: fallback.earliestCoveredDate,
+  };
 }
 
 async function fetchReservationsByUser(
@@ -177,6 +253,10 @@ export async function GET(request: Request) {
     ? Math.min(180, Math.max(7, Math.round(daysRaw)))
     : 30;
   const site = parseSiteParam(searchParams.get("site"));
+  /** Dashboard metrics cards only — skip session enrichment / profiles. */
+  const metricsOnly =
+    searchParams.get("metricsOnly") === "1" ||
+    searchParams.get("metricsOnly") === "true";
 
   const sb = getSupabaseAdmin();
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -184,45 +264,76 @@ export async function GET(request: Request) {
   const since28 = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
 
   try {
-    const { rows: cleanEvents } = await fetchCleanEvents(sb, sinceIso, site);
-    const reservationsByUser = await fetchReservationsByUser(sb, sinceIso);
-
-    let sessions: IntentSessionRow[] = [];
-    let usedView = false;
-
     const intentSelectWithReason =
       "session_id, site, user_id, started_at, last_seen_at, wines, cart_value, reached_checkout, last_checkout_phase, abandoned_phase, abandon_reason, last_step, last_checkout_error, is_human";
     const intentSelectLegacy =
       "session_id, site, user_id, started_at, last_seen_at, wines, cart_value, reached_checkout, last_checkout_phase, abandoned_phase, last_step, last_checkout_error, is_human";
 
-    let viewQuery = sb
-      .from("analytics_intent_sessions")
-      .select(intentSelectWithReason)
-      .gte("last_seen_at", sinceIso)
-      .order("last_seen_at", { ascending: false })
-      .limit(500);
-    if (site !== "all") {
-      viewQuery = viewQuery.eq("site", site);
-    }
-
-    let { data: viewRows, error: viewErr } = await viewQuery;
-    if (
-      viewErr &&
-      /abandon_reason|schema cache|Could not find/i.test(viewErr.message || "")
-    ) {
-      let legacyQuery = sb
+    const cleanPromise = fetchCleanEvents(sb, sinceIso, site, {
+      lean: metricsOnly,
+    });
+    const reservationsPromise = fetchReservationsByUser(sb, sinceIso);
+    const viewPromise = (async () => {
+      if (metricsOnly) {
+        return { data: null as any[] | null, error: null as { message: string } | null };
+      }
+      let viewQuery = sb
         .from("analytics_intent_sessions")
-        .select(intentSelectLegacy)
+        .select(intentSelectWithReason)
         .gte("last_seen_at", sinceIso)
         .order("last_seen_at", { ascending: false })
         .limit(500);
       if (site !== "all") {
-        legacyQuery = legacyQuery.eq("site", site);
+        viewQuery = viewQuery.eq("site", site);
       }
-      const legacy = await legacyQuery;
-      viewRows = legacy.data;
-      viewErr = legacy.error;
+      let { data: viewRows, error: viewErr } = await viewQuery;
+      if (
+        viewErr &&
+        /abandon_reason|schema cache|Could not find/i.test(viewErr.message || "")
+      ) {
+        let legacyQuery = sb
+          .from("analytics_intent_sessions")
+          .select(intentSelectLegacy)
+          .gte("last_seen_at", sinceIso)
+          .order("last_seen_at", { ascending: false })
+          .limit(500);
+        if (site !== "all") {
+          legacyQuery = legacyQuery.eq("site", site);
+        }
+        const legacy = await legacyQuery;
+        viewRows = legacy.data;
+        viewErr = legacy.error;
+      }
+      return { data: viewRows, error: viewErr };
+    })();
+
+    const [
+      {
+        rows: cleanEvents,
+        truncated: eventsTruncated,
+        earliestCoveredDate,
+      },
+      reservationsByUser,
+      viewResult,
+    ] = await Promise.all([cleanPromise, reservationsPromise, viewPromise]);
+
+    const events28 = cleanEvents.filter((e) => e.created_at >= since28);
+    const metrics28d = computeMetrics28d(events28, reservationsByUser);
+
+    if (metricsOnly) {
+      return NextResponse.json({
+        days,
+        site,
+        truncated: eventsTruncated,
+        earliestCoveredDate: eventsTruncated ? earliestCoveredDate : null,
+        metrics28d,
+      });
     }
+
+    let sessions: IntentSessionRow[] = [];
+    let usedView = false;
+    const viewRows = viewResult.data;
+    const viewErr = viewResult.error;
 
     if (!viewErr && viewRows) {
       usedView = true;
@@ -284,10 +395,10 @@ export async function GET(request: Request) {
       }
     }
 
-    const sessionIds = sessions.slice(0, 200).map((s) => s.session_id);
+    const sessionIdSet = new Set(sessions.slice(0, 200).map((s) => s.session_id));
     const eventsBySession = new Map<string, CleanEventRow[]>();
     for (const e of cleanEvents) {
-      if (!sessionIds.includes(e.session_id)) continue;
+      if (!sessionIdSet.has(e.session_id)) continue;
       if (!eventsBySession.has(e.session_id)) {
         eventsBySession.set(e.session_id, []);
       }
@@ -310,81 +421,15 @@ export async function GET(request: Request) {
       };
     });
 
-    const events28 = cleanEvents.filter((e) => e.created_at >= since28);
-    const visitorKeys = new Set(
-      events28.map((e) =>
-        e.visitor_id && String(e.visitor_id).trim()
-          ? String(e.visitor_id).trim()
-          : `session:${e.session_id}`,
-      ),
-    );
-    const sessionKeys = new Set(events28.map((e) => e.session_id));
-    const intent28 = buildIntentSessionsFromCleanEvents(
-      events28,
-      reservationsByUser,
-    );
-    const reservationSessions = new Set<string>();
-    const sessionAgg = new Map<
-      string,
-      { minAt: number; maxAt: number; userIds: Set<string>; types: Set<string> }
-    >();
-    for (const e of events28) {
-      let a = sessionAgg.get(e.session_id);
-      if (!a) {
-        a = {
-          minAt: new Date(e.created_at).getTime(),
-          maxAt: new Date(e.created_at).getTime(),
-          userIds: new Set(),
-          types: new Set(),
-        };
-        sessionAgg.set(e.session_id, a);
-      }
-      const t = new Date(e.created_at).getTime();
-      if (t < a.minAt) a.minAt = t;
-      if (t > a.maxAt) a.maxAt = t;
-      if (e.user_id) a.userIds.add(e.user_id);
-      a.types.add(e.event_type);
-    }
-    for (const [sid, a] of sessionAgg) {
-      if (a.types.has("reservation_completed")) {
-        reservationSessions.add(sid);
-        continue;
-      }
-      for (const uid of a.userIds) {
-        const dates = reservationsByUser.get(uid) ?? [];
-        if (
-          dates.some((iso) => {
-            const t = new Date(iso).getTime();
-            return t >= a.minAt && t <= a.maxAt + 24 * 60 * 60 * 1000;
-          })
-        ) {
-          reservationSessions.add(sid);
-          break;
-        }
-      }
-    }
-
-    const visitors = visitorKeys.size;
-    const sessions28 = sessionKeys.size;
-    const reservations = reservationSessions.size;
-    const conversion_pct =
-      visitors > 0
-        ? Math.round((reservations / visitors) * 1000) / 10
-        : 0;
-
     return NextResponse.json({
       days,
       site,
       usedView,
+      truncated: eventsTruncated,
+      earliestCoveredDate: eventsTruncated ? earliestCoveredDate : null,
       sessions: enriched,
       weeklyFunnel,
-      metrics28d: {
-        visitors,
-        sessions: sessions28,
-        intent_sessions: intent28.length,
-        reservations,
-        conversion_pct,
-      },
+      metrics28d,
     });
   } catch (err) {
     console.error("Analytics intent API error:", err);

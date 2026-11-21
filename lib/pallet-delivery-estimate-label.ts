@@ -1,13 +1,20 @@
-/** Shared delivery band copy for checkout UI and {@link getPalletFillData} (no server deps). */
-export type PalletEstimatedDeliveryBand =
-  | "2-4 weeks"
-  | "2-3 weeks"
-  | "Within 1 week";
+import type { AppLocale } from "@/lib/i18n/locale";
 
-export function deliveryEstimateLabelFromFillPercent(
-  fillPercent: number,
-): PalletEstimatedDeliveryBand {
-  if (fillPercent < 50) return "2-4 weeks";
-  if (fillPercent < 80) return "2-3 weeks";
-  return "Within 1 week";
+/** Shared delivery estimate copy for checkout UI and {@link getPalletFillData} (no server deps). */
+export const PALLET_DELIVERY_ESTIMATE_LABEL = {
+  sv: "Levereras normalt 2–3 veckor efter att pallen stänger",
+  en: "Delivered normally 2–3 weeks after the pallet closes",
+} as const;
+
+export type PalletDeliveryEstimateLabel =
+  (typeof PALLET_DELIVERY_ESTIMATE_LABEL)[AppLocale];
+
+/**
+ * Fixed shared-pallet delivery estimate. Fill percent no longer changes the band;
+ * the separate fill indicator stays independent.
+ */
+export function palletDeliveryEstimateLabel(
+  locale: AppLocale = "sv",
+): PalletDeliveryEstimateLabel {
+  return PALLET_DELIVERY_ESTIMATE_LABEL[locale];
 }

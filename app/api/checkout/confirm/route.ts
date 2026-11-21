@@ -706,14 +706,18 @@ export async function POST(request: Request) {
         );
       }
     } else if (!zones.deliveryZoneId) {
-      return NextResponse.json(
-        {
-          error:
-            zones.noDeliveryZone?.message?.trim() ||
-            "No delivery zone matches your address.",
-        },
-        { status: 400 },
-      );
+      // direct_box ships Sweden-wide (UPS) — no pallet delivery-zone match required.
+      // shared_pallet still hard-requires a matched zone (Budbee/Instabee last-mile).
+      if (authorizedFulfillment?.channel !== "direct_box") {
+        return NextResponse.json(
+          {
+            error:
+              zones.noDeliveryZone?.message?.trim() ||
+              "No delivery zone matches your address.",
+          },
+          { status: 400 },
+        );
+      }
     }
 
     // Save customer address
@@ -2875,6 +2879,30 @@ export async function POST(request: Request) {
           progressionError,
         );
         // Don't fail the order if progression logic fails
+      }
+    }
+
+    // Freeze Skatteverket alcohol-tax lines when charged at confirm
+    // (direct_box / PaymentIntent). Shared-pallet SetupIntent is deferred —
+    // those snapshots are written at pallet close / legacy auto-charge.
+    if (
+      !deferredLinkCheckout &&
+      intentType === "payment_intent" &&
+      siblingPayUpdate.payment_status === "paid"
+    ) {
+      try {
+        const { tryPersistAlcoholTaxReportingSnapshot } = await import(
+          "@/lib/skatteverket/alcohol-tax-reporting-snapshot"
+        );
+        for (const rid of reservationIdsForPayment) {
+          if (!rid) continue;
+          await tryPersistAlcoholTaxReportingSnapshot({
+            reservationId: rid,
+            triggerSource: "direct_box_confirm",
+          });
+        }
+      } catch (taxSnapErr) {
+        console.warn("[Checkout API] alcohol tax snapshot", taxSnapErr);
       }
     }
 

@@ -115,7 +115,7 @@ interface CrawlSummary {
 export default function MenuExtractionOverviewPage() {
   const router = useRouter();
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [uploadForm, setUploadForm] = useState({ file_path: "", file_name: "" });
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [openByPath, setOpenByPath] = useState("");
   const [openByPathLoading, setOpenByPathLoading] = useState(false);
@@ -211,25 +211,23 @@ export default function MenuExtractionOverviewPage() {
   }, [loadDocuments, loadHealth]);
 
   const handleUploadSubmit = async () => {
-    if (!uploadForm.file_path.trim() || !uploadForm.file_name.trim()) {
-      toast.error("Fyll i sökväg och filnamn");
+    if (!uploadFile) {
+      toast.error("Välj en PDF-fil");
       return;
     }
     setSubmitting(true);
     try {
+      const form = new FormData();
+      form.append("file", uploadFile);
       const res = await fetch("/api/admin/menu-extraction/documents", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file_path: uploadForm.file_path.trim(),
-          file_name: uploadForm.file_name.trim(),
-        }),
+        body: form,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Kunde inte skapa dokument");
       toast.success("Dokument skapat");
       setUploadOpen(false);
-      setUploadForm({ file_path: "", file_name: "" });
+      setUploadFile(null);
       loadDocuments();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Kunde inte skapa");
@@ -779,42 +777,56 @@ export default function MenuExtractionOverviewPage() {
         </div>
       </div>
 
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+      <Dialog
+        open={uploadOpen}
+        onOpenChange={(open) => {
+          setUploadOpen(open);
+          if (!open) setUploadFile(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md bg-white dark:bg-[#1F1F23] border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white">Ladda upp meny</DialogTitle>
             <DialogDescription className="text-gray-500 dark:text-zinc-200">
-              Ange sökväg till filen och filnamn. Raw text kan sättas i detaljvyn eller via API.
+              Välj en PDF. Filen laddas upp till storage med samma logik som crawl, sedan skapas dokumentet.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="file_path" className="text-gray-700 dark:text-zinc-200">Sökväg (file_path)</Label>
+              <Label htmlFor="menu_pdf" className="text-gray-700 dark:text-zinc-200">
+                PDF-fil
+              </Label>
               <Input
-                id="file_path"
-                placeholder="t.ex. menus/restaurang-x.pdf"
-                value={uploadForm.file_path}
-                onChange={(e) => setUploadForm((f) => ({ ...f, file_path: e.target.value }))}
-                className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white"
+                id="menu_pdf"
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => {
+                  const next = e.target.files?.[0] ?? null;
+                  setUploadFile(next);
+                }}
+                className="cursor-pointer bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-medium dark:file:bg-zinc-700"
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="file_name" className="text-gray-700 dark:text-zinc-200">Filnamn</Label>
-              <Input
-                id="file_name"
-                placeholder="t.ex. vinlista-2024.pdf"
-                value={uploadForm.file_name}
-                onChange={(e) => setUploadForm((f) => ({ ...f, file_name: e.target.value }))}
-                className="bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white"
-              />
+              {uploadFile ? (
+                <p className="text-xs text-gray-500 dark:text-zinc-400 truncate">
+                  {uploadFile.name} ({Math.max(1, Math.round(uploadFile.size / 1024))} KB)
+                </p>
+              ) : null}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadOpen(false)} className="border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white">
+            <Button
+              variant="outline"
+              onClick={() => setUploadOpen(false)}
+              className="border-gray-300 dark:border-zinc-600 text-gray-900 dark:text-white"
+            >
               Avbryt
             </Button>
-            <Button onClick={handleUploadSubmit} disabled={submitting} className="bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900">
-              {submitting ? "Skapar…" : "Skapa dokument"}
+            <Button
+              onClick={handleUploadSubmit}
+              disabled={submitting || !uploadFile}
+              className="bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900"
+            >
+              {submitting ? "Laddar upp…" : "Ladda upp"}
             </Button>
           </DialogFooter>
         </DialogContent>

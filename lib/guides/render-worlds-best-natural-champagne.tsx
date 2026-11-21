@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { GuideRankTable } from "@/components/guides/guide-rank-table";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import {
   GuideBreadcrumbs,
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
-import { countryLabel } from "@/lib/guides/guide-labels";
+import { countryLabel, regionLabel } from "@/lib/guides/guide-labels";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
@@ -65,9 +70,13 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
+  const champagneGuidePath = guidePath("naturalChampagne", locale);
   const champagnes = getChampagneWinesFromTop100();
   const guide = worldsBestNaturalChampagneGuide;
-  const regionCounts = await getLiveWineRegionCountsMap();
+  const [regionCounts, guideShopLinks] = await Promise.all([
+    getLiveWineRegionCountsMap(),
+    loadGuideShopLinks(champagneGuidePath, locale),
+  ]);
   const champagneRegionHref = getWineRegionPageHref(
     "champagne",
     locale,
@@ -169,8 +178,12 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
         </h1>
 
         <div className="mt-6 space-y-4 text-base leading-relaxed text-muted-foreground">
-          {guide.intro[locale].map((paragraph) => (
-            <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+          {guide.intro[locale].map((paragraph, index) => (
+            <p key={paragraph.slice(0, 48)}>
+              {paragraph.includes("](")
+                ? renderArticleRichText(paragraph, `intro-${index}`)
+                : paragraph}
+            </p>
           ))}
         </div>
 
@@ -194,11 +207,17 @@ export async function renderWorldsBestNaturalChampagnePage(locale: AppLocale) {
               rank: index + 1,
               wine: wine.wine,
               producer: wine.producer,
-              region: wine.region,
+              region: regionLabel(wine.region, locale),
               country: countryLabel(wine.country, locale),
             }))}
           />
         </section>
+
+        <GuideShopLinksBlock
+          guidePath={champagneGuidePath}
+          locale={locale}
+          links={guideShopLinks}
+        />
 
         <nav className="mt-14 space-y-3 border-t border-border pt-8 text-sm">
           {furtherLinks.map((link) => (

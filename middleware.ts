@@ -41,6 +41,7 @@ import {
   isStockholmDeliveryRedirectPath,
   pactStockholmDeliveryRedirectUrl,
 } from "@/lib/stockholm-delivery-landing/dirtywine-redirect";
+import { shouldRedirectDirtywineNoB2bAccessRequest } from "@/lib/access-request/no-b2b";
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -116,6 +117,17 @@ function nextWithPathname(req: NextRequest): NextResponse {
 async function runMiddleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Swedish typo/alias for checkout — before membership gate ("Endast för medlemmar").
+  // Preserve query string (NextResponse.redirect keeps search on cloned URL).
+  if (pathname === "/kassan" || pathname.startsWith("/kassan/")) {
+    const u = req.nextUrl.clone();
+    u.pathname =
+      pathname === "/kassan"
+        ? "/checkout"
+        : `/checkout${pathname.slice("/kassan".length)}`;
+    return NextResponse.redirect(u, 308);
+  }
+
   // Supabase auth sometimes lands on Site URL (/) when Redirect URL allow-list
   // rejects emailRedirectTo. Forward PKCE `code` or OTP `token_hash` to callback.
   if (pathname === "/") {
@@ -151,6 +163,21 @@ async function runMiddleware(req: NextRequest) {
 
   const host = req.headers.get("host");
   const onDirtywineSite = isDirtywineHost(host, req.nextUrl.searchParams);
+
+  // Dirty Wine is open: retire /access-request?reason=no_b2b (stale invite/pact CTA).
+  // Same-host 308 to `/`. pactwines.com and other reasons are unchanged.
+  if (
+    shouldRedirectDirtywineNoB2bAccessRequest({
+      pathname,
+      reason: req.nextUrl.searchParams.get("reason"),
+      host,
+    })
+  ) {
+    const home = req.nextUrl.clone();
+    home.pathname = "/";
+    home.search = "";
+    return NextResponse.redirect(home, 308);
+  }
 
   // Guides are PACT-owned — never serve them on dirtywine.se (301 to pact).
   if (isDirtywineProductionHost(host) && isGuidePath(pathname)) {

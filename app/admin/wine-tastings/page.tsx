@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Wine, Calendar, Eye, Trash2 } from "lucide-react";
+import { Wine, Calendar, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -152,12 +152,6 @@ export default function WineTastingsPage() {
               </p>
             </div>
           </div>
-          <Link href="/admin/wine-tastings/new" prefetch={false}>
-            <Button size="sm" className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200 w-full sm:w-auto">
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              New Session
-            </Button>
-          </Link>
         </div>
 
         {/* Filters */}
@@ -221,13 +215,7 @@ export default function WineTastingsPage() {
         ) : sessions.length === 0 ? (
           <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23] flex flex-col items-center justify-center py-12">
             <Wine className="w-12 h-12 text-gray-400 dark:text-zinc-500 mb-4" />
-            <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4">No sessions found</p>
-            <Link href="/admin/wine-tastings/new" prefetch={false}>
-              <Button size="sm" className="rounded-lg text-xs font-medium bg-gray-900 dark:bg-zinc-50 text-white dark:text-zinc-900 hover:bg-gray-800 dark:hover:bg-zinc-200">
-                <Plus className="w-3.5 h-3.5 mr-1.5" />
-                Create Your First Session
-              </Button>
-            </Link>
+            <p className="text-sm text-gray-500 dark:text-zinc-400">No sessions found</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

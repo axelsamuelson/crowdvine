@@ -70,7 +70,7 @@ export const marcelLapierreArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Morgon is one of Beaujolais's crus associated with structure, granite and ageing potential. Lapierre's Morgon — his main wine — became the template for natural Beaujolais: proof that Gamay could be taken seriously, that Beaujolais could age, and that natural wine could be genuinely delicious rather than only philosophically correct.",
+          "Morgon is one of Beaujolais's crus associated with structure, granite and ageing potential. Lapierre's Morgon — his main wine — became the template for natural Beaujolais: proof that Gamay could be taken seriously, that Beaujolais could age, and that [natural wine](/guides/what-is-natural-wine) could be genuinely delicious rather than only philosophically correct.",
           "Raisins Gaulois is the accessible companion: lighter, earlier drinking, lower alcohol — made to be immediate and shared widely. Where the Morgon carries the cru's weight, Raisins Gaulois shows that the same philosophy can also be joyful and open on release, without sliding back into industrial nouveau logic.",
           "Together the two wines are a complete argument for natural Beaujolais. One bottle for the table that wants depth; one for the table that wants Gamay without waiting. Same grape, same village, same refusal of industrial shortcuts — and a reminder that seriousness and drinkability were never opposites in Lapierre's cellar.",
         ],
@@ -107,6 +107,16 @@ export const marcelLapierreArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Marcel Lapierre is ranked #12 on our list of the world's 100 best natural wine producers →",

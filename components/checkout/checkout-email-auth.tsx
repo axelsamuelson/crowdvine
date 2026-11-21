@@ -28,6 +28,8 @@ type Props = {
   onAuthenticated: () => void;
   /** Fired when the anonymous login wall is actually shown. */
   onWallShown?: () => void;
+  /** Prefill (e.g. delivery email after ensure-session requiresLogin). */
+  initialEmail?: string;
 };
 
 async function finalizeClientSignup(source: string) {
@@ -58,9 +60,10 @@ export function CheckoutEmailAuth({
   sendLinkLabel,
   onAuthenticated,
   onWallShown,
+  initialEmail = "",
 }: Props) {
-  const [email, setEmail] = useState("");
-  const emailRef = useRef("");
+  const [email, setEmail] = useState(() => initialEmail.trim());
+  const emailRef = useRef(initialEmail.trim());
   const [otp, setOtp] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);

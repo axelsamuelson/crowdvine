@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import "./opus.css";
 
 export const metadata: Metadata = {
   robots: {
@@ -13,6 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
+/** Route permanently redirects home; layout kept only for noindex metadata. */
 export default function OnboardingLayout({ children }: { children: ReactNode }) {
-  return <div className="opus-theme">{children}</div>;
+  return children;
 }

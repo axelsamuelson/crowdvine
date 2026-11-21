@@ -114,7 +114,7 @@ export const jeanFoillardArticle: GuideArticleContent = {
       body: {
         en: [
           "Beaujolais as a serious wine region is largely the Gang of Four's creation. Before them, the story was nouveau. After them, crus like Morgon could be discussed in the same breath as other French regions people collect and age.",
-          "The natural wine movement found in Beaujolais one of its earliest and most convincing demonstrations: humble Gamay, farmed cleanly and fermented without additives, could become wine that people seek out at tastings and keep in the cellar. Other producers followed the path the four had opened — first nearby, then across a generation.",
+          "The [natural wine](/guides/what-is-natural-wine) movement found in Beaujolais one of its earliest and most convincing demonstrations: humble Gamay, farmed cleanly and fermented without additives, could become wine that people seek out at tastings and keep in the cellar. Other producers followed the path the four had opened — first nearby, then across a generation.",
           "The legacy is visible now. Beaujolais has some of the most exciting young growers in France, building on what Foillard, Lapierre, Thévenet and Breton established. On PACT's list of the world's 100 best natural wine producers, Jean Foillard stands at number ten — a ranking that reflects a whole region's second chance as much as one domaine's bottles.",
         ],
         sv: "Beaujolais före och efter — regionens transformation är till stor del Gang of Fours verk. De producenter som följde i nästa generation. Hur naturvinsrörelsen fann i Beaujolais ett av sina tidigaste och mest övertygande bevis. Vad det betyder att enkel, ödmjuk Gamay blev ett vin som folk samlar, åldrar och söker upp på provningar.",
@@ -122,6 +122,16 @@ export const jeanFoillardArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Jean Foillard is ranked #10 on our list of the world's 100 best natural wine producers →",

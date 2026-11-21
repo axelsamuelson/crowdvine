@@ -77,8 +77,8 @@ function pdpSeoSuffix(
 ): string {
   const delivery =
     locale === "sv"
-      ? " Hemleverans i Stockholm."
-      : " Home delivery in Stockholm.";
+      ? " Hemleverans i Sverige."
+      : " Home delivery in Sweden.";
   let clause = "";
   if (producer && region) {
     clause =

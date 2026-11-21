@@ -26,7 +26,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Naturvin från Languedoc",
       title: "Naturvin från Languedoc | PACT Wines",
       metaDescription:
-        "Naturvin från Languedoc: Carignan, Grenache och Syrah från skiffer och kalk i Faugères, Saint-Chinian och Haute Vallée de l'Orb. Hemleverans i Stockholm.",
+        "Naturvin från Languedoc: Carignan, Grenache och Syrah från skiffer och kalk i Faugères, Saint-Chinian och Haute Vallée de l'Orb. Hemleverans i Sverige.",
       description:
         "Languedoc sträcker sig längs Medelhavskusten mellan Rhônedeltat och Roussillon. Här finns det största urvalet hos PACT: röda, vita, orange och mousserande naturviner från småproducenter i Faugères, Saint-Chinian, Pic Saint-Loup och Haute Vallée de l'Orb.",
       contentHeading: "Om naturvin från Languedoc",
@@ -54,7 +54,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Natural wine from the Languedoc",
       title: "Natural Wine from the Languedoc | PACT Wines",
       metaDescription:
-        "Natural wine from the Languedoc: Carignan, Grenache and Syrah from schist and limestone in Faugères, Saint-Chinian and Haute Vallée de l'Orb. Home delivery in Stockholm.",
+        "Natural wine from the Languedoc: Carignan, Grenache and Syrah from schist and limestone in Faugères, Saint-Chinian and Haute Vallée de l'Orb. Home delivery in Sweden.",
       description:
         "The Languedoc stretches along the Mediterranean coast between the Rhône delta and Roussillon. This is the largest selection at PACT: red, white, orange and sparkling natural wines from small producers in Faugères, Saint-Chinian, Pic Saint-Loup and Haute Vallée de l'Orb.",
       contentHeading: "About natural wine from the Languedoc",
@@ -85,7 +85,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Naturvin från Loire",
       title: "Naturvin från Loire | PACT Wines",
       metaDescription:
-        "Naturvin från Loire: Chenin Blanc, Cabernet Franc, Muscadet och Gamay från småproducenter längs Frankrikes längsta flod. Hemleverans i Stockholm.",
+        "Naturvin från Loire: Chenin Blanc, Cabernet Franc, Muscadet och Gamay från småproducenter längs Frankrikes längsta flod. Hemleverans i Sverige.",
       description:
         "Loiredalen följer Frankrikes längsta flod från Atlantkusten in mot landets mitt. Svalt klimat ger friska viner med hög syra: Muscadet vid kusten, Chenin Blanc och Cabernet Franc i Anjou och Touraine, Sauvignon Blanc och Gamay längre uppströms.",
       contentHeading: "Om naturvin från Loire",
@@ -113,7 +113,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Natural wine from the Loire",
       title: "Natural Wine from the Loire | PACT Wines",
       metaDescription:
-        "Natural wine from the Loire: Chenin Blanc, Cabernet Franc, Muscadet and Gamay from small producers along France's longest river. Home delivery in Stockholm.",
+        "Natural wine from the Loire: Chenin Blanc, Cabernet Franc, Muscadet and Gamay from small producers along France's longest river. Home delivery in Sweden.",
       description:
         "The Loire Valley follows France's longest river from the Atlantic coast towards the centre of the country. A cool climate gives fresh wines with high acidity: Muscadet by the coast, Chenin Blanc and Cabernet Franc in Anjou and Touraine, Sauvignon Blanc and Gamay further upstream.",
       contentHeading: "About natural wine from the Loire",
@@ -144,7 +144,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Naturvin från Beaujolais",
       title: "Naturvin från Beaujolais | PACT Wines",
       metaDescription:
-        "Naturvin från Beaujolais: Gamay från granit i Morgon, Fleurie, Brouilly, Chénas och Moulin-à-Vent. Regionen där naturvinsrörelsen började. Hemleverans i Stockholm.",
+        "Naturvin från Beaujolais: Gamay från granit i Morgon, Fleurie, Brouilly, Chénas och Moulin-à-Vent. Regionen där naturvinsrörelsen började. Hemleverans i Sverige.",
       description:
         "Beaujolais ligger mellan Bourgogne och Lyon och är nästan helt Gamay. I norr ligger de tio cru-byarna på granit, där druvan ger både saftiga och mer strukturerade viner. Det var här den moderna naturvinsrörelsen tog form.",
       contentHeading: "Om naturvin från Beaujolais",
@@ -172,7 +172,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Natural wine from Beaujolais",
       title: "Natural Wine from Beaujolais | PACT Wines",
       metaDescription:
-        "Natural wine from Beaujolais: Gamay from granite in Morgon, Fleurie, Brouilly, Chénas and Moulin-à-Vent. The region where the natural wine movement began. Home delivery in Stockholm.",
+        "Natural wine from Beaujolais: Gamay from granite in Morgon, Fleurie, Brouilly, Chénas and Moulin-à-Vent. The region where the natural wine movement began. Home delivery in Sweden.",
       description:
         "Beaujolais lies between Burgundy and Lyon and is almost entirely Gamay. In the north lie the ten cru villages on granite, where the grape gives both juicy and more structured wines. It was here that the modern natural wine movement took shape.",
       contentHeading: "About natural wine from Beaujolais",
@@ -203,7 +203,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Naturvin från Bourgogne",
       title: "Naturvin från Bourgogne | PACT Wines",
       metaDescription:
-        "Naturvin från Bourgogne: Pinot Noir, Chardonnay och Aligoté från Côte d'Or, Yonne och Mâconnais. Hemleverans i Stockholm.",
+        "Naturvin från Bourgogne: Pinot Noir, Chardonnay och Aligoté från Côte d'Or, Yonne och Mâconnais. Hemleverans i Sverige.",
       description:
         "Bourgogne är Pinot Noir och Chardonnay på kalksten och märgel, med Aligoté som den tredje druvan. Hos PACT finns naturviner från Côte d'Or, Yonne och Mâconnais, från regionala appellationer till byviner.",
       contentHeading: "Om naturvin från Bourgogne",
@@ -231,7 +231,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Natural wine from Burgundy",
       title: "Natural Wine from Burgundy | PACT Wines",
       metaDescription:
-        "Natural wine from Burgundy: Pinot Noir, Chardonnay and Aligoté from the Côte d'Or, Yonne and Mâconnais. Home delivery in Stockholm.",
+        "Natural wine from Burgundy: Pinot Noir, Chardonnay and Aligoté from the Côte d'Or, Yonne and Mâconnais. Home delivery in Sweden.",
       description:
         "Burgundy is Pinot Noir and Chardonnay on limestone and marl, with Aligoté as the third grape. At PACT there are natural wines from the Côte d'Or, Yonne and Mâconnais, from regional appellations to village wines.",
       contentHeading: "About natural wine from Burgundy",
@@ -262,7 +262,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Naturvin från Jura",
       title: "Naturvin från Jura | PACT Wines",
       metaDescription:
-        "Naturvin från Jura: Poulsard, Trousseau, Savagnin och Chardonnay från märgeljord mellan Bourgogne och Schweiz. Hemleverans i Stockholm.",
+        "Naturvin från Jura: Poulsard, Trousseau, Savagnin och Chardonnay från märgeljord mellan Bourgogne och Schweiz. Hemleverans i Sverige.",
       description:
         "Jura är ett litet vinområde i bergen mellan Bourgogne och Schweiz, med egna druvor som Poulsard, Trousseau och Savagnin. Regionen har en lång tradition av vin med lite eller inget svavel och är i dag ett av naturvinets viktigaste områden.",
       contentHeading: "Om naturvin från Jura",
@@ -290,7 +290,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Natural wine from the Jura",
       title: "Natural Wine from the Jura | PACT Wines",
       metaDescription:
-        "Natural wine from the Jura: Poulsard, Trousseau, Savagnin and Chardonnay from marl soils between Burgundy and Switzerland. Home delivery in Stockholm.",
+        "Natural wine from the Jura: Poulsard, Trousseau, Savagnin and Chardonnay from marl soils between Burgundy and Switzerland. Home delivery in Sweden.",
       description:
         "The Jura is a small wine area in the mountains between Burgundy and Switzerland, with its own grapes such as Poulsard, Trousseau and Savagnin. The region has a long tradition of wine with little or no sulphur and is today one of the most important areas for natural wine.",
       contentHeading: "About natural wine from the Jura",
@@ -321,7 +321,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Naturvin från Rhône",
       title: "Naturvin från Rhône | PACT Wines",
       metaDescription:
-        "Naturvin från Rhône: Syrah från granit i norr, Grenache-blends och Tavel i söder, och vin från Ardèche. Hemleverans i Stockholm.",
+        "Naturvin från Rhône: Syrah från granit i norr, Grenache-blends och Tavel i söder, och vin från Ardèche. Hemleverans i Sverige.",
       description:
         "Rhônedalen delas i två delar. I norr görs Syrah på branta granitsluttningar i Saint-Joseph och Crozes-Hermitage. I söder dominerar Grenache i blend med Syrah och Mourvèdre, i appellationer som Gigondas och Tavel. Väster om floden ligger Ardèche, där många naturvinsodlare arbetar under Vin de France.",
       contentHeading: "Om naturvin från Rhône",
@@ -349,7 +349,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Natural wine from the Rhône Valley",
       title: "Natural Wine from the Rhône Valley | PACT Wines",
       metaDescription:
-        "Natural wine from the Rhône Valley: Syrah from granite in the north, Grenache blends and Tavel in the south, and wine from the Ardèche. Home delivery in Stockholm.",
+        "Natural wine from the Rhône Valley: Syrah from granite in the north, Grenache blends and Tavel in the south, and wine from the Ardèche. Home delivery in Sweden.",
       description:
         "The Rhône Valley is divided into two parts. In the north Syrah is made on steep granite slopes in Saint-Joseph and Crozes-Hermitage. In the south Grenache dominates in blends with Syrah and Mourvèdre, in appellations such as Gigondas and Tavel. West of the river lies the Ardèche, where many natural wine growers work under Vin de France.",
       contentHeading: "About natural wine from the Rhône Valley",
@@ -380,7 +380,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Naturvin från Roussillon",
       title: "Naturvin från Roussillon | PACT Wines",
       metaDescription:
-        "Naturvin från Roussillon: Grenache, Macabeu och Muscat från skiffer, kalk och granit vid Pyrenéerna. Hemleverans i Stockholm.",
+        "Naturvin från Roussillon: Grenache, Macabeu och Muscat från skiffer, kalk och granit vid Pyrenéerna. Hemleverans i Sverige.",
       description:
         "Roussillon är Frankrikes sydligaste vinområde, mellan Pyrenéerna, Medelhavet och den spanska gränsen. Varmt och torrt klimat, blåsten tramontane och jordar av skiffer, kalk och granit ger koncentrerade viner med tydlig mineralitet.",
       contentHeading: "Om naturvin från Roussillon",
@@ -408,7 +408,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Natural wine from Roussillon",
       title: "Natural Wine from Roussillon | PACT Wines",
       metaDescription:
-        "Natural wine from Roussillon: Grenache, Macabeu and Muscat from schist, limestone and granite by the Pyrenees. Home delivery in Stockholm.",
+        "Natural wine from Roussillon: Grenache, Macabeu and Muscat from schist, limestone and granite by the Pyrenees. Home delivery in Sweden.",
       description:
         "Roussillon is France's southernmost wine area, between the Pyrenees, the Mediterranean and the Spanish border. A warm and dry climate, the tramontane wind and soils of schist, limestone and granite give concentrated wines with clear minerality.",
       contentHeading: "About natural wine from Roussillon",
@@ -439,7 +439,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Naturvin från Sydvästra Frankrike",
       title: "Naturvin från Sydvästra Frankrike (Sud-Ouest) | PACT Wines",
       metaDescription:
-        "Naturvin från Sydvästra Frankrike: Malbec från Cahors, Manseng från Jurançon och lokala druvor från Sud-Ouest. Hemleverans i Stockholm.",
+        "Naturvin från Sydvästra Frankrike: Malbec från Cahors, Manseng från Jurançon och lokala druvor från Sud-Ouest. Hemleverans i Sverige.",
       description:
         "Sud-Ouest är samlingsnamnet för vinområdena mellan Bordeaux och Pyrenéerna. Här finns många lokala druvor som knappt odlas någon annanstans, från Malbec i Cahors till Gros och Petit Manseng i Jurançon.",
       contentHeading: "Om naturvin från Sydvästra Frankrike",
@@ -467,7 +467,7 @@ export const WINE_REGION_CATEGORY_CONTENT: Partial<
       h1: "Natural wine from Southwest France",
       title: "Natural Wine from Southwest France | PACT Wines",
       metaDescription:
-        "Natural wine from Southwest France: Malbec from Cahors, Manseng from Jurançon and local grapes from the Sud-Ouest. Home delivery in Stockholm.",
+        "Natural wine from Southwest France: Malbec from Cahors, Manseng from Jurançon and local grapes from the Sud-Ouest. Home delivery in Sweden.",
       description:
         "Sud-Ouest is the collective name for the wine areas between Bordeaux and the Pyrenees. Here are many local grapes that are hardly grown anywhere else, from Malbec in Cahors to Gros and Petit Manseng in Jurançon.",
       contentHeading: "About natural wine from Southwest France",

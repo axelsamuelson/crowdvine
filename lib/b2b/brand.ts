@@ -10,6 +10,15 @@ export const DIRTYWINE_BRAND_NAME = "Dirtywine" as const;
 /** Customer-facing body brand in inquiry confirmation email (greeting + footer). */
 export const DIRTYWINE_EMAIL_BODY_BRAND = "Dirty Wine" as const;
 
+/** Header/footer logo text fallback when the site logo image is missing. */
+export const PACT_WORDMARK = "PACT" as const;
+export const DIRTYWINE_WORDMARK = "DIRTY WINE" as const;
+
+/** Wordmark for logo fallback — Dirty Wine vs PACT via existing site hint. */
+export function getSiteWordmark(isDirtyWine: boolean): string {
+  return isDirtyWine ? DIRTYWINE_WORDMARK : PACT_WORDMARK;
+}
+
 /** Absolute logo URL used in transactional email (header_logo_dirtywine). */
 export const DIRTYWINE_EMAIL_LOGO_URL =
   "https://abrnvjqwpdkodgrtezeg.supabase.co/storage/v1/object/public/uploads/fe06af9d-ee01-418b-8b77-9d1b0c435bac.svg";

@@ -43,6 +43,9 @@ next-env.d.ts
 # uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Repo-root uploads/ is for local legal/internal handoff drafts only — never commit
+/uploads/
 .env*.local
 .cursor/mcp.json
 supabase/.temp/
@@ -50,3 +53,6 @@ tmp/
 
 # Agent / design-review screenshots (keep in /opt/cursor/artifacts only)
 .review-shots/
+
+# Review / agent verification screenshots — never commit (public repo)
+/artifacts/

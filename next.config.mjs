@@ -24,6 +24,28 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Swedish checkout alias — avoid membership wall on /kassan.
+      {
+        source: "/kassan",
+        destination: "/checkout",
+        permanent: true,
+      },
+      {
+        source: "/kassan/:path*",
+        destination: "/checkout/:path*",
+        permanent: true,
+      },
+      // Retired Opus SaaS template — never serve to customers (any host/locale).
+      {
+        source: "/onboarding",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/en/onboarding",
+        destination: "/",
+        permanent: true,
+      },
       {
         source: "/admin/operations/okrs",
         destination: "/admin/operations/objectives",

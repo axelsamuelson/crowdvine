@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import {
-  deliveryEstimateLabelFromFillPercent,
-  type PalletEstimatedDeliveryBand,
+  palletDeliveryEstimateLabel,
+  type PalletDeliveryEstimateLabel,
 } from "@/lib/pallet-delivery-estimate-label";
 import {
   DEFAULT_MIN_BOTTLES_TO_COMPLETE,
@@ -11,8 +11,8 @@ import {
   type PalletShipProgress,
 } from "@/lib/pallet-ship-progress";
 
-export type { PalletEstimatedDeliveryBand };
-export { deliveryEstimateLabelFromFillPercent };
+export type { PalletDeliveryEstimateLabel };
+export { palletDeliveryEstimateLabel };
 export type { PalletShipProgress };
 
 /** @deprecated Prefer shipProgressPercent from computePalletShipProgress for UI. */
@@ -132,7 +132,7 @@ export async function getPalletFillData(
   minBottlesToShip: number;
   fillPercent: number;
   shipProgress: PalletShipProgress;
-  estimatedDelivery: PalletEstimatedDeliveryBand;
+  estimatedDelivery: PalletDeliveryEstimateLabel;
 }> {
   const bottlesFilled = await sumReservedBottlesOnPallet(palletId);
   const physical = resolvePhysicalBottleCapacity(bottleCapacity);
@@ -152,8 +152,6 @@ export async function getPalletFillData(
     /** Ship-ready progress % (toward min), not physical fill. */
     fillPercent: shipProgress.shipProgressPercent,
     shipProgress,
-    estimatedDelivery: deliveryEstimateLabelFromFillPercent(
-      shipProgress.shipProgressPercent,
-    ),
+    estimatedDelivery: palletDeliveryEstimateLabel("sv"),
   };
 }

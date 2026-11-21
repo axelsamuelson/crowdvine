@@ -4,6 +4,10 @@ import {
   ArticleGuideShell,
   type ArticleGuideShellBlock,
 } from "@/lib/guides/article-guide-shell";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { ArticleShopCta } from "@/lib/guides/article-shop-cta";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
 import {
@@ -15,10 +19,16 @@ import {
   buildGuideBreadcrumbJsonLd,
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import {
+  buildGuideAuthorPersonJsonLd,
+  buildGuideFaqPageJsonLd,
+  guideArticleAuthorRef,
+  guideAuthorPersonId,
+} from "@/lib/guides/guide-json-ld";
 import { isGuideHrefVisibleFrom } from "@/lib/guides/guide-publication";
 import { guidePath } from "@/lib/guides/guide-routes";
+import { shouldShowGuideShopCta } from "@/lib/guides/shop-links";
 import {
-  articleLinkText,
   articleParagraphs,
   articlePath,
   articleVisibleForLocale,
@@ -39,6 +49,7 @@ function resolveArticleShopHref(
   content: GuideArticleContent,
   locale: AppLocale,
 ): string | null {
+  if (!shouldShowGuideShopCta(content.slug[locale])) return null;
   if (content.shopCta === null) return null;
   if (content.shopCta?.href[locale]) return content.shopCta.href[locale];
 
@@ -124,15 +135,34 @@ export async function renderArticleGuidePage(
   const shopHref = resolveArticleShopHref(content, locale);
   const shopLabel =
     content.shopCta?.label?.[locale]?.trim() || copy.shopNaturalWine;
+  const shopCtaProps =
+    shopHref === null
+      ? null
+      : {
+          href: shopHref,
+          lead: copy.shopCtaLead,
+        };
 
-  const shopCta =
-    shopHref === null ? null : (
-      <ArticleShopCta
-        href={shopHref}
-        label={shopLabel}
-        lead={copy.shopCtaLead}
-      />
-    );
+  const shopLinks = await loadGuideShopLinks(pagePath, locale);
+
+  /**
+   * Shop-links card (+ black primary button when CTA is allowed).
+   * Systembolaget / shopCta:null → pillista only. NONE / no links → legacy CTA.
+   */
+  const afterBody = shopLinks ? (
+    <GuideShopLinksBlock
+      guidePath={pagePath}
+      locale={locale}
+      links={shopLinks}
+      cta={shopCtaProps}
+    />
+  ) : shopCtaProps ? (
+    <ArticleShopCta
+      href={shopCtaProps.href}
+      label={shopLabel}
+      lead={shopCtaProps.lead}
+    />
+  ) : undefined;
 
   const about =
     content.jsonLdAbout.type === "Person"
@@ -153,28 +183,19 @@ export async function renderArticleGuidePage(
             name: content.jsonLdAbout.name,
           };
 
-  const authorPersonId = content.author
-    ? `${seoBaseUrl}/#/schema/person/${content.author.name
-        .toLowerCase()
-        .replace(/\s+/g, "-")}`
-    : null;
-
-  /** Single Person node; Article.author references it by @id (no duplicate Person). */
-  const authorPerson = content.author
-    ? {
-        "@type": "Person" as const,
-        "@id": authorPersonId!,
-        name: content.author.name,
-        ...(content.author.jobTitle
-          ? { jobTitle: content.author.jobTitle }
-          : {}),
-        worksFor: {
-          "@type": "Organization" as const,
-          name: "PACT",
-          url: seoBaseUrl,
-        },
-      }
-    : null;
+  /**
+   * Person only when a named author byline is actually visible on the page.
+   * Single Person node; Article.author references it by @id (no duplicate).
+   */
+  const visibleAuthorByline = content.author?.byline[locale]?.trim();
+  const authorPerson =
+    content.author && visibleAuthorByline
+      ? buildGuideAuthorPersonJsonLd(content.author, seoBaseUrl)
+      : null;
+  const authorPersonId =
+    content.author && visibleAuthorByline
+      ? guideAuthorPersonId(content.author.name, seoBaseUrl)
+      : null;
 
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -189,7 +210,9 @@ export async function renderArticleGuidePage(
       url: seoBaseUrl,
     },
     about,
-    ...(authorPersonId ? { author: { "@id": authorPersonId } } : {}),
+    ...(authorPersonId
+      ? { author: guideArticleAuthorRef(authorPersonId) }
+      : {}),
     ...(content.updated ? { dateModified: content.updated } : {}),
   };
 
@@ -199,21 +222,7 @@ export async function renderArticleGuidePage(
       answer: faq.answer[locale],
     }),
   );
-  const faqJsonLd =
-    faqs.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: articleLinkText(faq.answer),
-            },
-          })),
-        }
-      : null;
+  const faqJsonLd = buildGuideFaqPageJsonLd(faqs);
 
   const breadcrumbCrumbs = articleGuideCrumbs({
     locale,
@@ -284,10 +293,7 @@ export async function renderArticleGuidePage(
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              ...authorPerson,
-            }),
+            __html: JSON.stringify(authorPerson),
           }}
         />
       ) : null}
@@ -306,13 +312,7 @@ export async function renderArticleGuidePage(
             blocks: shellBlocks(section, locale),
           }),
         )}
-        afterFirstSection={
-          articleVisibleForLocale(content.sections, locale).length >= 2 &&
-          shopCta
-            ? shopCta
-            : undefined
-        }
-        afterSections={shopCta ?? undefined}
+        afterSections={afterBody}
         faqs={faqs}
         faqHeading={locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
         furtherReadingHeading={content.furtherReadingHeading[locale]}

@@ -330,6 +330,20 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     sources: ["client"],
   },
   {
+    eventType: "checkout_step_blocked",
+    category: "checkout",
+    description:
+      "Shopper tried to advance a locked checkout step (Fortsätt / locked step / blocked CTA). Metadata: step (postal|delivery|age_terms|payment), reason (short code e.g. missing_phone, quote_missing, quote_stale, auth_required). Deduped once per checkout session+step+reason. Never PII. Not emitted on passive field status.",
+    sources: ["client"],
+  },
+  {
+    eventType: "shipping_quote_failed",
+    category: "checkout",
+    description:
+      "Fraktpris kunde inte beräknas. Metadata: delivery_type (shared_pallet|direct_box), reason (short code e.g. quote_error, quote_timeout, auth_required). Deduped once per session+delivery_type+reason. Never PII. Guest 401 before session is auth_required (not quote_error).",
+    sources: ["client"],
+  },
+  {
     eventType: "checkout_error",
     category: "checkout",
     description:
@@ -361,7 +375,7 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "checkout_zone_error",
     category: "checkout",
     description:
-      "Leveranszon kunde inte matchas (NO_DELIVERY_ZONE / UNSUPPORTED_COUNTRY). Metadata: zoneError, postal_digits (digits only), country_code.",
+      "Leveranszon kunde inte matchas (NO_DELIVERY_ZONE / UNSUPPORTED_COUNTRY). Metadata: zoneError, postal_digits (digits only), country_code, available_fulfillment_channels. postal_out_of_zone (checkout_error code) only when no channel remains.",
     sources: ["client"],
   },
   {
@@ -438,6 +452,33 @@ export const TRACKED_USER_EVENTS_CATALOG: TrackedEventCatalogEntry[] = [
     eventType: "why_modal_opened",
     category: "engagement",
     description: "“Why six bottles” help opened from cart header.",
+    sources: ["client"],
+  },
+  {
+    eventType: "welcome_shown",
+    category: "engagement",
+    description:
+      "Welcome modal opened once after first login/signup (flag-gated).",
+    sources: ["client"],
+  },
+  {
+    eventType: "welcome_step_viewed",
+    category: "engagement",
+    description: "Welcome modal step became visible. Metadata: step (1–3).",
+    sources: ["client"],
+  },
+  {
+    eventType: "welcome_dismissed",
+    category: "engagement",
+    description:
+      "Welcome modal closed via Stäng/Hoppa över. Metadata: step, method (close|skip).",
+    sources: ["client"],
+  },
+  {
+    eventType: "welcome_cta_clicked",
+    category: "engagement",
+    description:
+      "Welcome modal final CTA (Se vinerna / See the wines) clicked.",
     sources: ["client"],
   },
   {

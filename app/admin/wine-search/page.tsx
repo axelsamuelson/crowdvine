@@ -2,9 +2,10 @@
 
 import { WineSearchExplorer } from "@/components/wine-search/wine-search-explorer";
 
+/** Hitta vin — same PACT admin shell (sidebar/layout) as other /admin pages. */
 export default function AdminWineSearchPage() {
   return (
-    <div className="min-h-0 flex-1 overflow-auto bg-zinc-50 py-6 dark:bg-zinc-950">
+    <div className="space-y-6">
       <WineSearchExplorer />
     </div>
   );

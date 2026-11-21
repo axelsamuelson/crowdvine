@@ -26,7 +26,7 @@ describe("buildPdpSeoDescription", () => {
         region: "Rhône",
       }),
     ).toBe(
-      "Ett friskt rött. Naturvin från Hervé Souhaut, Rhône. Hemleverans i Stockholm.",
+      "Ett friskt rött. Naturvin från Hervé Souhaut, Rhône. Hemleverans i Sverige.",
     );
     expect(
       buildPdpSeoDescription("en", {
@@ -37,7 +37,7 @@ describe("buildPdpSeoDescription", () => {
         region: "Champagne",
       }),
     ).toBe(
-      "A fresh red. Natural wine from Hervé Souhaut, Champagne. Home delivery in Stockholm.",
+      "A fresh red. Natural wine from Hervé Souhaut, Champagne. Home delivery in Sweden.",
     );
     expect(
       buildPdpSeoDescription("sv", {
@@ -47,6 +47,6 @@ describe("buildPdpSeoDescription", () => {
         producerName: "Hervé Souhaut",
         region: null,
       }),
-    ).toBe("Ett friskt rött. Naturvin från Hervé Souhaut. Hemleverans i Stockholm.");
+    ).toBe("Ett friskt rött. Naturvin från Hervé Souhaut. Hemleverans i Sverige.");
   });
 });

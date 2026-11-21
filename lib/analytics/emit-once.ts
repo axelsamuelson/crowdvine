@@ -180,6 +180,8 @@ export function clearCheckoutAnalyticsSession(): void {
     clearClaimsWithPrefix(`age_passed:${sessionId}:`);
     clearClaimsWithPrefix(`checkout_step_viewed:${sessionId}:`);
     clearClaimsWithPrefix(`checkout_step_completed:${sessionId}:`);
+    clearClaimsWithPrefix(`checkout_step_blocked:${sessionId}:`);
+    clearClaimsWithPrefix(`shipping_quote_failed:${sessionId}:`);
     clearClaimsWithPrefix(`checkout_abandoned:${sessionId}`);
   }
   clearClaim(CHECKOUT_SESSION_ID_KEY);

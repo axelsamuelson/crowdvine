@@ -40,7 +40,7 @@ export const worldsBestNaturalChampagneGuide = {
   },
   intro: {
     en: [
-      "Champagne and natural wine seem like opposites. One is the most industrial, manipulated category in fine wine — blended across years, dosed with sugar, filled with added yeast. The other is built on transparency and minimal intervention. Yet the two have always coexisted, in the work of a small number of growers who refused to follow the houses' methods.",
+      "Champagne and [natural wine](/guides/what-is-natural-wine) seem like opposites. One is the most industrial, manipulated category in fine wine — blended across years, dosed with sugar, filled with added yeast. The other is built on transparency and minimal intervention. Yet the two have always coexisted, in the work of a small number of growers who refused to follow the houses' methods.",
       "Grower champagne — made by the person who grows the grapes, from their own land — is where natural wine principles found their way into Champagne. Anselme Selosse was the pivot: he brought Burgundian parcellaire thinking to a region built on blending, used barrel fermentation and oxidative élevage, and created a category that is now one of the most sought-after in wine.",
       "This is our selection of the finest natural champagne from our list of the world's 100 best natural wines.",
     ],

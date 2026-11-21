@@ -44,7 +44,7 @@ export async function getSiteContentByKey(key: string): Promise<string | null> {
       .from("site_content")
       .select("value")
       .eq("key", key)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.warn(`Site content not found for key: ${key}`, error);

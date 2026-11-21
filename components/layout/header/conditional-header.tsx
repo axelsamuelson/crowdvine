@@ -33,7 +33,6 @@ function shouldHideHeader(
     pathname.startsWith("/c/");
   // Dirty Wine open sign-up keeps the site header + logo; PACT token signup stays chrome-free.
   const isSignupRoute = pathname === "/signup" && !isDirtywineSite;
-  const isOnboardingRoute = pathname === "/onboarding";
 
   return (
     isTastingRoute ||
@@ -42,8 +41,7 @@ function shouldHideHeader(
     isLogInRoute ||
     isMapTopoRoute ||
     isInvitationRoute ||
-    isSignupRoute ||
-    isOnboardingRoute
+    isSignupRoute
   );
 }
 

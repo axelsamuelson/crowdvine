@@ -132,6 +132,7 @@ describe("pet nat Systembolaget guides", () => {
       "/guider/basta-mousserande-naturviner-systembolaget",
       "/guider/vad-ar-naturvin",
       "/guider/basta-naturvinerna-pa-systembolaget",
+      "/vin/pet-nat",
     ]);
   });
 
@@ -194,6 +195,7 @@ describe("pet nat Systembolaget guides", () => {
       "/guides/what-is-natural-wine",
       "/guides/what-is-orange-wine",
       "/guides/worlds-best-natural-wine-producers",
+      "/wine/pet-nat",
     ]);
     const styles = whatIsNaturalWineArticle.sections.find(
       (section) => section.heading?.en === "Natural wine styles",

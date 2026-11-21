@@ -42,7 +42,7 @@ export const guyBretonArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "Guy Breton is known as P'tit Max among friends and across the natural wine world. The nickname travels further than many domaine names — as recognisable on a list as the surname on the label. It signals approachability, personality and a lightness of touch that extends from the person to the bottle.",
+          "Guy Breton is known as P'tit Max among friends and across the [natural wine](/guides/what-is-natural-wine) world. The nickname travels further than many domaine names — as recognisable on a list as the surname on the label. It signals approachability, personality and a lightness of touch that extends from the person to the bottle.",
           "That matters in a movement that can sometimes take itself too seriously. Breton represents the other side of natural wine: the pleasure side. His wines argue that seriousness and joy are not opposites — and that a producer known by a nickname can still belong among the finest in the world. P'tit Max is not branding. It is how people who love the wines already speak about them — and how the domaine's character arrives before the technical story does.",
         ],
         sv: "P'tit Max — varifrån det kommer, vad det fångar om mannen och vinerna. Hur ett smeknamn reser i naturvinsvärlden och blir lika igenkännbart som domännamnet. Vad namnet signalerar: tillgänglighet, personlighet, en viss lätthet som sträcker sig från personen till flaskan. Varför det spelar roll i en värld där naturvin ibland tar sig självt för seriöst — Breton representerar rörelsens andra sida, glädjesidan.",
@@ -116,6 +116,16 @@ export const guyBretonArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Guy Breton is ranked #29 on our list of the world's 100 best natural wine producers →",

@@ -15,9 +15,9 @@ const TOP_100_NAMES = new Set(TOP_100_PRODUCERS.map((p) => p.name));
 
 const patchSchema = z
   .object({
-    verdict: z.enum(["recommended", "avoid", "skipped"]).optional(),
+    verdict: z.enum(["recommended", "avoid", "skipped", "candidate"]).optional(),
     category: z.enum(GUIDE_WINE_CATEGORIES).optional(),
-    editorial_note_sv: z.string().min(1).optional(),
+    editorial_note_sv: z.string().optional(),
     editorial_note_en: z.string().optional().nullable(),
     producer_note_sv: z.string().optional().nullable(),
     producer_note_en: z.string().optional().nullable(),
@@ -94,7 +94,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   const patch: Record<string, unknown> = { ...parsed.data };
-  if (parsed.data.verdict === "skipped") {
+  if (
+    parsed.data.verdict === "skipped" ||
+    parsed.data.verdict === "candidate"
+  ) {
     patch.is_published = false;
   }
   if ("top_100_producer_name" in patch) {

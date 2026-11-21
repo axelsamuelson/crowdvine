@@ -1,3 +1,5 @@
+import { readonlyApiKeyConfigured } from "./readonly-api-key";
+
 export type McpAuthMode = "api_key" | "oauth" | "dual";
 
 /**
@@ -5,6 +7,9 @@ export type McpAuthMode = "api_key" | "oauth" | "dual";
  * - api_key: shared secret only (MCP_API_KEY), legacy / Cursor static Bearer
  * - oauth: Auth0 JWT only (AUTH0_DOMAIN + AUTH0_AUDIENCE)
  * - dual: accept either valid API key (full tool access) or valid JWT (scope-enforced)
+ *
+ * Independently of mode, `PACT_MCP_READONLY_API_KEY` (when set) also unlocks
+ * the endpoint for allowlisted `get_gsc_*` tools only.
  */
 export function getMcpAuthMode(): McpAuthMode {
   const raw = process.env.MCP_AUTH_MODE?.trim().toLowerCase();
@@ -24,6 +29,8 @@ export function apiKeyReady(): boolean {
 
 /** Whether the app should accept MCP traffic at all (503 when false). */
 export function mcpAuthIsConfigured(): boolean {
+  // Free GSC-only path: read-only key alone is enough to accept traffic.
+  if (readonlyApiKeyConfigured()) return true;
   const mode = getMcpAuthMode();
   if (mode === "api_key") return apiKeyReady();
   if (mode === "oauth") return oauthConfigReady();

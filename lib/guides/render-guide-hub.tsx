@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 
 import { GuideHubBrowse } from "@/components/guides/guide-hub-browse";
+import {
+  GuideShopLinksBlock,
+  loadGuideShopLinks,
+} from "@/components/guides/guide-shop-links-block";
 import { Footer } from "@/components/layout/footer";
 import {
   GuideBreadcrumbs,
@@ -8,9 +12,11 @@ import {
 } from "@/lib/guides/guide-breadcrumbs";
 import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
+import { withIndexableShopRegionSection } from "@/lib/guides/guide-hub-region-section";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
+import { getIndexableRegionLinks } from "@/lib/shop/indexable-region-links";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import {
   defaultOpenGraphImages,
@@ -47,6 +53,16 @@ export async function buildGuideHubMetadata(
 export async function renderGuideHubPage(locale: AppLocale) {
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
+  const hubGuidePath = guidePath("hub", locale);
+  const [shopRegionLinks, guideShopLinks] = await Promise.all([
+    getIndexableRegionLinks(locale),
+    loadGuideShopLinks(hubGuidePath, locale),
+  ]);
+  const sections = withIndexableShopRegionSection(
+    copy.hubSections,
+    locale,
+    shopRegionLinks,
+  );
 
   const breadcrumbJsonLd = buildGuideBreadcrumbJsonLd([
     { name: copy.home, item: guideHomeAbsoluteUrl(seoBaseUrl, locale) },
@@ -75,13 +91,21 @@ export async function renderGuideHubPage(locale: AppLocale) {
         <GuideHubBrowse
           hubTitle={copy.hubTitle}
           hubIntro={copy.hubIntro}
-          sections={copy.hubSections}
+          sections={sections}
           labels={{
             clear: copy.hubClear,
             all: copy.hubAll,
             filter: copy.hubFilter,
           }}
         />
+
+        <div className="mx-auto mt-14 max-w-3xl px-sides">
+          <GuideShopLinksBlock
+            guidePath={hubGuidePath}
+            locale={locale}
+            links={guideShopLinks}
+          />
+        </div>
       </div>
 
       <Footer />

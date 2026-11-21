@@ -15,4 +15,10 @@ describe("membership perks lookup fail-soft", () => {
     // Must not throw on perksError anymore.
     expect(src).not.toMatch(/if \(perksError\) throw perksError/);
   });
+
+  it("uses maybeSingle so a missing membership row is 404 not 500", () => {
+    expect(src).toMatch(/\.maybeSingle\(\)/);
+    expect(src).toMatch(/Membership not found/);
+    expect(src).toMatch(/status: 404/);
+  });
 });

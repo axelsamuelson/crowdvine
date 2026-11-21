@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { NOINDEX_PAGE_ROBOTS } from "@/lib/seo/noindex-robots";
 import { HomeSidebar } from "@/components/layout/sidebar/home-sidebar";
 import { Footer } from "@/components/layout/footer";
 import { getCollections } from "@/lib/shopify";
@@ -6,6 +8,11 @@ import { getCurrentAdmin } from "@/lib/admin-auth-server";
 import { Concept11Visualization } from "@/components/home-concepts/concept-11-visualization";
 
 // Disable static generation for now - make it dynamic
+
+export const metadata: Metadata = {
+  robots: NOINDEX_PAGE_ROBOTS,
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function Concept11Page() {

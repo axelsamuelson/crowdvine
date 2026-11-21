@@ -1,6 +1,6 @@
 # Köpvillkor
 
-Senast uppdaterad: 2026-11-11
+Senast uppdaterad: 2026-11-13
 
 ---
 
@@ -74,7 +74,9 @@ När en order avbryts tas ditt sparade kort bort, om du inte väljer att spara d
 
 **Leverans.** Dina lådor packas i Frankrike och vi skickar dem med UPS hem till dig. Leveranstiden är normalt **5–10 arbetsdagar** från att ordern är bekräftad och betald. Har du inte fått din leverans inom 30 dagar får du avbryta köpet och får då tillbaka hela beloppet inom 14 dagar.
 
-**Ålderskontroll.** UPS kontrollerar vid överlämningen att mottagaren har fyllt 20 år. Visa giltig legitimation. Om ålderskontrollen inte går igenom lämnas vinet inte ut, det skickas tillbaka till oss och du får tillbaka pengarna utan avgift.
+**Ålderskontroll.** UPS kontrollerar vid överlämningen att mottagaren har fyllt 20 år. Visa giltig legitimation. Går ålderskontrollen inte igenom lämnas vinet inte ut.
+
+**Om lådan inte kan lämnas över.** Kan UPS inte lämna över lådan, till exempel för att ingen är hemma, lådan inte hämtas ut eller ålderskontrollen inte går igenom, skickas den tillbaka till producenten. När lådan är tillbaka betalar vi tillbaka det du betalat för vinet, men inte frakten. Vill du ha vinet ändå skickar vi det igen mot en ny fraktavgift på 149 kr per låda. Beror det på oss eller UPS att lådan inte kom fram får du i stället tillbaka hela beloppet inklusive frakt, eller en ny leverans utan kostnad. Din ångerrätt gäller som vanligt: ångrar du köpet innan lådan har levererats får du tillbaka även fraktavgiften, men vi drar av den faktiska kostnaden för att skicka tillbaka lådan.
 
 **Ångerrätt.** Du har samma ångerrätt som vid delad pall, se punkt 9. Du kan ångra köpet redan innan leveransen.
 
@@ -89,6 +91,7 @@ Det händer att ett vin tar slut efter att du har köpt.
 - Vi erbjuder dig först ett **likvärdigt ersättningsvin** från samma producent eller grossist. Byte sker bara om du godkänner det.
 - Går det att stryka vinet utan att en låda blir ofullständig får du välja att stryka det i stället. Du får då tillbaka pengarna för det vinet, eller debiteras inte för det om du ännu inte har debiterats.
 - Om vinet inte kan strykas utan att en låda blir ofullständig och du inte godkänner ersättningsvinet, **avbryts hela ordern**. Du får då tillbaka hela beloppet utan onödigt dröjsmål och senast inom 14 dagar, eller debiteras inte alls om du ännu inte har debiterats.
+- Vid direktleverans har du **2 arbetsdagar** på dig att svara på vårt erbjudande. Svarar du inte inom den tiden avbryts hela ordern och du får tillbaka hela beloppet utan onödigt dröjsmål och senast inom 14 dagar. Godkänner du ersättningsvinet räknas leveranstiden från ditt ja.
 
 ---
 
@@ -139,9 +142,9 @@ Om leveransen blir väsentligt försenad har du rätt att häva köpet och få p
 
 ## 8. Om leverans inte kan genomföras
 
-Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
+**Vid delad pall:** Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte genomföras då heller returneras varan.
 
-Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
+Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift. För direktleverans gäller punkt 3 b.
 
 Du får undersöka varan på samma sätt som i en butik, men inte mer än så. Har en flaska öppnats, eller förvarats eller hanterats så att vinet kan ha tagit skada, till exempel i värme eller direkt solljus, ansvarar du för värdeminskningen. Vi får då göra ett avdrag från återbetalningen som motsvarar värdeminskningen, upp till flaskans fulla pris. Detta följer av 2 kap. 14 § lagen (2005:59) om distansavtal och avtal utanför affärslokaler.
 

@@ -1,25 +1,54 @@
 import { PRODUCER_DB_SELECT } from "@/lib/catalog-mappers";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
+/** Columns that may be absent on older / TEST schemas. */
 const OPTIONAL_PRODUCER_COLUMNS = [
+  "lat",
+  "lon",
+  "website_url",
+  "instagram_handle",
   "certification_verified_url",
   "certification_in_conversion",
   "certification_lapsed",
 ] as const;
 
+function missingColumnFromError(errorMessage: string): string | null {
+  const patterns = [
+    /column\s+[a-z_]+\.([a-z_0-9]+)\s+does not exist/i,
+    /could not find\s+(?:the\s+)?column\s+['"]?([a-z_0-9]+)['"]?/i,
+    /Could not find the '([a-z_0-9]+)' column/i,
+  ];
+  for (const pattern of patterns) {
+    const match = errorMessage.match(pattern);
+    if (match?.[1]) return match[1].toLowerCase();
+  }
+  return null;
+}
+
 function stripMissingOptionalColumns(
   select: string,
   errorMessage: string,
 ): string | null {
+  const parts = select.split(",").map((part) => part.trim()).filter(Boolean);
+  const named = missingColumnFromError(errorMessage);
+
   if (
-    !/column.*does not exist|could not find.*column|certification_verified_url|certification_in_conversion|certification_lapsed/i.test(
-      errorMessage,
+    named &&
+    OPTIONAL_PRODUCER_COLUMNS.includes(
+      named as (typeof OPTIONAL_PRODUCER_COLUMNS)[number],
     )
+  ) {
+    const filtered = parts.filter((part) => part !== named);
+    if (filtered.length < parts.length) return filtered.join(", ");
+  }
+
+  if (
+    !/column.*does not exist|could not find.*column/i.test(errorMessage) &&
+    !OPTIONAL_PRODUCER_COLUMNS.some((column) => errorMessage.includes(column))
   ) {
     return null;
   }
 
-  const parts = select.split(",").map((part) => part.trim());
   const filtered = parts.filter((part) => {
     return !OPTIONAL_PRODUCER_COLUMNS.some(
       (column) =>
@@ -30,7 +59,6 @@ function stripMissingOptionalColumns(
   });
 
   if (filtered.length === parts.length) {
-    // Unknown optional column named in a generic missing-column error — drop both.
     const withoutOptional = parts.filter(
       (part) =>
         !OPTIONAL_PRODUCER_COLUMNS.includes(

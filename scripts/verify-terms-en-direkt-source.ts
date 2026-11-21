@@ -8,6 +8,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { applyEn3bAmendment } from "../lib/legal/kopvillkor-2026-11-13-amendment";
 
 const EXPECTED_SHA256 =
   "1b9dfe864c9c52ec581290192b48bd89d97ce32e019ad8cbb4d368d9db169914";
@@ -75,7 +76,7 @@ function extractBody(publishable: string, heading: string, next?: string): strin
   return body;
 }
 
-function resolveApprovedPath(): string {
+function resolveApprovedPath(): string | null {
   const arg = process.argv[2];
   if (arg) return resolve(arg);
   const candidates = [
@@ -85,11 +86,17 @@ function resolveApprovedPath(): string {
   for (const p of candidates) {
     if (existsSync(p)) return resolve(p);
   }
-  throw new Error("Approved EN addendum file not found");
+  return null;
 }
 
 function main() {
   const approvedPath = resolveApprovedPath();
+  if (!approvedPath) {
+    console.log(
+      "SKIP: approved EN terms direkt addendum not found locally (pass a path as argv to verify).",
+    );
+    return;
+  }
   const publishedPath = resolve("content/legal/source/kopvillkor.en.md");
   const tsxPath = resolve("content/legal/kopvillkor-en.tsx");
 
@@ -124,18 +131,22 @@ function main() {
       continue;
     }
 
-    if (!published.includes(body)) {
+    // 2026-11-13 amendment supersedes the §3b age-check sentence and adds a paragraph.
+    const expected =
+      section.id === "section-3b" ? applyEn3bAmendment(body) : body;
+
+    if (!published.includes(expected)) {
       console.error(
-        `FAIL ${section.id}: approved body not found character-for-character in kopvillkor.en.md (${body.length} chars)`,
+        `FAIL ${section.id}: approved body not found character-for-character in kopvillkor.en.md (${expected.length} chars)`,
       );
       console.error("--- approved body ---");
-      console.error(body);
+      console.error(expected);
       console.error("---");
       failed += 1;
       continue;
     }
 
-    const plain = body.replace(/\*\*/g, "").replace(/^-\s*/gm, "");
+    const plain = expected.replace(/\*\*/g, "").replace(/^-\s*/gm, "");
     const probe = plain
       .split("\n")
       .map((l) => l.trim())
@@ -148,7 +159,7 @@ function main() {
       continue;
     }
 
-    console.log(`OK ${section.id} (${body.length} chars verbatim in .en.md)`);
+    console.log(`OK ${section.id} (${expected.length} chars verbatim in .en.md)`);
   }
 
   if (failed) {

@@ -42,7 +42,7 @@ export function MenuPipelineHealthPanel({
 
   return (
     <div className="bg-white dark:bg-[#0F0F12] border border-gray-200 dark:border-[#1F1F23] rounded-xl p-6">
-      <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="flex items-center gap-3">
           <div
             className={cn(
@@ -76,7 +76,7 @@ export function MenuPipelineHealthPanel({
           size="sm"
           onClick={onRefresh}
           disabled={loading}
-          className="shrink-0"
+          className="w-full shrink-0 sm:w-auto"
         >
           <RefreshCw className={cn("w-3.5 h-3.5 mr-1.5", loading && "animate-spin")} />
           Uppdatera

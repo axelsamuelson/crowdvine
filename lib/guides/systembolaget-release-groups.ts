@@ -62,6 +62,92 @@ export function launchDateKey(value: string | null | undefined): string | null {
   return stockholmDateKey(date);
 }
 
+export type IsoWeek = {
+  isoYear: number;
+  isoWeek: number;
+};
+
+/**
+ * ISO 8601 week (Mon–Sun; week 1 has the year's first Thursday) for a
+ * YYYY-MM-DD calendar date. The date key is timezone-agnostic — callers that
+ * start from `product_launch_date` should pass {@link launchDateKey} so the
+ * calendar day is Europe/Stockholm.
+ */
+export function isoWeekFromDateKey(dateKey: string): IsoWeek {
+  const [year, month, day] = dateKey.split("-").map((part) => Number(part));
+  if (!year || !month || !day) {
+    throw new Error(`Invalid date key: ${dateKey}`);
+  }
+  // Noon UTC keeps the civil date stable across DST while we do weekday math.
+  const utc = new Date(Date.UTC(year, month - 1, day, 12));
+  const dayNum = utc.getUTCDay() || 7; // Mon=1 … Sun=7
+  utc.setUTCDate(utc.getUTCDate() + 4 - dayNum); // Thursday of this ISO week
+  const isoYear = utc.getUTCFullYear();
+  const yearStart = Date.UTC(isoYear, 0, 1, 12);
+  const dayOfYear =
+    Math.floor((utc.getTime() - yearStart) / 86_400_000) + 1;
+  const isoWeek = Math.floor((dayOfYear - 1) / 7) + 1;
+  return { isoYear, isoWeek };
+}
+
+/**
+ * ISO 8601 week of a launch instant, using the Europe/Stockholm calendar day.
+ * Null when the launch date is missing or unparseable.
+ */
+export function isoWeekFromLaunchDate(
+  value: string | null | undefined,
+): IsoWeek | null {
+  const key = launchDateKey(value);
+  if (!key) return null;
+  return isoWeekFromDateKey(key);
+}
+
+export type ReleaseWeekGroup<T extends ReleaseWine> = {
+  isoYear: number;
+  isoWeek: number;
+  wines: T[];
+};
+
+function compareIsoWeekDesc(a: IsoWeek, b: IsoWeek): number {
+  if (a.isoYear !== b.isoYear) return b.isoYear - a.isoYear;
+  return b.isoWeek - a.isoWeek;
+}
+
+/**
+ * Group category-"new" (or any release-list) wines by ISO week of
+ * `product_launch_date` (Stockholm calendar day). Newest week first. Rows
+ * without a parseable launch date are omitted — they cannot form an ISO week.
+ */
+export function groupWinesByLaunchIsoWeek<T extends ReleaseWine>(
+  wines: readonly T[],
+): ReleaseWeekGroup<T>[] {
+  const byWeek = new Map<string, { week: IsoWeek; wines: T[] }>();
+  for (const wine of wines) {
+    const week = isoWeekFromLaunchDate(wine.product_launch_date);
+    if (!week) continue;
+    const key = `${week.isoYear}-W${String(week.isoWeek).padStart(2, "0")}`;
+    const entry = byWeek.get(key);
+    if (entry) entry.wines.push(wine);
+    else byWeek.set(key, { week, wines: [wine] });
+  }
+
+  return [...byWeek.values()]
+    .map(({ week, wines: list }) => ({
+      isoYear: week.isoYear,
+      isoWeek: week.isoWeek,
+      wines: sortWithinDate(list),
+    }))
+    .sort((a, b) => compareIsoWeekDesc(a, b));
+}
+
+/** "Vecka 44" / "Week 44". */
+export function formatIssueWeekHeading(
+  issueWeek: number,
+  locale: "en" | "sv",
+): string {
+  return locale === "sv" ? `Vecka ${issueWeek}` : `Week ${issueWeek}`;
+}
+
 function blendedScore(wine: ReleaseWine): number {
   return (wine.wine_score ?? 0) + wine.score_adjust;
 }

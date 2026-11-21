@@ -553,10 +553,29 @@ export default function InfiniteGallery({
 	}
 
 	return (
-		<div className={className} style={style}>
+		<div
+			className={`relative z-0 h-full w-full overflow-hidden ${className}`}
+			style={{ ...style, zIndex: 0 }}
+		>
 			<Canvas
 				camera={{ position: [0, 0, 0], fov: 55 }}
-				gl={{ antialias: true, alpha: true }}
+				gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
+				style={{
+					position: 'absolute',
+					inset: 0,
+					width: '100%',
+					height: '100%',
+					zIndex: 0,
+					display: 'block',
+				}}
+				onCreated={({ gl }) => {
+					const el = gl.domElement;
+					el.style.position = 'absolute';
+					el.style.inset = '0';
+					el.style.width = '100%';
+					el.style.height = '100%';
+					el.style.zIndex = '0';
+				}}
 			>
 				<GalleryScene images={images} fadeSettings={fadeSettings} blurSettings={blurSettings} />
 			</Canvas>

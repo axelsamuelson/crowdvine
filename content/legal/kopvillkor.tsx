@@ -175,8 +175,20 @@ export default function KopvillkorContent() {
       <LegalP>
         <LegalStrong>Ålderskontroll.</LegalStrong> UPS kontrollerar vid
         överlämningen att mottagaren har fyllt 20 år. Visa giltig legitimation.
-        Om ålderskontrollen inte går igenom lämnas vinet inte ut, det skickas
-        tillbaka till oss och du får tillbaka pengarna utan avgift.
+        Går ålderskontrollen inte igenom lämnas vinet inte ut.
+      </LegalP>
+      <LegalP>
+        <LegalStrong>Om lådan inte kan lämnas över.</LegalStrong> Kan UPS inte
+        lämna över lådan, till exempel för att ingen är hemma, lådan inte
+        hämtas ut eller ålderskontrollen inte går igenom, skickas den tillbaka
+        till producenten. När lådan är tillbaka betalar vi tillbaka det du
+        betalat för vinet, men inte frakten. Vill du ha vinet ändå skickar vi
+        det igen mot en ny fraktavgift på 149 kr per låda. Beror det på oss
+        eller UPS att lådan inte kom fram får du i stället tillbaka hela
+        beloppet inklusive frakt, eller en ny leverans utan kostnad. Din
+        ångerrätt gäller som vanligt: ångrar du köpet innan lådan har
+        levererats får du tillbaka även fraktavgiften, men vi drar av den
+        faktiska kostnaden för att skicka tillbaka lådan.
       </LegalP>
       <LegalP>
         <LegalStrong>Ångerrätt.</LegalStrong> Du har samma ångerrätt som vid
@@ -212,6 +224,14 @@ export default function KopvillkorContent() {
           <LegalStrong>avbryts hela ordern</LegalStrong>. Du får då tillbaka
           hela beloppet utan onödigt dröjsmål och senast inom 14 dagar, eller
           debiteras inte alls om du ännu inte har debiterats.
+        </li>
+        <li>
+          Vid direktleverans har du{" "}
+          <LegalStrong>2 arbetsdagar</LegalStrong> på dig att svara på vårt
+          erbjudande. Svarar du inte inom den tiden avbryts hela ordern och du
+          får tillbaka hela beloppet utan onödigt dröjsmål och senast inom 14
+          dagar. Godkänner du ersättningsvinet räknas leveranstiden från ditt
+          ja.
         </li>
       </LegalList>
 
@@ -328,13 +348,16 @@ export default function KopvillkorContent() {
 
       <LegalH2 id="punkt-8">8. Om leverans inte kan genomföras</LegalH2>
       <LegalP>
-        Om du inte är hemma, inte kan legitimera dig eller inte är minst 20 år
-        gör vår transportpartner ett nytt leveransförsök. Kan leveransen inte
-        genomföras då heller returneras varan.
+        <LegalStrong>Vid delad pall:</LegalStrong> Om du inte är hemma, inte
+        kan legitimera dig eller inte är minst 20 år gör vår transportpartner
+        ett nytt leveransförsök. Kan leveransen inte genomföras då heller
+        returneras varan.
       </LegalP>
       <LegalP>
         Vid retur betalar du den faktiska returfraktkostnaden, utan påslag. Om
         överlämningen nekas vid ålderskontrollen tar vi inte ut någon avgift.
+        För direktleverans gäller{" "}
+        <LegalLink href="#punkt-3b">punkt 3 b</LegalLink>.
       </LegalP>
       <LegalP>
         Du får undersöka varan på samma sätt som i en butik, men inte mer än så.

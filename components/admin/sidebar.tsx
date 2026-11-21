@@ -6,39 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ChevronDown, LogOut } from "lucide-react";
 import {
-  LayoutDashboard,
-  Users,
-  Wine,
-  MapPin,
-  Package,
-  Truck,
-  Calendar,
-  FileText,
-  Gift,
-  Shield,
-  Award,
-  LogOut,
-  BarChart3,
-  TrendingUp,
-  Building2,
-  Sparkles,
-  Search,
-  ListTodo,
-  FolderKanban,
-  Target,
-  UserCheck,
-  Waypoints,
-  Flag,
-  Globe2,
-  ChevronDown,
-  Mail,
-  Wrench,
-  Image,
-  LayoutTemplate,
-  PenSquare,
-  Wallet,
-} from "lucide-react";
+  adminNavigationGroups,
+  adminTopLevelNav,
+  type AdminNavGroup,
+  type AdminNavItem,
+} from "@/components/admin/admin-nav-config";
 
 interface SidebarProps {
   userEmail: string;
@@ -47,147 +21,11 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-interface NavGroup {
-  name: string;
-  icon: React.ComponentType<{ className?: string }>;
-  items: NavItem[];
-}
-
-/** Top-level links (not nested under a folder group). */
-const topLevelNav: NavItem[] = [
-  { name: "Översikt", href: "/admin", icon: LayoutDashboard },
-  { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-];
-
-const navigationGroups: NavGroup[] = [
-  {
-    name: "Finans",
-    icon: Wallet,
-    items: [
-      { name: "Utfall", href: "/admin/finance/utfall", icon: Wallet },
-      {
-        name: "Prisscenarier",
-        href: "/admin/finance/prisscenarier",
-        icon: TrendingUp,
-      },
-      {
-        name: "Fulfillment costs",
-        href: "/admin/finance/fulfillment-costs",
-        icon: Truck,
-      },
-    ],
-  },
-  {
-    name: "Användare",
-    icon: Users,
-    items: [
-      { name: "Users", href: "/admin/users", icon: Users },
-      { name: "Business", href: "/admin/users/business", icon: Building2 },
-      { name: "Memberships", href: "/admin/memberships", icon: Award },
-      { name: "Access Control", href: "/admin/access-control", icon: Shield },
-    ],
-  },
-  {
-    name: "Viner & Produkter",
-    icon: Wine,
-    items: [
-      { name: "Producers", href: "/admin/producers", icon: Wine },
-      { name: "Wines", href: "/admin/wines", icon: Wine },
-      { name: "Wine Tastings", href: "/admin/wine-tastings", icon: Wine },
-      { name: "Competitor prices", href: "/admin/price-sources", icon: TrendingUp },
-    ],
-  },
-  {
-    name: "Lager & Frakt",
-    icon: Package,
-    items: [
-      { name: "Vinzoner & leverans", href: "/admin/geo-zones", icon: Globe2 },
-      { name: "Fraktregioner", href: "/admin/shipping-regions", icon: Truck },
-      { name: "Fraktalternativ", href: "/admin/freight", icon: Truck },
-      { name: "Upphämtningszoner", href: "/admin/zones", icon: MapPin },
-      { name: "Pallar", href: "/admin/pallets", icon: Package },
-      {
-        name: "Pall-inställningar",
-        href: "/admin/pallets/settings",
-        icon: Wrench,
-      },
-    ],
-  },
-  {
-    name: "Bokningar",
-    icon: Calendar,
-    items: [
-      { name: "B2C-ordrar", href: "/admin/b2c-orders", icon: Calendar },
-      { name: "B2B-ordrar", href: "/admin/b2b-orders", icon: FileText },
-      {
-        name: "B2B-förfrågningar",
-        href: "/admin/b2b-inquiries",
-        icon: FileText,
-      },
-      { name: "Rabattkoder", href: "/admin/rabattkoder", icon: Gift },
-      {
-        name: "Exkluderade profiler",
-        href: "/admin/exkluderade-profiler",
-        icon: Shield,
-      },
-    ],
-  },
-  {
-    name: "Operations",
-    icon: ListTodo,
-    items: [
-      { name: "Goals", href: "/admin/operations/goals", icon: Flag },
-      { name: "Objectives", href: "/admin/operations/objectives", icon: Target },
-      { name: "Projects", href: "/admin/operations/projects", icon: FolderKanban },
-      { name: "Tasks", href: "/admin/operations/tasks", icon: ListTodo },
-      { name: "Strategy map", href: "/admin/strategy-map", icon: Waypoints },
-      { name: "My Work", href: "/admin/operations/my-work", icon: UserCheck },
-    ],
-  },
-  {
-    name: "CMS",
-    icon: PenSquare,
-    items: [
-      { name: "Site content", href: "/admin/content", icon: FileText },
-      { name: "Producentlådor", href: "/admin/producer-boxes", icon: Wine },
-      { name: "Systembolaget", href: "/admin/systembolaget", icon: Wine },
-      { name: "Images", href: "/admin/images", icon: Image },
-      { name: "Home concepts", href: "/admin/home-concepts", icon: LayoutTemplate },
-    ],
-  },
-  {
-    name: "AI & Menyer",
-    icon: Sparkles,
-    items: [
-      { name: "Menyextraktion", href: "/admin/menu-extraction", icon: Sparkles },
-      { name: "Hitta vin", href: "/admin/wine-search", icon: Search },
-    ],
-  },
-  {
-    name: "Verktyg",
-    icon: Wrench,
-    items: [
-      { name: "E-post", href: "/admin/email", icon: Mail },
-      {
-        name: "Domain authority",
-        href: "/admin/seo/domain-authority",
-        icon: TrendingUp,
-      },
-    ],
-  },
-];
-
 export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
 
-  const isItemActive = (item: NavItem) => {
+  const isItemActive = (item: AdminNavItem) => {
     if (pathname === item.href) return true;
     // Exact-only for /admin so nested admin routes don't light the home item.
     if (item.href === "/admin") return false;
@@ -196,7 +34,7 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
 
   const activeGroupNames = useMemo(() => {
     return new Set(
-      navigationGroups
+      adminNavigationGroups
         .filter((g) => g.items.some((it) => isItemActive(it)))
         .map((g) => g.name),
     );
@@ -210,7 +48,7 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
     });
   }, [activeGroupNames]);
 
-  const toggleGroup = (group: NavGroup) => {
+  const toggleGroup = (group: AdminNavGroup) => {
     setOpenGroups((prev) => {
       const next = new Set(prev);
       const isOpen = next.has(group.name);
@@ -247,7 +85,7 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
       <div className="min-h-0 flex-1 overflow-y-auto py-4 px-4">
         <nav className="space-y-3">
           <div className="space-y-1">
-            {topLevelNav.map((item) => {
+            {adminTopLevelNav.map((item) => {
               const isActive = isItemActive(item);
               return (
                 <Link
@@ -268,7 +106,7 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
             })}
           </div>
 
-          {navigationGroups.map((group) => (
+          {adminNavigationGroups.map((group) => (
             <div key={group.name}>
               <button
                 type="button"

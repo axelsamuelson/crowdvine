@@ -13,6 +13,7 @@ import { isProductPdpIndexable } from "@/lib/seo/product-indexable";
 import { buildProductPdpJsonLd } from "@/lib/seo/product-json-ld";
 import { fetchPdpRecommendationsForWine } from "@/lib/crowdvine/pdp-recommendations-data";
 import { getOffersByWineId } from "@/lib/external-prices/db";
+import { buildDirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
 import type { AppLocale } from "@/lib/i18n/locale";
 import {
   PACT_PUBLIC_ORIGIN,
@@ -129,6 +130,11 @@ export async function renderProductPdpPage(options: {
 
   const productUrl = `${PACT_PUBLIC_ORIGIN}${productPagePath(handle, pathSegment)}`;
   const includeB2cReturnPolicy = !isB2BHost(host);
+  // InStock when direct delivery is selectable for SE; otherwise PreOrder
+  // (shared pallet only). See resolveProductOfferAvailability.
+  const directDeliveryAvailable =
+    includeB2cReturnPolicy &&
+    buildDirectBoxUiAvailability({ countryCode: "SE" }).deliverySelectable;
 
   const productJsonLd = buildProductPdpJsonLd({
     title: product.title,
@@ -143,6 +149,11 @@ export async function renderProductPdpPage(options: {
         display_name: product.producerDisplayName,
       }) || config.name,
     availableForSale: product.availableForSale,
+    directDeliveryAvailable,
+    sku: product.handle || product.id,
+    // TEST DB (msdfjrrokcmjifetuwgc): no wines.ean/gtin/barcode column —
+    // all 66 wines lack EAN. Omit rather than invent.
+    ean: null,
     priceCurrency: product.currencyCode,
     price: product.priceRange.minVariantPrice.amount,
     sellerName: config.name,

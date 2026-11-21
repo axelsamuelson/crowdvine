@@ -43,7 +43,7 @@ export const juraNaturalWineArticle: GuideArticleContent = {
       },
       body: {
         en: [
-          "The Jura department sits in eastern France near the Swiss border — small, cold and one of France's smallest wine regions by volume. It is not where you would expect the spiritual home of a global natural wine movement to form. Yet that is what happened.",
+          "The Jura department sits in eastern France near the Swiss border — small, cold and one of France's smallest wine regions by volume. It is not where you would expect the spiritual home of a global [natural wine](/guides/what-is-natural-wine) movement to form. Yet that is what happened.",
           "The wines do not taste like Burgundy, Rhône or Beaujolais. Savagnin under voile, pale Poulsard, ouillé whites without sulphur — styles that feel local rather than international. Geography and tradition made the region unlike anywhere else in France; natural wine made that difference visible to the world.",
           "The paradox is the point. A tiny region became a pilgrimage site because a handful of domaines proved that low-intervention winemaking and extreme site character could travel further than volume ever did. Drinkers who once skipped the Jura on the map now treat Pupillin and Rotalier as required reading.",
         ],
@@ -138,6 +138,16 @@ export const juraNaturalWineArticle: GuideArticleContent = {
     },
   ],
   internalLinks: [
+    {
+      label: {
+        en: "What is natural wine? →",
+        sv: "",
+      },
+      href: {
+        en: "/guides/what-is-natural-wine",
+        sv: "/guider/vad-ar-naturvin",
+      },
+    },
     {
       label: {
         en: "Pierre Overnoy — the producer who started natural wine →",
