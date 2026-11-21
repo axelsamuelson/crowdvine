@@ -36,14 +36,15 @@ describe("DirectBoxDeliveryPromise gated by DIRECT_BOX_CHECKOUT_ENABLED", () => 
   });
 });
 
-describe("DirectBoxDeliveryPromise does not double the ETA line", () => {
-  it("skips timeTodo when already embedded in the promise string", () => {
+describe("DirectBoxDeliveryPromise uses locale messages only", () => {
+  it("does not append a hardcoded SV ETA that would leak into EN", () => {
     const src = readFileSync(
       resolve(process.cwd(), "components/commerce/direct-box-delivery-promise.tsx"),
       "utf8",
     );
-    expect(src).toMatch(/showTimeTodo/);
-    expect(src).toMatch(/promise\.toLowerCase\(\)\.includes/);
+    expect(src).not.toMatch(/B2C_DIRECT_BOX_DELIVERY_TIME_TODO/);
+    expect(src).not.toMatch(/showTimeTodo/);
+    expect(src).toMatch(/DIRECT_BOX_DELIVERY_MESSAGE_KEY/);
   });
 });
 

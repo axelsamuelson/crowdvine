@@ -522,6 +522,7 @@
     "palletShipmentReady": "Leveransen är redo",
     "collectedFrom": "Skickas från: {name}",
     "shippingUnavailableForPostal": "Leverans kan inte beräknas för detta postnummer.",
+    "shippingNotAvailable": "Ej tillgänglig",
     "fillPostalToContinue": "Fyll i postnummer för att gå vidare",
     "deliveryConfirmed": "Vi levererar till din adress ✓",
     "openingCompliance": "Öppnar ålder och villkor…",

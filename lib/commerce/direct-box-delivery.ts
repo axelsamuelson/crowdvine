@@ -5,9 +5,10 @@
  *
  * Delivery window decided Axel 01:24: 5–10 working days.
  */
+/** SV reference window — UI must use locale i18n, never inject this into EN. */
 export const B2C_DIRECT_BOX_DELIVERY_TIME_TODO: string | null =
   "5–10 arbetsdagar";
-export const B2C_DIRECT_BOX_DELIVERY_TIME_EN = "5–10 working days";
+export const B2C_DIRECT_BOX_DELIVERY_TIME_EN = "5–10 business days";
 
 /** Message key for the customer-facing direct-box promise (sv/en). */
 export const DIRECT_BOX_DELIVERY_MESSAGE_KEY =

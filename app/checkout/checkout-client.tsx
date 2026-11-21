@@ -134,10 +134,7 @@ import {
 import { isPactPointsConversionCoupon } from "@/lib/membership/pact-points-conversion";
 import { isPromoDiscountReducedByConversionHalfCap } from "@/lib/discount-codes";
 import { cn } from "@/lib/utils";
-import {
-  B2C_DIRECT_BOX_DELIVERY_TIME_TODO,
-  isProducerSourcedWine,
-} from "@/lib/commerce/direct-box-delivery";
+import { isProducerSourcedWine } from "@/lib/commerce/direct-box-delivery";
 import {
   defaultFulfillmentChannel,
   requiresSelectedPallet,
@@ -4284,9 +4281,8 @@ function CheckoutContent({
     return "";
   }, [selectedPallet?.status, t]);
 
-  const directBoxEtaLabel =
-    B2C_DIRECT_BOX_DELIVERY_TIME_TODO?.trim() ||
-    t("checkout.dualOfferDirectDeliveryFact");
+  // Locale-aware ETA only — never prefer a hardcoded SV window string in EN.
+  const directBoxEtaLabel = t("checkout.dualOfferDirectDeliveryFact");
 
   const directBoxMarkupPercent = getDirectBoxPriceMarkupPercent();
 
@@ -5202,19 +5198,21 @@ function CheckoutContent({
                                           />
                                         ) : null}
                                       </span>
-                                      {!directBoxAvailability.deliverySelectable ? (
+                                      {/* Temporary quote failure only — not when no delivery exists at all. */}
+                                      {!directBoxAvailability.deliverySelectable &&
+                                      !postalFulfillment.noFulfillmentAvailable ? (
                                         <span className="mt-0.5 block text-amber-500">
                                           {t(
                                             "checkout.directBoxChannelUnavailable",
                                           )}
                                         </span>
-                                      ) : (
+                                      ) : directBoxAvailability.deliverySelectable ? (
                                         <span className="mt-0.5 block text-muted-foreground">
                                           {t(
                                             "checkout.directBoxHandoverHint",
                                           )}
                                         </span>
-                                      )}
+                                      ) : null}
                                     </span>
                                   </label>
                                 </div>

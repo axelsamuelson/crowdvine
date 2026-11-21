@@ -1,6 +1,6 @@
 /**
- * Evidence for kassa steg 1 leveranstexter (v2 — full page).
- * artifacts/kassa-steg1/v2/ (gitignored) + /opt/cursor/artifacts + agent store.
+ * Evidence for kassa steg 1 leveranstexter (v3 — full page).
+ * artifacts/kassa-steg1/v3/ (gitignored) + /opt/cursor/artifacts + agent store.
  * TEST only — msdfjrrokcmjifetuwgc. Never commit. No auth emails. No Vercel writes.
  *
  * Cases: utan-postnummer | stockholm | kiruna-direkt | ingen-leverans
@@ -28,9 +28,9 @@ import { createClient } from "@supabase/supabase-js";
 const BASE = process.env.APP_URL || "http://localhost:3000";
 const WINE_ID =
   process.env.KASSA_TEST_WINE_ID || "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
-const OUT_REPO = join(process.cwd(), "artifacts", "kassa-steg1", "v2");
-const OUT_OPT = "/opt/cursor/artifacts/kassa-steg1/v2";
-const OUT_STORE = "/cursor/stores/self/artifacts/kassa-steg1/v2";
+const OUT_REPO = join(process.cwd(), "artifacts", "kassa-steg1", "v3");
+const OUT_OPT = "/opt/cursor/artifacts/kassa-steg1/v3";
+const OUT_STORE = "/cursor/stores/self/artifacts/kassa-steg1/v3";
 for (const d of [OUT_REPO, OUT_OPT, OUT_STORE]) mkdirSync(d, { recursive: true });
 
 function loadEnvLocal() {
@@ -106,7 +106,7 @@ async function ensureSyntheticUser() {
   const admin = createClient(url, service, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const email = `kassa.steg1.v2.${Date.now()}@example.com`;
+  const email = `kassa.steg1.v3.${Date.now()}@example.com`;
   const password = `Synth-${Date.now()}-Aa1!`;
   const { data, error } = await admin.auth.admin.createUser({
     email,
@@ -120,7 +120,7 @@ async function ensureSyntheticUser() {
   await admin.from("profiles").upsert({
     id: userId,
     email,
-    full_name: "Kassa Steg1 V2 Syntetisk",
+    full_name: "Kassa Steg1 V3 Syntetisk",
   });
   return { email, password, userId };
 }
@@ -302,10 +302,15 @@ async function main() {
                   !/Vi levererar inte till ditt område|We don't deliver to your area/i.test(
                     t,
                   );
+                const etaOk =
+                  /5–10\s+arbetsdagar|5–10\s+business days/i.test(t) &&
+                  !(/Direct delivery|per box|bottle price/i.test(t) &&
+                    /arbetsdagar/i.test(t));
                 return (
                   (directSelected || /Direktleverans|Direct delivery/i.test(t)) &&
                   hasDirectPrice &&
                   noRedArea &&
+                  etaOk &&
                   /utanför leveranszonen|outside the delivery zone|not available for your postal/i.test(
                     t,
                   )
@@ -351,11 +356,22 @@ async function main() {
                 const row = document.querySelector(
                   '[data-testid="checkout-shipping-summary-unavailable"]',
                 );
-                return (
-                  Boolean(row) ||
-                  /Vi levererar inte till ditt område|We don't deliver to your area|exkl\. frakt|excl\. shipping/i.test(
+                const shortUnavailable = /Ej tillgänglig|Not available/i.test(
+                  t,
+                );
+                const redOnce =
+                  /Vi levererar inte till ditt område|We don't deliver to your area/i.test(
                     t,
-                  )
+                  );
+                const noYellowTemp =
+                  !/går inte att beräkna just nu|cannot be calculated right now/i.test(
+                    t,
+                  );
+                return (
+                  (Boolean(row) || shortUnavailable) &&
+                  redOnce &&
+                  noYellowTemp &&
+                  /exkl\. frakt|excl\. shipping/i.test(t)
                 );
               },
               { timeout: 45000 },
@@ -376,7 +392,7 @@ async function main() {
 
   writeFileSync(
     join(OUT_REPO, "README.txt"),
-    "kassa-steg1/v2 full-page screenshots — light, SV/EN, 390/1440. TEST only. Do not commit.\n",
+    "kassa-steg1/v3 full-page screenshots — light, SV/EN, 390/1440. TEST only. Do not commit.\n",
   );
   for (const d of [OUT_OPT, OUT_STORE]) {
     copyFileSync(join(OUT_REPO, "README.txt"), join(d, "README.txt"));

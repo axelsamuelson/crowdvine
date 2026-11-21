@@ -74,7 +74,7 @@ export function shippingSummaryUnavailableMessageKey(
 ):
   | "sharedPalletPostalUnavailable"
   | "sharedPalletPostalBudbeeUnavailable"
-  | "noDeliveryZoneYet"
+  | "shippingNotAvailable"
   | "shippingUnavailableForPostal" {
   switch (reason) {
     case "budbee_unavailable":
@@ -82,7 +82,9 @@ export function shippingSummaryUnavailableMessageKey(
     case "out_of_zone":
       return "sharedPalletPostalUnavailable";
     case "no_fulfillment":
-      return "noDeliveryZoneYet";
+      // Short label in the Frakt row — the red explanation under delivery
+      // options carries the full "we don't deliver yet" copy once.
+      return "shippingNotAvailable";
     case "no_rate":
       return "shippingUnavailableForPostal";
   }

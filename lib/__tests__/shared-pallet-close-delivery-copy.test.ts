@@ -61,7 +61,7 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
       "Direktleverans – 5–10 arbetsdagar · signatur och ålderskontroll",
     );
     expect(DIRECT_BOX_DELIVERY_COPY_EN).toBe(
-      "Direct delivery – 5–10 working days · signature and age check",
+      "Direct delivery – 5–10 business days · signature and age check",
     );
     expect(directBoxDeliveryTerms().previewLabelSv).toBe(
       DIRECT_BOX_DELIVERY_COPY_SV,
@@ -99,7 +99,7 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     expect(sv).not.toContain("Vid leverans kontrolleras");
     expect(en).toContain("Your card is charged 100 SEK now.");
     expect(en).toContain("SEK 149 per box of 6 bottles");
-    expect(en).toContain("5–10 working days");
+    expect(en).toContain("5–10 business days");
     expect(en).toContain(
       "Signature and age verification (20+) are required at handover.",
     );

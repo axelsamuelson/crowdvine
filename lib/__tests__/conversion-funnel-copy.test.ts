@@ -137,7 +137,7 @@ describe("conversion funnel copy (en)", () => {
     expect(translate("en", "cart.bottlesCount", { count: 1 })).toBe("1 bottle");
     expect(translate("en", "cart.bottlesCount", { count: 2 })).toBe("2 bottles");
     expect(translate("en", "commerce.directBoxDeliveryPromise")).toBe(
-      "Direct delivery – 5–10 working days",
+      "Direct delivery – 5–10 business days",
     );
     expect(translate("en", "cart.checkoutLockedCta")).toBe(
       "Complete your boxes to continue",

@@ -90,7 +90,7 @@ describe("resolveCheckoutShippingSummaryDisplay", () => {
       "sharedPalletPostalBudbeeUnavailable",
     );
     expect(shippingSummaryUnavailableMessageKey("no_fulfillment")).toBe(
-      "noDeliveryZoneYet",
+      "shippingNotAvailable",
     );
     expect(shippingSummaryUnavailableMessageKey("no_rate")).toBe(
       "shippingUnavailableForPostal",

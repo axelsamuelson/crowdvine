@@ -52,4 +52,33 @@ describe("checkout step 1 delivery copy (leveranstexter)", () => {
     expect(sv.checkout.totalExclShipping).toBe("exkl. frakt");
     expect(en.checkout.totalExclShipping).toBe("excl. shipping");
   });
+
+  it("keeps direct-delivery ETA locale-pure (no SV/EN leak)", () => {
+    const sv = loadMessages("sv");
+    const en = loadMessages("en");
+    expect(sv.checkout.dualOfferDirectDeliveryFact).toBe("5–10 arbetsdagar");
+    expect(en.checkout.dualOfferDirectDeliveryFact).toBe(
+      "5–10 business days",
+    );
+    expect(en.checkout.dualOfferDirectDeliveryFact).not.toMatch(/arbetsdagar/i);
+    expect(sv.checkout.dualOfferDirectDeliveryFact).not.toMatch(
+      /business|working/i,
+    );
+    expect(en.checkout.fulfillmentDirectSubtitle).not.toMatch(
+      /låda|flaskpris|arbetsdagar/i,
+    );
+    expect(sv.checkout.fulfillmentDirectSubtitle).not.toMatch(
+      /per box|bottle price|business days/i,
+    );
+  });
+
+  it("uses a short Frakt label when no delivery is possible", () => {
+    const sv = loadMessages("sv");
+    const en = loadMessages("en");
+    expect(sv.checkout.shippingNotAvailable).toBe("Ej tillgänglig");
+    expect(en.checkout.shippingNotAvailable).toBe("Not available");
+    // Full explanation stays on the red line under options.
+    expect(sv.checkout.noDeliveryZoneYet).toMatch(/område/i);
+    expect(en.checkout.noDeliveryZoneYet).toMatch(/area/i);
+  });
 });
