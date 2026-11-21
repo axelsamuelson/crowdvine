@@ -131,6 +131,18 @@ async function processChargePath(opts: {
     } catch (e) {
       console.warn("[pallet-close] recordPalletClosedAtIfMissing", e);
     }
+    try {
+      const { tryPersistAlcoholTaxReportingSnapshot } = await import(
+        "@/lib/skatteverket/alcohol-tax-reporting-snapshot"
+      );
+      await tryPersistAlcoholTaxReportingSnapshot({
+        reservationId: row.id,
+        triggerSource: "pallet_close",
+        snappedAt: now,
+      });
+    } catch (e) {
+      console.warn("[pallet-close] alcohol tax snapshot", e);
+    }
     summary.charged += 1;
     summary.actions.push({
       reservationId: row.id,
