@@ -22,14 +22,15 @@ describe("DirectBoxDeliveryPromise gated by DIRECT_BOX_CHECKOUT_ENABLED", () => 
     expect(layout).toMatch(/showDirectBoxPromise=\{isDirectBoxCheckoutEnabled\(\)\}/);
   });
 
-  it("checkout shows direct promise only when direct_box is selected", () => {
+  it("checkout shows direct promise when direct_box is selectable", () => {
     const checkout = readFileSync(
       resolve(process.cwd(), "app/checkout/checkout-client.tsx"),
       "utf8",
     );
     expect(checkout).toMatch(
-      /fulfillmentChannel === "direct_box" &&\s*directBoxCheckoutEnabled &&\s*producerDirectBoxOnly/,
+      /fulfillmentChannel === "direct_box" &&\s*directBoxCheckoutEnabled &&\s*directBoxAvailability\.deliverySelectable/,
     );
+    expect(checkout).toMatch(/DirectBoxDeliveryPromise/);
     expect(checkout).toMatch(/commerce\.sharedPalletDelivery/);
     expect(checkout).toMatch(/checkout\.dualOfferSharedTitle/);
     expect(checkout).toMatch(/checkout\.dualOfferDirectTitle/);
