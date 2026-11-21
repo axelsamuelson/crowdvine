@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Pencil, Warehouse, Wine } from "lucide-react";
@@ -80,6 +80,54 @@ function MissingWarnings({ row }: { row: KallorSourceRow }) {
           Ingen sparad grossistrad ännu — fyll i och spara.
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function SourceKindLabel({ kind }: { kind: KallorSourceRow["kind"] }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-zinc-300">
+      {kind === "producer" ? (
+        <Wine className="h-3.5 w-3.5 shrink-0" />
+      ) : (
+        <Warehouse className="h-3.5 w-3.5 shrink-0" />
+      )}
+      {kind === "producer" ? "Producent" : "Grossist"}
+    </span>
+  );
+}
+
+function FieldOrDash({
+  value,
+  missing,
+}: {
+  value: string | null | undefined;
+  missing?: boolean;
+}) {
+  const v = String(value ?? "").trim();
+  if (!v || missing) {
+    return (
+      <span className="text-amber-800 dark:text-amber-300">—</span>
+    );
+  }
+  return <>{v}</>;
+}
+
+function MobileFieldRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-2 dark:border-zinc-800/50">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-zinc-500">
+        {label}
+      </span>
+      <div className="break-words text-sm text-gray-900 dark:text-zinc-100">
+        {children}
+      </div>
     </div>
   );
 }
@@ -176,108 +224,170 @@ export function KallorSourcesTable({ sources }: { sources: KallorSourceRow[] }) 
             Inga källor med aktiva viner just nu.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:bg-zinc-900/70">
-                  <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
-                    Källa
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
-                    Typ
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
-                    E-post
-                  </TableHead>
-                  <TableHead className="hidden text-xs font-medium text-gray-600 md:table-cell dark:text-zinc-400">
-                    Adress
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
-                    Språk
-                  </TableHead>
-                  <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
-                    Viner
-                  </TableHead>
-                  <TableHead className="text-right text-xs font-medium text-gray-600 dark:text-zinc-400">
-                    Åtgärd
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sources.map((row) => (
-                  <TableRow
-                    key={row.sourceKey}
-                    className="border-b border-gray-100 hover:bg-gray-50 dark:border-zinc-800/50 dark:hover:bg-zinc-800/50"
-                  >
-                    <TableCell className="align-top">
-                      <div className="font-medium text-gray-900 dark:text-zinc-100">
-                        {row.name}
-                      </div>
-                      <p className="mt-0.5 font-mono text-[11px] text-gray-500 dark:text-zinc-500">
-                        {row.sourceKey}
-                      </p>
-                      <MissingWarnings row={row} />
-                    </TableCell>
-                    <TableCell className="align-top text-sm text-gray-700 dark:text-zinc-300">
-                      <span className="inline-flex items-center gap-1.5">
-                        {row.kind === "producer" ? (
-                          <Wine className="h-3.5 w-3.5" />
-                        ) : (
-                          <Warehouse className="h-3.5 w-3.5" />
-                        )}
-                        {row.kind === "producer" ? "Producent" : "Grossist"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="align-top text-sm text-gray-700 dark:text-zinc-300">
-                      {row.contactEmail || (
-                        <span className="text-amber-800 dark:text-amber-300">
-                          —
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden align-top text-sm text-gray-700 md:table-cell dark:text-zinc-300">
-                      {row.addressDisplay || (
-                        <span className="text-amber-800 dark:text-amber-300">
-                          —
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="align-top text-sm uppercase text-gray-700 dark:text-zinc-300">
-                      {row.contactLocale}
-                    </TableCell>
-                    <TableCell className="align-top text-sm text-gray-700 dark:text-zinc-300">
+          <>
+            {/* Mobile: stacked cards (same pattern as admin wines list) */}
+            <ul className="divide-y divide-gray-100 dark:divide-zinc-800/50 md:hidden">
+              {sources.map((row) => (
+                <li key={row.sourceKey} className="space-y-3 p-4">
+                  <div className="min-w-0">
+                    <div className="font-medium leading-snug text-gray-900 dark:text-zinc-100">
+                      {row.name}
+                    </div>
+                    <p className="mt-0.5 break-all font-mono text-[11px] text-gray-500 dark:text-zinc-500">
+                      {row.sourceKey}
+                    </p>
+                    <div className="mt-1.5">
+                      <SourceKindLabel kind={row.kind} />
+                    </div>
+                    <MissingWarnings row={row} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <MobileFieldRow label="E-post">
+                      <FieldOrDash
+                        value={row.contactEmail}
+                        missing={row.emailMissing}
+                      />
+                    </MobileFieldRow>
+                    <MobileFieldRow label="Adress">
+                      <FieldOrDash
+                        value={row.addressDisplay}
+                        missing={row.addressMissing}
+                      />
+                    </MobileFieldRow>
+                    <MobileFieldRow label="Språk">
+                      <span className="uppercase">{row.contactLocale}</span>
+                    </MobileFieldRow>
+                    <MobileFieldRow label="Viner">
                       {row.liveWineCount}
-                    </TableCell>
-                    <TableCell className="align-top text-right">
-                      {row.kind === "wholesaler" ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className={ADMIN_OUTLINE_BUTTON_CLASS}
-                          onClick={() => openEdit(row)}
-                        >
-                          <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                          Redigera
-                        </Button>
-                      ) : row.producerId ? (
-                        <Link href={`/admin/producers/${row.producerId}`}>
+                    </MobileFieldRow>
+                  </div>
+
+                  {row.kind === "wholesaler" ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className={`h-10 w-full ${ADMIN_OUTLINE_BUTTON_CLASS}`}
+                      onClick={() => openEdit(row)}
+                    >
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                      Redigera
+                    </Button>
+                  ) : row.producerId ? (
+                    <Link
+                      href={`/admin/producers/${row.producerId}`}
+                      className="block"
+                    >
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className={`h-10 w-full ${ADMIN_OUTLINE_BUTTON_CLASS}`}
+                      >
+                        Producent
+                      </Button>
+                    </Link>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop table from md up */}
+            <div className="hidden overflow-x-auto md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-gray-200 bg-gray-50 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:bg-zinc-900/70">
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      Källa
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      Typ
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      E-post
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      Adress
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      Språk
+                    </TableHead>
+                    <TableHead className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      Viner
+                    </TableHead>
+                    <TableHead className="text-right text-xs font-medium text-gray-600 dark:text-zinc-400">
+                      Åtgärd
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sources.map((row) => (
+                    <TableRow
+                      key={row.sourceKey}
+                      className="border-b border-gray-100 hover:bg-gray-50 dark:border-zinc-800/50 dark:hover:bg-zinc-800/50"
+                    >
+                      <TableCell className="align-top">
+                        <div className="font-medium text-gray-900 dark:text-zinc-100">
+                          {row.name}
+                        </div>
+                        <p className="mt-0.5 font-mono text-[11px] text-gray-500 dark:text-zinc-500">
+                          {row.sourceKey}
+                        </p>
+                        <MissingWarnings row={row} />
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <SourceKindLabel kind={row.kind} />
+                      </TableCell>
+                      <TableCell className="align-top text-sm text-gray-700 dark:text-zinc-300">
+                        <FieldOrDash
+                          value={row.contactEmail}
+                          missing={row.emailMissing}
+                        />
+                      </TableCell>
+                      <TableCell className="align-top text-sm text-gray-700 dark:text-zinc-300">
+                        <FieldOrDash
+                          value={row.addressDisplay}
+                          missing={row.addressMissing}
+                        />
+                      </TableCell>
+                      <TableCell className="align-top text-sm uppercase text-gray-700 dark:text-zinc-300">
+                        {row.contactLocale}
+                      </TableCell>
+                      <TableCell className="align-top text-sm text-gray-700 dark:text-zinc-300">
+                        {row.liveWineCount}
+                      </TableCell>
+                      <TableCell className="align-top text-right">
+                        {row.kind === "wholesaler" ? (
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
                             className={ADMIN_OUTLINE_BUTTON_CLASS}
+                            onClick={() => openEdit(row)}
                           >
-                            Producent
+                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                            Redigera
                           </Button>
-                        </Link>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                        ) : row.producerId ? (
+                          <Link href={`/admin/producers/${row.producerId}`}>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className={ADMIN_OUTLINE_BUTTON_CLASS}
+                            >
+                              Producent
+                            </Button>
+                          </Link>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
 
