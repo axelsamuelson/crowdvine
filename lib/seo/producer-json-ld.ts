@@ -57,7 +57,8 @@ export function buildProducerWineryJsonLd(
 
   return {
     "@context": "https://schema.org",
-    "@type": "Winery",
+    // Winery is an Organization; Brand covers the producer as a commercial brand.
+    "@type": ["Winery", "Organization", "Brand"],
     name: producer.name,
     url: producer.pageUrl,
     ...(producer.bio_short && { description: producer.bio_short }),
