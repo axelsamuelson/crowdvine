@@ -26,12 +26,19 @@ import {
   PenSquare,
   Wallet,
   Activity,
+  Filter,
+  Share2,
+  ShieldCheck,
+  Settings,
+  Link2,
 } from "lucide-react";
 
 export interface AdminNavItem {
   name: string;
   href: string;
   icon: LucideIcon;
+  /** When set, item is shown only for that analytics site (filter/URL). */
+  onlyWhenSite?: "pact" | "dirtywine";
 }
 
 export interface AdminNavGroup {
@@ -43,15 +50,72 @@ export interface AdminNavGroup {
 /** Top-level links (not nested under a folder group). */
 export const adminTopLevelNav: AdminNavItem[] = [
   { name: "Översikt", href: "/admin", icon: LayoutDashboard },
-  { name: "Analys", href: "/admin/analytics", icon: BarChart3 },
 ];
 
 /**
  * Admin sidebar groups (desktop + mobile sheet).
  * Pages may still exist without a menu entry (ops approval 648d5e92 / f297c243 step 1).
  * Labels are Swedish (Drift group = former Operations).
+ * Analys is a group directly under Översikt (Analytics V2 etapp 1).
  */
 export const adminNavigationGroups: AdminNavGroup[] = [
+  {
+    name: "Analys",
+    icon: BarChart3,
+    items: [
+      {
+        name: "Översikt",
+        href: "/admin/analytics",
+        icon: LayoutDashboard,
+      },
+      {
+        name: "Tratt och kassa",
+        href: "/admin/analytics/tratt",
+        icon: Filter,
+      },
+      {
+        name: "Kanaler",
+        href: "/admin/analytics/kanaler",
+        icon: Share2,
+      },
+      {
+        name: "Marknader",
+        href: "/admin/analytics/marknader",
+        icon: Globe2,
+      },
+      {
+        name: "Produkter",
+        href: "/admin/analytics/produkter",
+        icon: Wine,
+      },
+      {
+        name: "Releaser",
+        href: "/admin/analytics/releaser",
+        icon: Flag,
+      },
+      {
+        name: "Datakvalitet",
+        href: "/admin/analytics/datakvalitet",
+        icon: ShieldCheck,
+      },
+      {
+        name: "B2B Dirty Wine",
+        href: "/admin/analytics/b2b",
+        icon: Building2,
+        onlyWhenSite: "dirtywine",
+      },
+      {
+        name: "UTM-länkbyggare",
+        href: "/admin/analytics/links",
+        icon: Link2,
+      },
+      {
+        name: "Inställningar",
+        href: "/admin/analytics/settings",
+        icon: Settings,
+      },
+    ],
+  },
   {
     name: "Finans",
     icon: Wallet,

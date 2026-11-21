@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,22 +23,34 @@ interface SidebarProps {
 
 export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
+
+  const analyticsSite =
+    pathname.startsWith("/admin/analytics/b2b") ||
+    searchParams.get("site") === "dirtywine"
+      ? "dirtywine"
+      : "pact";
+
+  const isItemVisible = (item: AdminNavItem) => {
+    if (!item.onlyWhenSite) return true;
+    return item.onlyWhenSite === analyticsSite;
+  };
 
   const isItemActive = (item: AdminNavItem) => {
     if (pathname === item.href) return true;
-    // Exact-only for /admin so nested admin routes don't light the home item.
-    if (item.href === "/admin") return false;
+    // Exact-only for /admin and Analys overview so nested routes don't light them.
+    if (item.href === "/admin" || item.href === "/admin/analytics") return false;
     return pathname.startsWith(item.href + "/");
   };
 
   const activeGroupNames = useMemo(() => {
     return new Set(
       adminNavigationGroups
-        .filter((g) => g.items.some((it) => isItemActive(it)))
+        .filter((g) => g.items.some((it) => isItemActive(it) && isItemVisible(it)))
         .map((g) => g.name),
     );
-  }, [pathname]);
+  }, [pathname, analyticsSite]);
 
   useEffect(() => {
     setOpenGroups((prev) => {
@@ -128,7 +140,7 @@ export function Sidebar({ userEmail, onSignOut, mobileOpen, onMobileClose }: Sid
 
               {openGroups.has(group.name) ? (
                 <div className="mt-1 space-y-1 pl-2">
-                  {group.items.map((item) => {
+                  {group.items.filter(isItemVisible).map((item) => {
                     const isActive = isItemActive(item);
                     return (
                       <Link

@@ -37,18 +37,28 @@ export async function GET(request: Request) {
         since: B2B_FUNNEL_SINCE,
         conversionEvent: B2B_FUNNEL_CONVERSION_EVENT,
         weeklyFunnel: [],
-        note: "B2B-funneln visas för site=dirtywine.",
+        note: "B2B-tratten visas för site=dirtywine.",
       });
     }
 
+    const fromParam = searchParams.get("from");
+    const toParam = searchParams.get("to");
+    const fromKey =
+      fromParam && /^\d{4}-\d{2}-\d{2}$/.test(fromParam) && fromParam >= B2B_FUNNEL_SINCE
+        ? fromParam
+        : B2B_FUNNEL_SINCE;
+    const toKey =
+      toParam && /^\d{4}-\d{2}-\d{2}$/.test(toParam) ? toParam : null;
+
     const sb = getSupabaseAdmin();
-    const sinceIso = `${B2B_FUNNEL_SINCE}T00:00:00.000Z`;
+    const sinceIso = `${fromKey}T00:00:00.000Z`;
+    const untilIso = toKey ? `${toKey}T23:59:59.999Z` : null;
     const pageSize = 1000;
     const maxRows = 50000;
     const rows: B2bFunnelEventRow[] = [];
 
     for (let from = 0; from < maxRows; from += pageSize) {
-      const { data, error } = await sb
+      let q = sb
         .from("user_events")
         .select("event_type, event_metadata, created_at, page_url, session_id")
         .eq("event_category", "b2b")
@@ -56,6 +66,8 @@ export async function GET(request: Request) {
         .gte("created_at", sinceIso)
         .order("created_at", { ascending: true })
         .range(from, from + pageSize - 1);
+      if (untilIso) q = q.lte("created_at", untilIso);
+      const { data, error } = await q;
 
       if (error) {
         console.error("b2b-funnel query:", error);
@@ -111,10 +123,14 @@ export async function GET(request: Request) {
       console.warn("b2b-funnel bot filter skipped:", e);
     }
 
-    const weeklyFunnel = buildB2bWeeklyFunnel(filtered);
+    const weeklyFunnel = buildB2bWeeklyFunnel(filtered).filter((w) => {
+      if (w.week_start < fromKey) return false;
+      if (toKey && w.week_start > toKey) return false;
+      return true;
+    });
 
     return NextResponse.json({
-      since: B2B_FUNNEL_SINCE,
+      since: fromKey,
       conversionEvent: B2B_FUNNEL_CONVERSION_EVENT,
       weeklyFunnel,
       eventCount: filtered.length,
