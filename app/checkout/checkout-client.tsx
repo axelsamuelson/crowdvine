@@ -185,6 +185,7 @@ import {
 import {
   checkoutCtaMissingPostalHintKey,
   resolveCheckoutShippingSummaryDisplay,
+  resolveCheckoutSummaryTotalSek,
   shippingSummaryUnavailableMessageKey,
 } from "@/lib/checkout/shipping-summary-display";
 import {
@@ -206,7 +207,6 @@ import {
 import { resolveDisplayShippingSek } from "@/lib/checkout/shipping-preview";
 import {
   resolveChannelDisplaySubtotalSek,
-  resolveChannelDisplayTotalSek,
   selectChannelBoundQuote,
 } from "@/lib/checkout/channel-display-totals";
 import { scrubCheckoutDobFromBrowserStorage } from "@/lib/checkout/scrub-checkout-dob-storage";
@@ -3861,16 +3861,28 @@ function CheckoutContent({
     ? t(`checkout.${fillPostalCtaHintKey}`)
     : null;
   // Prefer channel-bound quote total; else same-channel client subtotal + shipping.
-  const displayTotalSek = useMemo(
+  // When Frakt is unavailable (e.g. Kiruna with no channel), never keep a stale
+  // shared-pallet fee in Totalt — show subtotal with "exkl. frakt".
+  const summaryTotal = useMemo(
     () =>
-      resolveChannelDisplayTotalSek({
-        boundQuote: channelBoundQuote,
+      resolveCheckoutSummaryTotalSek({
+        shippingSummary: shippingSummaryDisplay,
+        boundQuoteTotalSek:
+          channelBoundQuote &&
+          typeof channelBoundQuote.total_sek === "number" &&
+          shippingSummaryDisplay.kind !== "unavailable"
+            ? channelBoundQuote.total_sek
+            : null,
         subtotalSek: displaySubtotal,
-        shippingSek: channelDisplayShippingSek,
+        shippingSek:
+          shippingSummaryDisplay.kind === "unavailable"
+            ? null
+            : channelDisplayShippingSek,
         pactPointsSekOff,
         promoDiscountSek,
       }),
     [
+      shippingSummaryDisplay,
       channelBoundQuote,
       displaySubtotal,
       channelDisplayShippingSek,
@@ -3879,12 +3891,13 @@ function CheckoutContent({
     ],
   );
   /** Purchase CTA / summary: never invent a total without channel shipping. */
-  const displayTotal = displayTotalSek;
-  const collapsedOrderTotalSek = displayTotalSek;
+  const displayTotal = summaryTotal.amountSek;
+  const collapsedOrderTotalSek = summaryTotal.amountSek;
+  const totalExclShipping = summaryTotal.exclShipping;
   const showSubtotalSkeleton =
     channelTotalsPending && channelClientSubtotalSek <= 0;
   const showTotalSkeleton =
-    displayTotalSek == null &&
+    summaryTotal.amountSek == null &&
     (shippingDisplayPending || channelTotalsPending);
   const commitAppliedDiscount = (data: {
     code: string;
@@ -4773,11 +4786,17 @@ function CheckoutContent({
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-2 text-base font-medium text-foreground">
+                <div
+                  className="flex items-center justify-between pt-2 text-base font-medium text-foreground"
+                  data-testid="checkout-summary-total"
+                  data-excl-shipping={totalExclShipping ? "true" : "false"}
+                >
                   <span>
                     {t("checkout.total")}{" "}
                     <span className="text-sm font-normal text-muted-foreground">
-                      {t("checkout.dualOfferInclVat")}
+                      {totalExclShipping
+                        ? t("checkout.totalExclShipping")
+                        : t("checkout.dualOfferInclVat")}
                     </span>
                   </span>
                   <span className="tabular-nums text-foreground">
@@ -6404,7 +6423,9 @@ function CheckoutContent({
                                 <span className="text-base font-semibold text-foreground">
                                   {t("checkout.total")}{" "}
                                   <span className="text-sm font-normal text-muted-foreground">
-                                    {t("checkout.dualOfferInclVat")}
+                                    {totalExclShipping
+                                      ? t("checkout.totalExclShipping")
+                                      : t("checkout.dualOfferInclVat")}
                                   </span>
                                 </span>
                                 <span className="text-2xl font-bold tabular-nums text-foreground">

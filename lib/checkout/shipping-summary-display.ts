@@ -101,3 +101,49 @@ export function checkoutCtaMissingPostalHintKey(input: {
   if (!input.hasPostalCode) return "fillPostalToContinue";
   return null;
 }
+
+/**
+ * Order-summary Totalt when Frakt cannot be offered/quoted.
+ * Never keep a stale shared-pallet fee (e.g. 99) in the total once the
+ * shipping row is unavailable — show subtotal (exkl. frakt) instead.
+ */
+export function resolveCheckoutSummaryTotalSek(input: {
+  shippingSummary: CheckoutShippingSummaryDisplay;
+  /** Channel-bound quote total when shipping is part of that quote. */
+  boundQuoteTotalSek?: number | null;
+  subtotalSek: number;
+  shippingSek: number | null | undefined;
+  pactPointsSekOff?: number;
+  promoDiscountSek?: number;
+}): { amountSek: number | null; exclShipping: boolean } {
+  const pact = Math.max(0, Number(input.pactPointsSekOff) || 0);
+  const promo = Math.max(0, Number(input.promoDiscountSek) || 0);
+  const subtotalNet = Math.max(0, input.subtotalSek - pact - promo);
+
+  if (
+    input.shippingSummary.kind === "after_postal" ||
+    input.shippingSummary.kind === "loading"
+  ) {
+    return { amountSek: null, exclShipping: false };
+  }
+
+  if (input.shippingSummary.kind === "unavailable") {
+    return { amountSek: subtotalNet, exclShipping: true };
+  }
+
+  if (
+    typeof input.boundQuoteTotalSek === "number" &&
+    Number.isFinite(input.boundQuoteTotalSek)
+  ) {
+    return { amountSek: input.boundQuoteTotalSek, exclShipping: false };
+  }
+
+  const sek = input.shippingSek;
+  if (typeof sek !== "number" || !Number.isFinite(sek)) {
+    return { amountSek: subtotalNet, exclShipping: true };
+  }
+  return {
+    amountSek: Math.max(0, input.subtotalSek + sek - pact - promo),
+    exclShipping: false,
+  };
+}

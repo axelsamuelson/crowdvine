@@ -37,4 +37,19 @@ describe("checkout step 1 delivery copy (leveranstexter)", () => {
     expect(sv.checkout.shippingUnavailableForPostal).toMatch(/postnummer/i);
     expect(en.checkout.shippingUnavailableForPostal).toMatch(/postal/i);
   });
+
+  it("avoids technical jargon when direct delivery cannot be calculated", () => {
+    const sv = loadMessages("sv");
+    const en = loadMessages("en");
+    expect(sv.checkout.directBoxChannelUnavailable).not.toMatch(
+      /quote|frakt\/quote/i,
+    );
+    expect(en.checkout.directBoxChannelUnavailable).not.toMatch(/quote/i);
+    expect(sv.checkout.directBoxChannelUnavailable).toMatch(/beräkna|stund/i);
+    expect(en.checkout.directBoxChannelUnavailable).toMatch(
+      /cannot be calculated|moment/i,
+    );
+    expect(sv.checkout.totalExclShipping).toBe("exkl. frakt");
+    expect(en.checkout.totalExclShipping).toBe("excl. shipping");
+  });
 });

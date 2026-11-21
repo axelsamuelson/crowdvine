@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   checkoutCtaMissingPostalHintKey,
   resolveCheckoutShippingSummaryDisplay,
+  resolveCheckoutSummaryTotalSek,
   shippingSummaryUnavailableMessageKey,
 } from "@/lib/checkout/shipping-summary-display";
 
@@ -117,5 +118,38 @@ describe("checkoutCtaMissingPostalHintKey", () => {
         cartMinimumBlocks: true,
       }),
     ).toBeNull();
+  });
+});
+
+describe("resolveCheckoutSummaryTotalSek", () => {
+  it("Kiruna / no fulfillment: total is subtotal excl. shipping (never +99)", () => {
+    expect(
+      resolveCheckoutSummaryTotalSek({
+        shippingSummary: { kind: "unavailable", reason: "no_fulfillment" },
+        boundQuoteTotalSek: 1131,
+        subtotalSek: 1032,
+        shippingSek: 99,
+      }),
+    ).toEqual({ amountSek: 1032, exclShipping: true });
+  });
+
+  it("Stockholm with quoted shipping: includes shipping in total", () => {
+    expect(
+      resolveCheckoutSummaryTotalSek({
+        shippingSummary: { kind: "amount", shippingSek: 99 },
+        subtotalSek: 1032,
+        shippingSek: 99,
+      }),
+    ).toEqual({ amountSek: 1131, exclShipping: false });
+  });
+
+  it("direct-box amount uses shipping fee", () => {
+    expect(
+      resolveCheckoutSummaryTotalSek({
+        shippingSummary: { kind: "amount", shippingSek: 149 },
+        subtotalSek: 1084,
+        shippingSek: 149,
+      }),
+    ).toEqual({ amountSek: 1233, exclShipping: false });
   });
 });
