@@ -106,23 +106,22 @@ describe("PDP + /vin wiring (PACT only)", () => {
     expect(src).not.toMatch(/reservation/i);
   });
 
-  it("PDP shows seller/withdrawal near buy and shared pallet next to direct-box", () => {
+  it("PDP shows recessed legal panel near buy (not loose underlined seller rows)", () => {
     const layout = readFileSync(
       resolve(process.cwd(), "components/product/product-pdp-layout.tsx"),
       "utf8",
     );
-    expect(layout).toMatch(/PactSellerConsumerInfo/);
-    expect(layout).toMatch(/showSharedPallet=\{false\}/);
-    expect(layout).toMatch(/showSharedPalletPromise=/);
+    expect(layout).toMatch(/PdpLegalInfoPanel/);
+    expect(layout).not.toMatch(/PactSellerConsumerInfo/);
     expect(layout).toMatch(/!isDirtywine && product\.productType === "wine"/);
 
     const bar = readFileSync(
       resolve(process.cwd(), "components/pdp/pallet-status-bar.tsx"),
       "utf8",
     );
-    expect(bar).toMatch(/showSharedPalletPromise/);
     expect(bar).toMatch(/DirectBoxDeliveryPromise/);
-    expect(bar).toMatch(/PactSellerConsumerInfo/);
+    expect(bar).not.toMatch(/PactSellerConsumerInfo/);
+    expect(bar).not.toMatch(/showSharedPalletPromise/);
   });
 
   it("listing PLP has no seller/withdrawal/pallet trust box (link-rules §5)", () => {

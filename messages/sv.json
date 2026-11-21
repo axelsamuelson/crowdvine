@@ -386,6 +386,9 @@
     "sellerLine": "Säljare: EURPACT OÜ, Tallinn, Estland",
     "withdrawalLine": "14 dagars ångerrätt",
     "sharedPalletDelivery": "Delad pall: Efter stängningen levererar vi inom 30 dagar, normalt inom 2–3 veckor.",
+    "ageMinimumLine": "Du måste ha fyllt 20 år för att köpa.",
+    "termsLinkArrow": "Köpvillkor →",
+    "deliveryGuideLinkArrow": "Så fungerar leveransen →",
     "palletFillCount": "{filled} av {total} flaskor",
     "palletReadyShort": "Redo",
     "palletRemainingShort": "{remaining} kvar"
