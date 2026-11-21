@@ -13,6 +13,7 @@ import { guideHomeAbsoluteUrl } from "@/lib/guides/guide-article-crumbs";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import { buildGuideFaqPageJsonLd } from "@/lib/guides/guide-json-ld";
 import { countryLabel, regionLabel } from "@/lib/guides/guide-labels";
+import { resolveTopWineCatalogLinks } from "@/lib/guides/guide-catalog-links";
 import { guideHreflang, guidePath } from "@/lib/guides/guide-routes";
 import { homePathForLocale } from "@/lib/i18n/localized-routes";
 import { TOP_100_WINES } from "@/lib/guides/top-100-wines";
@@ -67,7 +68,10 @@ export async function buildWorldsBestOrangeWinesMetadata(
 }
 
 export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
-  const { seoBaseUrl } = await getGuideSeoOwnership();
+  const [{ seoBaseUrl }, catalogLinks] = await Promise.all([
+    getGuideSeoOwnership(),
+    resolveTopWineCatalogLinks(locale),
+  ]);
   const copy = guideCopy(locale);
   const hubPath = guidePath("hub", locale);
   const orangeWines = getOrangeWinesFromTop100();
@@ -194,10 +198,31 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
                       `Missing English orange-wine copy for rank ${wine.rank} (${wine.wine})`,
                     );
                   }
+                  const links = catalogLinks[wine.rank];
+                  const producerNode = links?.producer ? (
+                    <Link
+                      href={links.producer.href}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {wine.producer}
+                    </Link>
+                  ) : (
+                    wine.producer
+                  );
+                  const wineNode = links?.wine ? (
+                    <Link
+                      href={links.wine.href}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {wine.wine}
+                    </Link>
+                  ) : (
+                    wine.wine
+                  );
                   return (
                     <article key={wine.rank}>
                       <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                        {index + 1}. {wine.producer}, {wine.wine}
+                        {index + 1}. {producerNode}, {wineNode}
                       </h3>
                       <p className="mt-1 text-sm italic leading-relaxed text-muted-foreground">
                         {blurb.origin}
@@ -293,13 +318,34 @@ export async function renderWorldsBestOrangeWinesPage(locale: AppLocale) {
                   { key: "region", label: copy.region },
                   { key: "country", label: copy.country },
                 ]}
-                rows={orangeWines.map((wine, index) => ({
-                  rank: index + 1,
-                  wine: wine.wine,
-                  producer: wine.producer,
-                  region: regionLabel(wine.region, locale),
-                  country: countryLabel(wine.country, locale),
-                }))}
+                rows={orangeWines.map((wine, index) => {
+                  const links = catalogLinks[wine.rank];
+                  return {
+                    rank: index + 1,
+                    wine: links?.wine ? (
+                      <Link
+                        href={links.wine.href}
+                        className="underline underline-offset-4 hover:text-foreground"
+                      >
+                        {wine.wine}
+                      </Link>
+                    ) : (
+                      wine.wine
+                    ),
+                    producer: links?.producer ? (
+                      <Link
+                        href={links.producer.href}
+                        className="underline underline-offset-4 hover:text-foreground"
+                      >
+                        {wine.producer}
+                      </Link>
+                    ) : (
+                      wine.producer
+                    ),
+                    region: regionLabel(wine.region, locale),
+                    country: countryLabel(wine.country, locale),
+                  };
+                })}
               />
             </section>
 

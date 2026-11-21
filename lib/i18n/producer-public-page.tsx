@@ -35,6 +35,7 @@ import {
   parseGrapeVarieties,
   uniqueGrapesPreserveCasing,
 } from "@/lib/curated-grape-categories";
+import { guidesMentioningProducer } from "@/lib/guides/guides-for-producer";
 import { getProducerGuideNote } from "@/lib/guides/producer-guide-notes";
 import {
   instagramProfileUrl,
@@ -486,6 +487,15 @@ export async function renderProducerPublicPage(options: {
     wines.flatMap((wine) => parseGrapeVarieties(wine.grape_varieties)),
   );
   const guideNote = getProducerGuideNote(slug, locale);
+  const mentionedGuides = guidesMentioningProducer(slug, locale, {
+    producerName: producer.name,
+    displayName: producer.display_name,
+    producerId: producer.id,
+  });
+  const guidesHeading =
+    locale === "sv"
+      ? `Guider om ${shownProducerName}`
+      : `Guides featuring ${shownProducerName}`;
 
   return (
     <>
@@ -620,6 +630,24 @@ export async function renderProducerPublicPage(options: {
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                 {producer.bio_long}
               </p>
+            </section>
+          ) : null}
+
+          {mentionedGuides.length > 0 ? (
+            <section className="mt-12 border-t pt-10">
+              <h2 className="text-xl font-semibold">{guidesHeading}</h2>
+              <ul className="mt-4 space-y-2 text-sm">
+                {mentionedGuides.map((guide) => (
+                  <li key={guide.href}>
+                    <Link
+                      href={guide.href}
+                      className="underline underline-offset-4 hover:text-foreground"
+                    >
+                      {guide.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </section>
           ) : null}
 

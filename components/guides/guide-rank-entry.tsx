@@ -6,11 +6,12 @@ import { GuideRankNumber } from "@/components/guides/guide-rank-number";
 type GuideRankEntryProps = {
   rank: number;
   title: string;
-  meta: string;
+  meta: ReactNode;
   /** Rendered under the region line. Omitted entries stay as they are. */
   afterMeta?: ReactNode;
   description?: ReactNode;
   compact?: boolean;
+  /** When set, the title links here (PDP or producer guide). */
   href?: string;
   rankNote?: ReactNode;
   /** Sits to the left of the rank number. */
@@ -70,7 +71,7 @@ export function GuideRankEntry({
               title
             )}
           </h3>
-          <p className="mt-1 text-sm text-muted-foreground">{meta}</p>
+          <div className="mt-1 text-sm text-muted-foreground">{meta}</div>
           {afterMeta ? <div className="mt-1">{afterMeta}</div> : null}
           {description ? (
             <p
