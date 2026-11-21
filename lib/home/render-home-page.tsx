@@ -7,15 +7,12 @@ import {
   HomeTasteQuizProvider,
 } from "@/components/home/home-taste-quiz-panel";
 import { getQuizWines } from "@/lib/taste-quiz/get-quiz-wines";
-import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
-import { fallbackShoppingContext } from "@/lib/shopping-context/defaults";
 import type { Metadata } from "next";
 import { getCollections, getProducts } from "@/lib/shopify";
 import { getLabelPosition } from "@/lib/utils";
 import type { Product } from "@/lib/shopify/types";
-import { headers } from "next/headers";
 import { PACT_DEFAULT_COPY } from "@/lib/site-config";
-import { getSiteConfig } from "@/lib/site-config-server";
+import { getPublicSiteConfig } from "@/lib/site-config-server";
 import { getHomepageHeroImages } from "@/lib/actions/content";
 import { getHomepageHeroCopy } from "@/lib/get-homepage-hero-copy";
 import {
@@ -29,31 +26,15 @@ import {
 } from "@/lib/i18n/localized-routes";
 
 export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
-  const config = await getSiteConfig();
-  const isDirtyWine = config.name === "Dirty Wine";
+  const config = getPublicSiteConfig();
   const seoOrigin = PACT_PUBLIC_ORIGIN;
   const svHome = `${seoOrigin}/`;
   const enHome = `${seoOrigin}/en`;
   const canonical = `${seoOrigin}${homePathForLocale(locale)}`;
 
   const pactCopy = PACT_DEFAULT_COPY[locale];
-  const title =
-    locale === "sv"
-      ? isDirtyWine
-        ? "Dirty Wine – Naturvin för restauranger i Stockholm"
-        : pactCopy.title
-      : isDirtyWine
-        ? "Dirty Wine – Natural wine for restaurants in Stockholm"
-        : pactCopy.title;
-
-  const description =
-    locale === "sv"
-      ? isDirtyWine
-        ? "Naturvin för restauranger och sommelierer i Stockholm. B2B-priser exkl. moms."
-        : pactCopy.description
-      : isDirtyWine
-        ? "Natural wine for restaurants and sommeliers in Stockholm. B2B prices excl. VAT."
-        : pactCopy.description;
+  const title = pactCopy.title;
+  const description = pactCopy.description;
 
   return {
     title: { absolute: title },
@@ -82,17 +63,10 @@ export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
 }
 
 export async function renderHomePage(locale: AppLocale) {
-  const [h, config, shoppingContext] = await Promise.all([
-    headers(),
-    getSiteConfig(),
-    getShoppingContextFromRequest({ skipUser: true }).catch(() =>
-      fallbackShoppingContext(),
-    ),
-  ]);
-  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const config = getPublicSiteConfig();
   const productCurrencyParams = {
-    displayCurrencyCode: shoppingContext.currencyCode,
-    sekToDisplayRate: shoppingContext.sekToDisplayRate,
+    displayCurrencyCode: "SEK" as const,
+    sekToDisplayRate: 1,
   };
 
   const [
@@ -114,7 +88,7 @@ export async function renderHomePage(locale: AppLocale) {
       limit: 5,
       sortKey: "CREATED_AT",
       reverse: true,
-      host,
+      host: null,
       locale,
       ...productCurrencyParams,
     }).catch((error) => {
@@ -129,7 +103,7 @@ export async function renderHomePage(locale: AppLocale) {
   if (featuredProducts.length === 0) {
     try {
       const allProducts = await getProducts({
-        host,
+        host: null,
         locale,
         ...productCurrencyParams,
       });
@@ -143,50 +117,26 @@ export async function renderHomePage(locale: AppLocale) {
   const [lastProduct, ...restProducts] = featuredProducts;
   const pageUrl = `${PACT_PUBLIC_ORIGIN}${homePathForLocale(locale)}`;
 
-  const jsonLdDescription =
-    config.name === "Dirty Wine"
-      ? config.defaultDescription
-      : PACT_DEFAULT_COPY[locale].description;
+  const jsonLdDescription = PACT_DEFAULT_COPY[locale].description;
 
-  const organizationJsonLd =
-    locale === "sv"
-      ? {
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: config.name,
-          url: pageUrl,
-          logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
-          description: jsonLdDescription,
-          areaServed: "Stockholm, Sweden",
-          sameAs: ["https://www.instagram.com/pactwines"],
-        }
-      : {
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: config.name,
-          url: pageUrl,
-          logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
-          description: jsonLdDescription,
-          areaServed: "Stockholm, Sweden",
-          sameAs: ["https://www.instagram.com/pactwines"],
-        };
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: config.name,
+    url: pageUrl,
+    logo: `${PACT_PUBLIC_ORIGIN}/favicon.png`,
+    description: jsonLdDescription,
+    areaServed: "Stockholm, Sweden",
+    sameAs: ["https://www.instagram.com/pactwines"],
+  };
 
-  const websiteJsonLd =
-    locale === "sv"
-      ? {
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          name: config.name,
-          url: pageUrl,
-          description: jsonLdDescription,
-        }
-      : {
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          name: config.name,
-          url: pageUrl,
-          description: jsonLdDescription,
-        };
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: config.name,
+    url: pageUrl,
+    description: jsonLdDescription,
+  };
 
   return (
     <>

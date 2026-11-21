@@ -30,8 +30,8 @@ interface ProductsContextType {
   /** Slugs of price sources that have at least one wine in the current list. */
   availableSourceSlugs: string[];
   setAvailableSourceSlugs: (slugs: string[]) => void;
-  /** Server-fetched PLP count — used by layout MobileFilters before client filter state. */
-  serverResultsCount: number;
+  /** Server-fetched PLP count — used by layout MobileFilters before client filter state. null = unknown (ISR shell). */
+  serverResultsCount: number | null;
   setServerResultsCount: (count: number) => void;
 }
 
@@ -41,10 +41,11 @@ const ProductsContext = createContext<ProductsContextType | undefined>(
 
 export function ProductsProvider({
   children,
-  initialServerResultsCount = 0,
+  initialServerResultsCount = null,
 }: {
   children: ReactNode;
-  initialServerResultsCount?: number;
+  /** Omit or null when the layout cannot know the count without headers() (ISR). */
+  initialServerResultsCount?: number | null;
 }) {
   const pathname = usePathname();
   const prevPathnameRef = useRef(pathname);
@@ -53,7 +54,7 @@ export function ProductsProvider({
   const [availableSourceSlugs, setAvailableSourceSlugs] = useState<string[]>(
     [],
   );
-  const [serverResultsCount, setServerResultsCount] = useState(
+  const [serverResultsCount, setServerResultsCount] = useState<number | null>(
     initialServerResultsCount,
   );
 

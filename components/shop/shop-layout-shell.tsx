@@ -1,30 +1,19 @@
 import { PageLayoutServer } from "@/components/layout/page-layout-server";
-import { getIsDirtywineSiteFromHeaders } from "@/lib/b2b-site-server";
 import {
   getCachedPriceSources,
   getCachedShopCollections,
 } from "@/lib/shop/cached-layout-data";
-import {
-  countActiveShopFilters,
-  parseSearchParamsFromQueryString,
-} from "@/lib/shop/filter-count-server";
-import { isProducerBoxesPath } from "@/lib/producer-boxes/config";
-import { isShopFullBleedPath } from "@/lib/stockholm-delivery-landing/config";
 import { getCachedNavigableShopFilterPaths } from "@/lib/shop/shop-filter-category-availability";
 import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
 import { getLinkableWineRegions } from "@/lib/wine-regions";
-import { getShopLayoutResultsCount } from "@/lib/shop/shop-results-count-server";
 import { ShopLayoutClient } from "@/components/shop/shop-layout-client";
-import { headers } from "next/headers";
 
-function collectionSegmentFromPathname(pathname: string): string | undefined {
-  const match = pathname.match(/^\/(?:vin|wine)\/([^/]+)$/);
-  if (!match) return undefined;
-  const segment = match[1];
-  if (segment === "group") return undefined;
-  return segment;
-}
-
+/**
+ * Shop chrome without headers()/cookies() so /vin and /wine stay ISR-eligible.
+ * Pathname-dependent filter counts hydrate client-side; navigable paths +
+ * region slugs stay server-fetched for B2C so style/color/region filters match
+ * the live catalog on first paint.
+ */
 export async function ShopLayoutShell({
   children,
 }: {
@@ -46,44 +35,29 @@ export async function ShopLayoutShell({
     console.warn("Failed to fetch price sources in shop layout:", error);
   }
 
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") ?? "";
-  const search = headersList.get("x-search") ?? "";
-  const parsedSearchParams = parseSearchParamsFromQueryString(search);
-  const collectionSegment = collectionSegmentFromPathname(pathname);
-  const initialFilterCount = countActiveShopFilters(
-    parsedSearchParams,
-    isProducerBoxesPath(pathname) || isShopFullBleedPath(pathname)
-      ? undefined
-      : collectionSegment,
-  );
-  const isB2BSite = await getIsDirtywineSiteFromHeaders();
-  const [initialResultsCount, navigableShopPaths, linkableRegionSlugs] =
-    await Promise.all([
-      getShopLayoutResultsCount(pathname, parsedSearchParams),
-      getCachedNavigableShopFilterPaths(isB2BSite).catch((error) => {
-        console.warn(
-          "Failed to resolve navigable shop filter paths:",
-          error,
-        );
+  const [navigableShopPaths, linkableRegionSlugs] = await Promise.all([
+    getCachedNavigableShopFilterPaths(false).catch((error) => {
+      console.warn("Failed to resolve navigable shop filter paths:", error);
+      return undefined;
+    }),
+    getLiveWineRegionCountsMap()
+      .then((counts) =>
+        getLinkableWineRegions(counts).map((region) => region.slug),
+      )
+      .catch((error) => {
+        console.warn("Failed to resolve linkable wine regions:", error);
         return undefined;
       }),
-      getLiveWineRegionCountsMap()
-        .then((counts) => getLinkableWineRegions(counts).map((region) => region.slug))
-        .catch((error) => {
-          console.warn("Failed to resolve linkable wine regions:", error);
-          return undefined;
-        }),
-    ]);
+  ]);
 
   return (
     <PageLayoutServer>
       <ShopLayoutClient
         collections={collections}
         priceSources={priceSources}
-        initialFilterCount={initialFilterCount}
-        initialResultsCount={initialResultsCount}
-        ssrPathname={pathname}
+        initialFilterCount={0}
+        initialResultsCount={null}
+        ssrPathname=""
         navigableShopPaths={navigableShopPaths}
         linkableRegionSlugs={linkableRegionSlugs}
       >

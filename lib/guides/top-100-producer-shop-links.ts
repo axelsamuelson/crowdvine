@@ -65,7 +65,11 @@ export async function getTop100ProducerShopLinks(
     .eq("wines.is_live", true);
 
   if (error) {
-    throw new Error(error.message);
+    console.warn(
+      "getTop100ProducerShopLinks: Supabase unavailable, omitting links:",
+      error.message,
+    );
+    return {};
   }
 
   const links: Record<string, Top100ProducerShopLink> = {};

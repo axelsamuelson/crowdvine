@@ -5,15 +5,11 @@ import { usePathname } from "next/navigation";
 import { Header } from "./index";
 import { CheckoutMinimalHeader } from "./checkout-minimal-header";
 import { Collection } from "@/lib/shopify/types";
-import type { SiteLogos } from "@/lib/context/site-logo-provider";
+import { isDirtywineHost } from "@/lib/b2b-site";
 
 interface ConditionalHeaderProps {
   collections: Collection[];
   popularCollections: Collection[];
-  isDirtywineSite: boolean;
-  initialLogos?: SiteLogos;
-  /** Request pathname from middleware — keeps SSR and hydration aligned. */
-  ssrPathname: string;
 }
 
 function shouldHideHeader(
@@ -48,18 +44,22 @@ function shouldHideHeader(
 export function ConditionalHeader({
   collections,
   popularCollections,
-  isDirtywineSite,
-  initialLogos,
-  ssrPathname,
 }: ConditionalHeaderProps) {
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
+  const [isDirtywineSite, setIsDirtywineSite] = useState(false);
 
   useEffect(() => {
     setHasMounted(true);
-  }, []);
+    setIsDirtywineSite(
+      isDirtywineHost(
+        window.location.hostname,
+        new URLSearchParams(window.location.search),
+      ),
+    );
+  }, [pathname]);
 
-  const activePathname = hasMounted ? pathname || ssrPathname : ssrPathname;
+  const activePathname = hasMounted ? pathname || "/" : "/";
 
   // Checkout form + confirmation: logo + back-to-cart only (no site nav).
   // /en/checkout is rewritten to /checkout but the browser path stays /en/….
@@ -72,7 +72,7 @@ export function ConditionalHeader({
     activePathname.startsWith("/en/checkout/stripe-return");
 
   if (isCheckoutChromeRoute) {
-    return <CheckoutMinimalHeader initialLogos={initialLogos} />;
+    return <CheckoutMinimalHeader />;
   }
 
   if (shouldHideHeader(activePathname, isDirtywineSite)) {
@@ -84,7 +84,6 @@ export function ConditionalHeader({
       collections={collections}
       popularCollections={popularCollections}
       isDirtywineSite={isDirtywineSite}
-      initialLogos={initialLogos}
     />
   );
 }

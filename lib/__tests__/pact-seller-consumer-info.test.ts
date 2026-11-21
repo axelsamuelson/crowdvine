@@ -114,7 +114,8 @@ describe("PDP + /vin wiring (PACT only)", () => {
     expect(layout).toMatch(/PactSellerConsumerInfo/);
     expect(layout).toMatch(/showSharedPallet=\{false\}/);
     expect(layout).toMatch(/showSharedPalletPromise=/);
-    expect(layout).toMatch(/!isDirtywine && product\.productType === "wine"/);
+    expect(layout).toMatch(/product\.productType === "wine"/);
+    expect(layout).not.toMatch(/getIsDirtywineSiteFromHeaders/);
 
     const bar = readFileSync(
       resolve(process.cwd(), "components/pdp/pallet-status-bar.tsx"),

@@ -126,7 +126,11 @@ async function fetchSystembolagetAvailabilityCounts(): Promise<
     .eq("is_available", true);
 
   if (error) {
-    throw new Error(error.message);
+    console.warn(
+      "fetchSystembolagetAvailabilityCounts: Supabase unavailable:",
+      error.message,
+    );
+    return {};
   }
 
   const availableByName = new Map<string, number>();
