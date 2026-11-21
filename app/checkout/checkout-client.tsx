@@ -4086,7 +4086,7 @@ function CheckoutContent({
     return (
       <div
         key={line.id}
-        className="flex items-start gap-3 border-b border-border py-3 last:border-0"
+        className="flex items-start gap-3 py-3"
       >
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
           {/* Prefer static default-wine.png over /api/images proxy (400 when path missing). */}
@@ -4527,7 +4527,9 @@ function CheckoutContent({
                 )}
                 data-testid="checkout-order-summary-body"
               >
-              <div>{orderLines.map(renderCartLineRow)}</div>
+              <div className="divide-y divide-border">
+                {orderLines.map(renderCartLineRow)}
+              </div>
               {fulfillmentChannel === "direct_box" &&
               orderLines.length > 0 ? (
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -4830,9 +4832,9 @@ function CheckoutContent({
             </div>
           </aside>
 
-          <div className="order-2 min-w-0 space-y-4 min-[1280px]:order-1">
+          <div className="order-2 min-w-0 divide-y divide-border min-[1280px]:order-1">
             {/* 1. Postnummer → leveransalternativ */}
-            <section className="py-6 first:pt-0 border-b border-border last:border-0">
+            <section className="py-6 first:pt-0">
               <div className="space-y-4">
                 <div className="space-y-1">
                   <h2 className="text-base font-semibold text-foreground">
@@ -5237,12 +5239,9 @@ function CheckoutContent({
                     ) : null}
 
                     {!dualOfferReviewActive &&
-                    hasPostalCode &&
-                    (selectedPallet != null ||
-                      shippingSummaryDisplay.kind === "unavailable") &&
+                    selectedPallet != null &&
                     (producerDirectBoxOnly ||
-                      selectedPallet?.current_pickup_producer?.name ||
-                      shippingSummaryDisplay.kind === "unavailable") ? (
+                      selectedPallet.current_pickup_producer?.name) ? (
                       <div
                         className="space-y-1.5"
                         data-testid="checkout-delivery-promise"
@@ -5250,16 +5249,9 @@ function CheckoutContent({
                         <p className="text-xs text-muted-foreground">
                           {t("checkout.deliveryPromiseLabel")}
                         </p>
-                        {shippingSummaryDisplay.kind === "unavailable" ? (
-                          <p
-                            className="text-sm text-muted-foreground"
-                            data-testid="checkout-delivery-promise-unavailable"
-                          >
-                            {shippingSummaryUnavailableLabel}
-                          </p>
-                        ) : fulfillmentChannel === "direct_box" &&
-                          directBoxCheckoutEnabled &&
-                          producerDirectBoxOnly ? (
+                        {fulfillmentChannel === "direct_box" &&
+                        directBoxCheckoutEnabled &&
+                        producerDirectBoxOnly ? (
                           <DirectBoxDeliveryPromise
                             sourceType="producer"
                             enabled={directBoxCheckoutEnabled}
@@ -5269,7 +5261,7 @@ function CheckoutContent({
                             {t("commerce.sharedPalletDelivery")}
                           </p>
                         ) : null}
-                        {selectedPallet?.current_pickup_producer?.name ? (
+                        {selectedPallet.current_pickup_producer?.name ? (
                           <p className="text-xs text-muted-foreground">
                             {t("checkout.collectedFrom", {
                               name: selectedPallet.current_pickup_producer.name,
@@ -5457,7 +5449,7 @@ function CheckoutContent({
             {/* 2. Leveransadress — ett fält i taget */}
             <section
               className={cn(
-                "py-6 border-b border-border last:border-0",
+                "py-6",
                 !deliveryPreviewReady && "opacity-50",
               )}
             >
@@ -5889,7 +5881,7 @@ function CheckoutContent({
             !dualOfferCardStepUnlocked &&
             dualOfferPurchase ? (
               <section
-                className="py-6 border-b border-border last:border-0 min-[1280px]:hidden"
+                className="py-6 min-[1280px]:hidden"
                 data-testid="dual-offer-continue-mobile"
               >
                 <DualOfferPurchaseActions
@@ -5905,7 +5897,7 @@ function CheckoutContent({
             <section
               ref={complianceSectionRef}
               className={cn(
-                "scroll-mt-top-spacing py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                "scroll-mt-top-spacing py-6 transition-[opacity,transform] duration-500 ease-out",
                 // Dual buy unlocks age/terms so SetupIntent can be created.
                 dualOfferReviewActive &&
                   !dualOfferCardStepUnlocked &&
@@ -6163,7 +6155,7 @@ function CheckoutContent({
             <section
               ref={paymentSectionRef}
               className={cn(
-                "scroll-mt-top-spacing py-6 border-b border-border last:border-0 transition-[opacity,transform] duration-500 ease-out",
+                "scroll-mt-top-spacing py-6 transition-[opacity,transform] duration-500 ease-out",
                 // Locked until dual buy; then same SetupIntent card step as legacy.
                 dualOfferReviewActive &&
                   !dualOfferCardStepUnlocked &&
