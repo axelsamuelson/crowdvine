@@ -63,15 +63,104 @@ import {
 } from "@/lib/systembolaget/guide-wines";
 import type { Metadata } from "next";
 
-function isDuplicateOfProducer(
-  part: string | null | undefined,
+/**
+ * Colette guide-name key: lowercase, trim, strip accents and punctuation.
+ * Used only for comparison — display strings stay unchanged.
+ */
+export function normalizeGuideWineName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase("sv-SE")
+    .replace(/[\p{P}\p{S}]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Single-edit tolerance for Systembolaget typos (e.g. Henrquez / Henriquez). */
+function editDistanceAtMostOne(a: string, b: string): boolean {
+  if (a === b) return true;
+  const lenA = a.length;
+  const lenB = b.length;
+  if (Math.abs(lenA - lenB) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+  while (i < lenA && j < lenB) {
+    if (a[i] === b[j]) {
+      i += 1;
+      j += 1;
+      continue;
+    }
+    edits += 1;
+    if (edits > 1) return false;
+    if (lenA > lenB) i += 1;
+    else if (lenB > lenA) j += 1;
+    else {
+      i += 1;
+      j += 1;
+    }
+  }
+  if (i < lenA || j < lenB) edits += 1;
+  return edits <= 1;
+}
+
+function isSameGuideName(a: string, b: string): boolean {
+  const na = normalizeGuideWineName(a);
+  const nb = normalizeGuideWineName(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  return editDistanceAtMostOne(na, nb);
+}
+
+function normalizedIncludes(haystack: string, needle: string): boolean {
+  const h = normalizeGuideWineName(haystack);
+  const n = normalizeGuideWineName(needle);
+  if (!h || !n) return false;
+  return h.includes(n);
+}
+
+/**
+ * Drop a leading producer_name from name_bold (word-wise, normalized).
+ * Returns null when nothing remains.
+ */
+export function stripLeadingProducerFromBold(
+  bold: string,
   producer: string,
+): string | null {
+  const trimmed = bold.trim();
+  if (!trimmed) return null;
+  const producerWords = producer
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (producerWords.length === 0) return trimmed;
+
+  const boldWords = trimmed.split(/\s+/).filter(Boolean);
+  if (boldWords.length < producerWords.length) return trimmed;
+
+  for (let index = 0; index < producerWords.length; index += 1) {
+    if (!isSameGuideName(boldWords[index]!, producerWords[index]!)) {
+      return trimmed;
+    }
+  }
+
+  const rest = boldWords.slice(producerWords.length).join(" ").trim();
+  return rest || null;
+}
+
+function shouldShowNameThin(
+  thin: string,
+  producer: string,
+  bold: string | null,
+  cleanedBold: string | null,
 ): boolean {
-  const value = part?.trim();
-  if (!value || !producer) return false;
-  const a = value.toLocaleLowerCase("sv-SE");
-  const b = producer.toLocaleLowerCase("sv-SE");
-  return a === b || b.includes(a);
+  if (isSameGuideName(thin, producer)) return false;
+  // Short producer fragment still sitting in name_thin (legacy SB layout).
+  if (normalizedIncludes(producer, thin)) return false;
+  if (bold && normalizedIncludes(bold, thin)) return false;
+  if (cleanedBold && normalizedIncludes(cleanedBold, thin)) return false;
+  return true;
 }
 
 /** Producer as emphasis; wine name as secondary (deduped). */
@@ -83,16 +172,28 @@ export function wineNameParts(wine: SystembolagetGuideWine): {
   const thin = wine.name_thin?.trim() || null;
   const bold = wine.name_bold?.trim() || null;
 
+  let cleanedBold = bold
+    ? stripLeadingProducerFromBold(bold, producer)
+    : null;
+  // name_bold that only restates (part of) the producer — e.g. "Petr Korab"
+  // under producer "Mgr. Petr Korab".
+  if (
+    cleanedBold &&
+    (isSameGuideName(cleanedBold, producer) ||
+      normalizedIncludes(producer, cleanedBold))
+  ) {
+    cleanedBold = null;
+  }
   const usableThin =
-    thin && !isDuplicateOfProducer(thin, producer) ? thin : null;
-  const usableBold =
-    bold && !isDuplicateOfProducer(bold, producer) ? bold : null;
+    thin && shouldShowNameThin(thin, producer, bold, cleanedBold)
+      ? thin
+      : null;
 
   let secondary: string | null = null;
-  if (usableBold && usableThin) {
-    secondary = `${usableBold} ${usableThin}`;
+  if (cleanedBold && usableThin) {
+    secondary = `${cleanedBold} ${usableThin}`;
   } else {
-    secondary = usableThin || usableBold;
+    secondary = usableThin || cleanedBold;
   }
 
   return { producer, secondary };
