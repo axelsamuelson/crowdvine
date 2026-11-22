@@ -17,6 +17,32 @@ export function selectChannelBoundQuote(
 }
 
 /**
+ * Which channel’s bottle prices the order summary should paint.
+ *
+ * Camille 22/11 21:18: before postal, kassa showed direct +5% (183 kr) while
+ * PDP/pallet was 174 kr — channel state can be `direct_box` before a delivery
+ * method is chosen. Direct markup is only for when Direktleverans is actually
+ * selected after a postal is known.
+ */
+export function resolveCheckoutPricingChannel(input: {
+  fulfillmentChannel: FulfillmentChannel;
+  hasPostalCode: boolean;
+}): FulfillmentChannel {
+  if (!input.hasPostalCode) return "shared_pallet";
+  return input.fulfillmentChannel;
+}
+
+/** True only when Direktleverans is selected and postal is known. */
+export function shouldShowDirectBoxLinePrices(input: {
+  fulfillmentChannel: FulfillmentChannel;
+  hasPostalCode: boolean;
+}): boolean {
+  return (
+    resolveCheckoutPricingChannel(input) === "direct_box"
+  );
+}
+
+/**
  * Subtotal for the selected channel: bound quote, else client preview
  * (catalog for shared_pallet, catalog×markup whole kronor for direct_box).
  */

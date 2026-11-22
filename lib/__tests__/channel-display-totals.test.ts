@@ -3,7 +3,9 @@ import type { CheckoutQuote } from "@/lib/checkout/checkout-quote";
 import {
   resolveChannelDisplaySubtotalSek,
   resolveChannelDisplayTotalSek,
+  resolveCheckoutPricingChannel,
   selectChannelBoundQuote,
+  shouldShowDirectBoxLinePrices,
 } from "@/lib/checkout/channel-display-totals";
 import {
   directBoxLineTotalSek,
@@ -37,6 +39,63 @@ const directQuote: CheckoutQuote = {
   fulfillment_channel: "direct_box",
   rate_channel: "direct_box",
 };
+
+describe("resolveCheckoutPricingChannel (pre-postal pallpris)", () => {
+  it("before postal always paints shared/pallet prices (Camille 183→174)", () => {
+    expect(
+      resolveCheckoutPricingChannel({
+        fulfillmentChannel: "direct_box",
+        hasPostalCode: false,
+      }),
+    ).toBe("shared_pallet");
+    expect(
+      shouldShowDirectBoxLinePrices({
+        fulfillmentChannel: "direct_box",
+        hasPostalCode: false,
+      }),
+    ).toBe(false);
+    const catalog = 174;
+    expect(directBoxUnitPriceSek(catalog, 5)).toBe(183);
+    expect(
+      resolveChannelDisplaySubtotalSek({
+        channel: resolveCheckoutPricingChannel({
+          fulfillmentChannel: "direct_box",
+          hasPostalCode: false,
+        }),
+        boundQuote: null,
+        sharedClientSubtotalSek: catalog * 6,
+        directClientSubtotalSek: directBoxLineTotalSek(catalog, 6, 5),
+      }),
+    ).toBe(1044);
+  });
+
+  it("after postal + Delad → pallpris; after postal + Direkt → +5%", () => {
+    expect(
+      resolveCheckoutPricingChannel({
+        fulfillmentChannel: "shared_pallet",
+        hasPostalCode: true,
+      }),
+    ).toBe("shared_pallet");
+    expect(
+      shouldShowDirectBoxLinePrices({
+        fulfillmentChannel: "shared_pallet",
+        hasPostalCode: true,
+      }),
+    ).toBe(false);
+    expect(
+      resolveCheckoutPricingChannel({
+        fulfillmentChannel: "direct_box",
+        hasPostalCode: true,
+      }),
+    ).toBe("direct_box");
+    expect(
+      shouldShowDirectBoxLinePrices({
+        fulfillmentChannel: "direct_box",
+        hasPostalCode: true,
+      }),
+    ).toBe(true);
+  });
+});
 
 describe("channel-display-totals (Camille Direktleverans mismatch)", () => {
   it("ignores shared-pallet quote while viewing direct_box", () => {
