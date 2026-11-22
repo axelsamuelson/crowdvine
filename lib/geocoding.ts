@@ -209,6 +209,24 @@ export function clearGeocodeCache() {
   console.log("🧹 Geocoding cache cleared");
 }
 
+/**
+ * True when the query is SE postcode (+ country) with no street/city name.
+ * Checkout guest postal-only builds "41101, 41101, Sweden" — band approx is
+ * enough for delivery-zone radii and avoids Mapbox RTT/retries on /zones.
+ */
+export function isSePostalOnlyGeocodeQuery(
+  address: string | null | undefined,
+): boolean {
+  const raw = String(address ?? "").trim();
+  if (!raw) return false;
+  if (!extractSePostalDigits(raw)) return false;
+  const stripped = raw
+    .replace(/\b\d{5}\b/g, "")
+    .replace(/\b(sweden|sverige)\b/gi, "")
+    .replace(/[,.\s/-]+/g, "");
+  return stripped.length === 0;
+}
+
 export async function geocodeAddress(
   address: string,
 ): Promise<GeocodeResult | GeocodeError> {
@@ -219,6 +237,20 @@ export async function geocodeAddress(
   if (geocodeCache.has(cleanAddress)) {
     console.log("📍 Using cached geocode result for:", cleanAddress);
     return geocodeCache.get(cleanAddress)!;
+  }
+
+  // Checkout postal-only SE: skip Mapbox — same band approx used when Mapbox
+  // is missing or snaps to Stockholm for non-Stockholm postals.
+  if (isSePostalOnlyGeocodeQuery(cleanAddress)) {
+    const approx = sePostalApproxResult(cleanAddress);
+    if (approx) {
+      console.log("⚡ SE postal-only — using band approx (skip Mapbox):", {
+        postal: approx.address?.postcode,
+        place: approx.address?.city,
+      });
+      geocodeCache.set(cleanAddress, approx);
+      return approx;
+    }
   }
 
   // Retry logic for geocoding

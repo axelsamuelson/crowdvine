@@ -2,9 +2,6 @@ import { NextResponse } from "next/server";
 import { determineZones } from "@/lib/zone-matching";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
-import { normalizeProfileCountry } from "@/lib/countries";
-import { resolveMarketForCountry } from "@/lib/market/resolve-market";
-import { resolveMarketDropForPallet } from "@/lib/market/resolve-market-drop";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 
 export async function POST(request: Request) {
@@ -40,7 +37,15 @@ export async function POST(request: Request) {
       .map((p) => p.id)
       .filter((id): id is string => typeof id === "string" && id.length > 0);
 
-    if (palletIds.length > 0) {
+    // Region hot path already joins current_pickup_producer + shipping_region_id.
+    // Skip a redundant enrich round-trip when every pallet already has them.
+    const needsEnrich = palletsOut.some(
+      (p) =>
+        p.current_pickup_producer === undefined ||
+        p.shipping_region_id === undefined,
+    );
+
+    if (palletIds.length > 0 && needsEnrich) {
       const sb = getSupabaseAdmin();
       const { data: rows, error: enrichErr } = await sb
         .from("pallets")
@@ -74,9 +79,11 @@ export async function POST(request: Request) {
           if (!row) return p;
           return {
             ...p,
-            shipping_region_id: row.shipping_region_id ?? null,
+            shipping_region_id:
+              row.shipping_region_id ?? p.shipping_region_id ?? null,
             status: row.status ?? p.status ?? null,
-            current_pickup_producer: row.current_pickup_producer ?? null,
+            current_pickup_producer:
+              row.current_pickup_producer ?? p.current_pickup_producer ?? null,
           };
         });
       } else if (enrichErr) {
@@ -87,47 +94,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const rawCc =
-      typeof deliveryAddress.countryCode === "string"
-        ? deliveryAddress.countryCode.trim()
-        : "";
-    const normalizedCc = normalizeProfileCountry(rawCc);
-
-    /** Logged-in: market / campaign slice follows active shopping geo, not profile home. */
-    let resolvedMarket;
-    if (user?.id) {
-      const active = await resolveActiveGeoZoneForUser(user.id);
-      resolvedMarket = await resolveMarketForCountry({
-        countryCode: active.countryCode,
-        regionCode: active.regionCode,
-      });
-    } else {
-      resolvedMarket = normalizedCc
-        ? await resolveMarketForCountry({
-            countryCode: normalizedCc,
-            regionCode: null,
-          })
-        : await resolveMarketForCountry({ countryCode: "SE", regionCode: null });
-    }
-
-    palletsOut = await Promise.all(
-      palletsOut.map(async (p) => {
-        const drop =
-          resolvedMarket.marketCode !== "UNKNOWN"
-            ? await resolveMarketDropForPallet({
-                sourcePalletId: p.id,
-                marketCode: resolvedMarket.marketCode,
-                countryCode: resolvedMarket.countryCode,
-                regionCode: resolvedMarket.regionCode,
-              })
-            : null;
-        return {
-          ...p,
-          marketDropId: drop?.id ?? null,
-          sourcePalletId: p.id,
-        };
-      }),
-    );
+    // Skip market_drop lookup on this hot path: checkout UI does not read
+    // marketDropId from /zones (confirm resolves drops server-side). That
+    // round-trip added ~0.4s after postal entry for the Delad pall card.
+    palletsOut = palletsOut.map((p) => ({
+      ...p,
+      marketDropId: p.marketDropId ?? null,
+      sourcePalletId: p.id,
+    }));
 
     const primary = palletsOut[0];
     const topMarketDropId = primary?.marketDropId ?? null;

@@ -214,19 +214,19 @@ describe("decidePalletShipReadinessSync — status integrity", () => {
 describe("sumReservedBottlesOnPalletResult — fail closed", () => {
   it("distinguishes query failure from real zero via Result type contract", async () => {
     vi.resetModules();
+    const fail = async () => ({
+      data: null,
+      error: { message: "simulated reservation query failure" },
+    });
+    // Batch API uses .in().in().is(); single-id path historically used .eq().in().is().
+    const chain: Record<string, unknown> = {};
+    chain.in = () => chain;
+    chain.eq = () => chain;
+    chain.is = fail;
     vi.doMock("@/lib/supabase-admin", () => ({
       getSupabaseAdmin: () => ({
         from: () => ({
-          select: () => ({
-            eq: () => ({
-              in: () => ({
-                is: async () => ({
-                  data: null,
-                  error: { message: "simulated reservation query failure" },
-                }),
-              }),
-            }),
-          }),
+          select: () => chain,
         }),
       }),
     }));

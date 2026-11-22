@@ -943,6 +943,21 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           </h2>
         )}
 
+        {/* Fill comes from /zones (selectedPallet) — paint as soon as parent
+            has it. Do not wait for offer-quotes (auth + shipping) which used
+            to delay fyllnadsgrad 6–8s behind zones on the Delad pall card. */}
+        {!compareMode && showPalletFillStatus && palletFill ? (
+          <CheckoutPalletFillStatus
+            locale={locale}
+            enabled={showPalletFillStatus}
+            palletId={palletFill.palletId}
+            reservedBottles={palletFill.reservedBottles}
+            capacity={palletFill.capacity}
+            cartBottles={palletFill.cartBottles}
+            fillAvailable={palletFill.fillAvailable}
+          />
+        ) : null}
+
         {loading && !state ? (
           <div
             className="space-y-3"
@@ -1022,18 +1037,6 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
               className="space-y-2"
               data-testid="dual-offer-shared-only-block"
             >
-              {showPalletFillStatus && palletFill ? (
-                <CheckoutPalletFillStatus
-                  locale={locale}
-                  enabled={showPalletFillStatus}
-                  palletId={palletFill.palletId}
-                  reservedBottles={palletFill.reservedBottles}
-                  capacity={palletFill.capacity}
-                  cartBottles={palletFill.cartBottles}
-                  fillAvailable={palletFill.fillAvailable}
-                />
-              ) : null}
-
               {sharedQuote && !sharedQuote.unavailable_reason ? (
                 (() => {
                   const lines = sharedCheckoutDeliveryLines(

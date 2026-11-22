@@ -8,7 +8,10 @@ import {
   resolvePhysicalBottleCapacity,
   type PalletShipProgress,
 } from "@/lib/pallet-ship-progress";
-import { findOrCreatePalletForRegion } from "@/lib/pallet-auto-management";
+import {
+  findOrCreatePalletForRegion,
+  type FindOrCreatePalletRow,
+} from "@/lib/pallet-auto-management";
 import { resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
 import { PALLET_ACCEPTING_STATUSES } from "@/lib/pallet-ship-progress";
 import {
@@ -282,41 +285,90 @@ async function buildPalletInfosForDeliveryPair(
     // direct-box checkout is never stranded on 0 accepting pallets.
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const { palletId } = await findOrCreatePalletForRegion(
+        const found = await findOrCreatePalletForRegion(
           shippingRegionId,
           deliveryZoneId,
         );
-        const { data: pRow, error: pe } = await sb
-          .from("pallets")
-          .select(
-            "id, name, bottle_capacity, min_bottles_to_complete, cost_cents, last_mile_cost_cents_per_bottle, status",
-          )
-          .eq("id", palletId)
-          .maybeSingle();
-        if (pe || !pRow) {
-          console.error("[determineZones] region pallet load:", pe?.message);
-          continue;
+        let pRow = found.palletRow;
+        if (!pRow) {
+          const { data, error: pe } = await sb
+            .from("pallets")
+            .select(
+              `
+              id,
+              name,
+              bottle_capacity,
+              min_bottles_to_complete,
+              cost_cents,
+              last_mile_cost_cents_per_bottle,
+              status,
+              current_pickup_producer:producers!current_pickup_producer_id(id, name)
+            `,
+            )
+            .eq("id", found.palletId)
+            .maybeSingle();
+          if (pe || !data) {
+            console.error("[determineZones] region pallet load:", pe?.message);
+            continue;
+          }
+          pRow = {
+            id: String(data.id ?? ""),
+            name: typeof data.name === "string" ? data.name : null,
+            bottle_capacity:
+              data.bottle_capacity == null
+                ? null
+                : Number(data.bottle_capacity),
+            min_bottles_to_complete:
+              (data as { min_bottles_to_complete?: number })
+                .min_bottles_to_complete ?? null,
+            cost_cents: data.cost_cents == null ? null : Number(data.cost_cents),
+            last_mile_cost_cents_per_bottle:
+              data.last_mile_cost_cents_per_bottle == null
+                ? null
+                : Number(data.last_mile_cost_cents_per_bottle),
+            status: typeof data.status === "string" ? data.status : null,
+            current_pickup_producer:
+              (
+                data as {
+                  current_pickup_producer?: FindOrCreatePalletRow["current_pickup_producer"];
+                }
+              ).current_pickup_producer ?? null,
+          };
         }
         const id = String(pRow.id ?? "");
         if (!id) continue;
-        const fillResult = await sumReservedBottlesOnPalletResult(id);
-        if (!fillResult.ok) {
-          console.error("[determineZones] fill unavailable:", fillResult.error);
-          continue;
+        // Reuse fill from findOrCreate when present — avoids a second
+        // reservations+items round-trip on the checkout zones hot path.
+        let currentBottles = found.reservedBottles;
+        if (
+          typeof found.reservedBottles !== "number" ||
+          !Number.isFinite(found.reservedBottles)
+        ) {
+          const fillResult = await sumReservedBottlesOnPalletResult(id);
+          if (!fillResult.ok) {
+            console.error(
+              "[determineZones] fill unavailable:",
+              fillResult.error,
+            );
+            continue;
+          }
+          currentBottles = fillResult.bottles;
         }
-        const currentBottles = fillResult.bottles;
         const cap = resolvePhysicalBottleCapacity(pRow.bottle_capacity);
-        const minToShip = resolveMinBottlesToShip(
-          (pRow as { min_bottles_to_complete?: number }).min_bottles_to_complete,
-        );
+        const minToShip = resolveMinBottlesToShip(pRow.min_bottles_to_complete);
         const shipProgress = computePalletShipProgress(
           currentBottles,
           minToShip,
           cap,
         );
-        const statusRaw = pRow.status;
-        const status =
-          typeof statusRaw === "string" ? statusRaw : null;
+        const status = pRow.status;
+        const producerJoin = pRow.current_pickup_producer;
+        const producer =
+          producerJoin == null
+            ? null
+            : Array.isArray(producerJoin)
+              ? producerJoin[0] ?? null
+              : producerJoin;
         pallets.push({
           id,
           name: String(pRow.name ?? ""),
@@ -334,6 +386,7 @@ async function buildPalletInfosForDeliveryPair(
           status,
           shipping_region_id: shippingRegionId,
           delivery_zone_id: deliveryZoneId,
+          current_pickup_producer: producer,
         });
         break;
       } catch (e) {
@@ -954,21 +1007,71 @@ export async function determineZones(
 
   const sb = getSupabaseAdmin(); // Use admin client to bypass RLS
 
-  // Get unique producer IDs from cart items
-  console.log(
-    "🍷 Fetching wines for cart items:",
-    cartItems.map((item) => item.merchandise.id),
-  );
-  const { data: wines, error: winesError } = await sb
-    .from("wines")
-    .select("id, producer_id")
-    .in(
-      "id",
-      cartItems.map((item) => item.merchandise.id),
-    );
+  const wineIds = cartItems
+    .map((item) => item.merchandise.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
 
-  console.log("🍷 Wines fetched:", wines);
-  if (winesError || !wines) {
+  // Prefetch delivery zones + geocode in parallel with wines when the
+  // destination looks like a normal supported checkout country (SE etc.).
+  const earlyCc = normalizeProfileCountry(deliveryAddress.countryCode);
+  const earlyMode = earlyCc ? getCountryMarketMode(earlyCc) : "unsupported";
+  const canPrefetchDeliveryGeo =
+    Boolean(deliveryAddress.postcode) &&
+    Boolean(earlyCc) &&
+    earlyMode === "normal_checkout" &&
+    isSupportedCheckoutCountry(earlyCc);
+
+  type DeliveryZonePrefetch = {
+    data: DeliveryZoneRow[] | null;
+    error: { message?: string } | null;
+  };
+  let deliveryZonesPrefetch: Promise<DeliveryZonePrefetch> | null = null;
+  let geocodePrefetch: ReturnType<typeof geocodeAddress> | null = null;
+  let prefetchFullAddress: string | null = null;
+
+  if (canPrefetchDeliveryGeo && earlyCc) {
+    prefetchFullAddress = buildDeliveryGeocodeAddress({
+      postcode: deliveryAddress.postcode,
+      city: deliveryAddress.city,
+      countryCode: earlyCc,
+    });
+    deliveryZonesPrefetch = sb
+      .from("pallet_zones")
+      .select("id, name, center_lat, center_lon, radius_km, country_code")
+      .eq("zone_type", "delivery")
+      .or(`country_code.eq.${earlyCc},country_code.is.null`)
+      .then((res) => ({
+        data: (res.data as DeliveryZoneRow[] | null) ?? null,
+        error: res.error,
+      }));
+    geocodePrefetch = geocodeAddress(prefetchFullAddress);
+  }
+
+  // One round-trip: wines → producers (+ pickup zone join) instead of 2 serial.
+  console.log("🍷 Fetching wines+producers for cart items:", wineIds);
+  const { data: wineProducerRows, error: winesError } = await sb
+    .from("wines")
+    .select(
+      `
+      id,
+      producer_id,
+      producers!producer_id (
+        id,
+        name,
+        pickup_zone_id,
+        shipping_region_id,
+        pallet_zones!pickup_zone_id (
+          id,
+          name,
+          zone_type
+        )
+      )
+    `,
+    )
+    .in("id", wineIds);
+
+  console.log("🍷 Wines+producers fetched:", wineProducerRows);
+  if (winesError || !wineProducerRows) {
     console.error("❌ Failed to fetch wines for zone matching:", winesError);
     return {
       pickupZoneId: null,
@@ -979,34 +1082,24 @@ export async function determineZones(
     };
   }
 
-  const producerIds = [
-    ...new Set(wines.map((wine) => wine.producer_id).filter(Boolean)),
-  ];
-  console.log("👨‍🌾 Producer IDs from wines:", producerIds);
-
-  // Get producers with pickup zone join (legacy) and shipping_region_id (region pallets)
-  const { data: producers, error: producersError } = await sb
-    .from("producers")
-    .select(
-      `
-      id,
-      name,
-      pickup_zone_id,
-      shipping_region_id,
-      pallet_zones!pickup_zone_id (
-        id,
-        name,
-        zone_type
-      )
-    `,
-    )
-    .in("id", producerIds);
-
-  console.log("👨‍🌾 Producers fetched:", producers);
-  if (producersError || !producers) {
+  const producerById = new Map<string, ProducerForZonesRow>();
+  for (const row of wineProducerRows) {
+    const join = (
+      row as {
+        producers?: ProducerForZonesRow | ProducerForZonesRow[] | null;
+      }
+    ).producers;
+    const producer = Array.isArray(join) ? join[0] : join;
+    if (producer?.id) producerById.set(String(producer.id), producer);
+  }
+  const producerRows = [...producerById.values()];
+  console.log(
+    "👨‍🌾 Producer IDs from wines:",
+    producerRows.map((p) => p.id),
+  );
+  if (producerRows.length === 0 && wineProducerRows.length > 0) {
     console.error(
-      "❌ Failed to fetch producers for zone matching:",
-      producersError,
+      "❌ Failed to fetch producers for zone matching: join empty",
     );
     return {
       pickupZoneId: null,
@@ -1017,8 +1110,6 @@ export async function determineZones(
     };
   }
 
-  const producerRows = producers as ProducerForZonesRow[];
-
   const shippingRegionIdForRouting =
     unifiedShippingRegionId(producerRows);
 
@@ -1026,13 +1117,19 @@ export async function determineZones(
   let pickupZoneName: string | null = null;
 
   if (shippingRegionIdForRouting) {
-    const { data: srRow } = await sb
+    // Overlap region name lookup with delivery/geocode prefetch when present.
+    const srPromise = sb
       .from("shipping_regions")
       .select("name")
       .eq("id", shippingRegionIdForRouting)
       .maybeSingle();
+    const [srRow] = await Promise.all([
+      srPromise,
+      deliveryZonesPrefetch ?? Promise.resolve(null),
+      geocodePrefetch ?? Promise.resolve(null),
+    ]);
     pickupZoneId = null;
-    const rn = srRow?.name != null ? String(srRow.name).trim() : "";
+    const rn = srRow.data?.name != null ? String(srRow.data.name).trim() : "";
     pickupZoneName = rn.length > 0 ? `${rn} (region)` : "Shipping region";
   } else {
     const producerWithPickupZone =
@@ -1168,18 +1265,53 @@ export async function determineZones(
       return unsupported;
     }
 
-    // Get all delivery zones for the country (explicit country or legacy global rows)
+    // Delivery-zone rows + geocode are independent — prefer early prefetch
+    // started alongside wines; otherwise fetch both in parallel here.
     console.log(
       "🔍 Fetching delivery zones for country:",
       countryCodeNormalized,
     );
-    const { data: deliveryZones, error: deliveryZonesError } = await sb
-      .from("pallet_zones")
-      .select("id, name, center_lat, center_lon, radius_km, country_code")
-      .eq("zone_type", "delivery")
-      .or(
-        `country_code.eq.${countryCodeNormalized},country_code.is.null`,
-      );
+    const fullAddress =
+      prefetchFullAddress && earlyCc === countryCodeNormalized
+        ? prefetchFullAddress
+        : buildDeliveryGeocodeAddress({
+            postcode: deliveryAddress.postcode,
+            city: deliveryAddress.city,
+            countryCode: countryCodeNormalized,
+          });
+    console.log("🌍 Geocoding address:", fullAddress, {
+      cityPresent: Boolean(String(deliveryAddress.city ?? "").trim()),
+      postalOnly:
+        !String(deliveryAddress.city ?? "").trim() ||
+        String(deliveryAddress.city ?? "").replace(/\s+/g, "") ===
+          String(deliveryAddress.postcode ?? "").replace(/\s+/g, ""),
+    });
+
+    const usePrefetch =
+      deliveryZonesPrefetch != null &&
+      geocodePrefetch != null &&
+      earlyCc === countryCodeNormalized;
+
+    const [deliveryZonesQuery, geocodeResult] = usePrefetch
+      ? await Promise.all([deliveryZonesPrefetch!, geocodePrefetch!])
+      : await Promise.all([
+          sb
+            .from("pallet_zones")
+            .select(
+              "id, name, center_lat, center_lon, radius_km, country_code",
+            )
+            .eq("zone_type", "delivery")
+            .or(
+              `country_code.eq.${countryCodeNormalized},country_code.is.null`,
+            )
+            .then((res) => ({
+              data: (res.data as DeliveryZoneRow[] | null) ?? null,
+              error: res.error,
+            })),
+          geocodeAddress(fullAddress),
+        ]);
+    const { data: deliveryZones, error: deliveryZonesError } =
+      deliveryZonesQuery;
 
     console.log("📍 Found delivery zones:", deliveryZones?.length || 0);
     if (deliveryZones) {
@@ -1191,21 +1323,6 @@ export async function determineZones(
     }
 
     if (!deliveryZonesError && deliveryZones && deliveryZones.length > 0) {
-      // Geocode postcode (+ city when real) against every delivery zone.
-      const fullAddress = buildDeliveryGeocodeAddress({
-        postcode: deliveryAddress.postcode,
-        city: deliveryAddress.city,
-        countryCode: countryCodeNormalized,
-      });
-
-      console.log("🌍 Geocoding address:", fullAddress, {
-        cityPresent: Boolean(String(deliveryAddress.city ?? "").trim()),
-        postalOnly:
-          !String(deliveryAddress.city ?? "").trim() ||
-          String(deliveryAddress.city ?? "").replace(/\s+/g, "") ===
-            String(deliveryAddress.postcode ?? "").replace(/\s+/g, ""),
-      });
-      const geocodeResult = await geocodeAddress(fullAddress);
 
       const geocodeFailed =
         "error" in geocodeResult ||
@@ -1333,10 +1450,31 @@ export async function determineZones(
           // then prefer a zone that already has an accepting open pallet (AC2).
           if (matchingZones.length > 0) {
             bumpPreferredDeliveryMatch(matchingZones, preferredDeliveryZoneId);
-            const acceptingIds = await loadDeliveryZoneIdsWithAcceptingPallets(
+            const speculativeZone = matchingZones[0]!;
+            // Overlap accepting-pallet lookup with speculative pallet resolve for
+            // the radius/preferred first pick (common case: it wins → no extra wait).
+            const acceptingPromise =
+              matchingZones.length <= 1
+                ? Promise.resolve(new Set<string>())
+                : loadDeliveryZoneIdsWithAcceptingPallets(
+                    sb,
+                    matchingZones.map((z) => z.id),
+                  );
+            const speculativePalletsPromise = buildPalletInfosForDeliveryPair(
               sb,
-              matchingZones.map((z) => z.id),
+              {
+                shippingRegionId: shippingRegionIdForRouting,
+                pickupZoneId,
+                pickupZoneDisplayName: pickupZoneName,
+                deliveryZoneId: speculativeZone.id,
+                deliveryZoneName: speculativeZone.name,
+              },
             );
+
+            const [acceptingIds, speculativePallets] = await Promise.all([
+              acceptingPromise,
+              speculativePalletsPromise,
+            ]);
             const ordered = preferDeliveryZoneWithAcceptingPallet(
               matchingZones,
               acceptingIds,
@@ -1373,15 +1511,17 @@ export async function determineZones(
             }
 
             const pallets =
-              deliveryZoneId && deliveryZoneName
-                ? await buildPalletInfosForDeliveryPair(sb, {
-                    shippingRegionId: shippingRegionIdForRouting,
-                    pickupZoneId,
-                    pickupZoneDisplayName: pickupZoneName,
-                    deliveryZoneId,
-                    deliveryZoneName,
-                  })
-                : [];
+              deliveryZoneId === speculativeZone.id
+                ? speculativePallets
+                : deliveryZoneId && deliveryZoneName
+                  ? await buildPalletInfosForDeliveryPair(sb, {
+                      shippingRegionId: shippingRegionIdForRouting,
+                      pickupZoneId,
+                      pickupZoneDisplayName: pickupZoneName,
+                      deliveryZoneId,
+                      deliveryZoneName,
+                    })
+                  : [];
 
             // Cache and return all matching zones for user selection
             const result: ZoneMatchResult = {

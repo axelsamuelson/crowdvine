@@ -56,3 +56,4 @@ tmp/
 
 # Review / agent verification screenshots — never commit (public repo)
 /artifacts/
+artifacts/
