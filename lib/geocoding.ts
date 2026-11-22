@@ -116,6 +116,42 @@ function sePostalApproxResult(
   };
 }
 
+/** Rough Stockholm county postals 10xxx–19xxx (avoid importing zone-matching). */
+function isLikelyStockholmAreaPostalDigits(postal: string): boolean {
+  if (postal.length < 2) return false;
+  const prefix = Number.parseInt(postal.slice(0, 2), 10);
+  return Number.isFinite(prefix) && prefix >= 10 && prefix <= 19;
+}
+
+/**
+ * Mapbox often snaps "41101 Stockholm" to Stockholm center. When the query
+ * carries a non-Stockholm SE postal, prefer band approx so Göteborg/Malmö
+ * radii still match (Camille reload bug after shopping-geo city inject).
+ */
+function preferSeApproxWhenMapboxIgnoresPostal(
+  query: string,
+  mapbox: GeocodeResult,
+): GeocodeResult {
+  const postal = extractSePostalDigits(query);
+  if (!postal || isLikelyStockholmAreaPostalDigits(postal)) return mapbox;
+  const approx = sePostalApproxResult(query);
+  if (!approx) return mapbox;
+  // Stockholm wine-zone center ≈ 59.33, 18.06 — if Mapbox landed near there
+  // while the postal band is elsewhere, trust the band.
+  const nearStockholm =
+    Math.abs(mapbox.lat - 59.33) < 0.6 && Math.abs(mapbox.lon - 18.07) < 0.8;
+  if (!nearStockholm) return mapbox;
+  console.warn(
+    "⚠️ Mapbox ignored non-Stockholm postal — using SE band approx:",
+    {
+      postal,
+      mapbox: { lat: mapbox.lat, lon: mapbox.lon, place: mapbox.address?.city },
+      approx: { lat: approx.lat, lon: approx.lon, place: approx.address?.city },
+    },
+  );
+  return approx;
+}
+
 async function fetchMapboxGeocode(
   query: string,
   options: { country?: string } = {},
@@ -225,16 +261,20 @@ export async function geocodeAddress(
         return result;
       }
 
-      geocodeCache.set(cleanAddress, result);
+      const trusted = preferSeApproxWhenMapboxIgnoresPostal(
+        cleanAddress,
+        result,
+      );
+      geocodeCache.set(cleanAddress, trusted);
 
       console.log("✅ Geocoded successfully:", {
         address: cleanAddress,
-        lat: result.lat,
-        lon: result.lon,
-        city: result.address?.city,
+        lat: trusted.lat,
+        lon: trusted.lon,
+        city: trusted.address?.city,
       });
 
-      return result;
+      return trusted;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(
@@ -260,18 +300,36 @@ export async function geocodeAddress(
 
     const fallback = await fetchMapboxGeocode(simpleAddress, { country: "se" });
     if (!("error" in fallback)) {
-      geocodeCache.set(cleanAddress, fallback);
+      const trusted = preferSeApproxWhenMapboxIgnoresPostal(
+        cleanAddress,
+        fallback,
+      );
+      geocodeCache.set(cleanAddress, trusted);
 
       console.log("✅ Fallback geocoding successful:", {
         address: cleanAddress,
-        lat: fallback.lat,
-        lon: fallback.lon,
+        lat: trusted.lat,
+        lon: trusted.lon,
       });
 
-      return fallback;
+      return trusted;
     }
   } catch (fallbackError) {
     console.error("❌ Fallback geocoding also failed:", fallbackError);
+  }
+
+  // Last resort: SE postal band approx (same as Mapbox-missing path). Keeps
+  // Göteborg/Malmö matching when Mapbox flakes after a poisoned city query.
+  const approx = sePostalApproxResult(cleanAddress);
+  if (approx) {
+    console.warn("⚠️ Mapbox failed — using SE postal approx geocode:", {
+      postal: approx.address?.postcode,
+      place: approx.address?.city,
+      lat: approx.lat,
+      lon: approx.lon,
+    });
+    geocodeCache.set(cleanAddress, approx);
+    return approx;
   }
 
   return {

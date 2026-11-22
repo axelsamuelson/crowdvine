@@ -490,6 +490,7 @@
     "fulfillmentDirectHint": "{estimate} · signatur och ålderskontroll vid överlämning",
     "directBoxHandoverHint": "Signatur och ålderskontroll (20+) vid överlämning.",
     "sharedPalletPostalUnavailable": "Delad pall är inte tillgänglig för ditt postnummer (utanför leveranszonen).",
+    "sharedPalletNoOpenPallet": "Ingen delad pall till ditt område ännu",
     "sharedPalletPostalBudbeeUnavailable": "Delad pall (hemleverans) är inte tillgänglig för ditt postnummer.",
     "directBoxPostalUnavailable": "Direktleverans är inte tillgänglig för ditt postnummer.",
     "directBoxLineMarkupNote": "Flaskpris med direktleverans ({percent} % över pallpriset)",

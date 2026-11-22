@@ -10,6 +10,7 @@ import {
 } from "@/lib/pallet-ship-progress";
 import { findOrCreatePalletForRegion } from "@/lib/pallet-auto-management";
 import { resolveLastMileCostCentsPerBottle } from "@/lib/shipping-calculations";
+import { PALLET_ACCEPTING_STATUSES } from "@/lib/pallet-ship-progress";
 import {
   geocodeAddress,
   createFullAddress,
@@ -109,6 +110,89 @@ export function findMatchingDeliveryZones(
   return matchingZones;
 }
 
+export type DeliveryZoneMatchOption = {
+  id: string;
+  name: string;
+  centerLat: number;
+  centerLon: number;
+  radiusKm: number;
+};
+
+/**
+ * Among geo-matched delivery zones (already smallest-radius first), prefer a
+ * zone that has an accepting open pallet. Camille 22/11: Göteborg 50 km had an
+ * open pall while "Gothenburg" 150 km did not — picking the empty wider zone
+ * made Delad look unavailable after reload.
+ */
+export function preferDeliveryZoneWithAcceptingPallet<
+  T extends { id: string },
+>(matchingZones: T[], zoneIdsWithAcceptingPallet: ReadonlySet<string>): T[] {
+  if (matchingZones.length <= 1 || zoneIdsWithAcceptingPallet.size === 0) {
+    return matchingZones;
+  }
+  const withPallet = matchingZones.filter((z) =>
+    zoneIdsWithAcceptingPallet.has(z.id),
+  );
+  if (withPallet.length === 0) return matchingZones;
+  // Keep original radius order among zones that have accepting pallets.
+  const without = matchingZones.filter(
+    (z) => !zoneIdsWithAcceptingPallet.has(z.id),
+  );
+  return [...withPallet, ...without];
+}
+
+async function loadDeliveryZoneIdsWithAcceptingPallets(
+  sb: SupabaseAdmin,
+  zoneIds: string[],
+): Promise<Set<string>> {
+  const ids = [...new Set(zoneIds.map((id) => String(id || "").trim()).filter(Boolean))];
+  if (ids.length === 0) return new Set();
+  const { data, error } = await sb
+    .from("pallets")
+    .select("delivery_zone_id")
+    .in("delivery_zone_id", ids)
+    .in("status", [...PALLET_ACCEPTING_STATUSES]);
+  if (error || !data) {
+    console.warn(
+      "[determineZones] accepting-pallet lookup failed:",
+      error?.message,
+    );
+    return new Set();
+  }
+  const out = new Set<string>();
+  for (const row of data) {
+    const zid =
+      typeof row.delivery_zone_id === "string" ? row.delivery_zone_id.trim() : "";
+    if (zid) out.add(zid);
+  }
+  return out;
+}
+
+/**
+ * Drop shopping-geo Stockholm city when the postal is clearly outside 10–19.
+ * Reload bug (Camille 22/11 after #307): first visit geocoded postal-only
+ * (41101 → Göteborg) but reload injected `activeShop.city=Stockholm`, so Mapbox
+ * (when present) or a poisoned query could miss Göteborg 50 km — Delad vanished.
+ */
+export function sanitizeDeliveryCityForZoneMatch(
+  postcode: string | null | undefined,
+  city: string | null | undefined,
+): string {
+  const postalDigits = String(postcode ?? "").replace(/\s+/g, "");
+  const cityRaw = String(city ?? "").trim();
+  if (!cityRaw) return "";
+  const cityDigits = cityRaw.replace(/\s+/g, "");
+  if (cityDigits === postalDigits) return "";
+  if (
+    /^stockholm$/i.test(cityRaw) &&
+    postalDigits &&
+    !isLikelyStockholmAreaPostal(postalDigits)
+  ) {
+    return "";
+  }
+  return cityRaw;
+}
+
 /**
  * Build Mapbox query for checkout zone match. City may be missing (guest
  * postal-only) or equal to the postcode (UI seed) — still geocode postcode+country
@@ -120,11 +204,7 @@ export function buildDeliveryGeocodeAddress(input: {
   countryCode: string;
 }): string {
   const postal = String(input.postcode ?? "").trim();
-  const cityRaw = String(input.city ?? "").trim();
-  const postalDigits = postal.replace(/\s+/g, "");
-  const cityDigits = cityRaw.replace(/\s+/g, "");
-  const city =
-    cityRaw && cityDigits !== postalDigits ? cityRaw : "";
+  const city = sanitizeDeliveryCityForZoneMatch(postal, input.city);
   const cc =
     normalizeProfileCountry(String(input.countryCode ?? "").trim()) ||
     String(input.countryCode ?? "").trim().toUpperCase();
@@ -286,7 +366,8 @@ async function buildPalletInfosForDeliveryPair(
     `,
     )
     .eq("pickup_zone_id", pickupZoneId)
-    .eq("delivery_zone_id", deliveryZoneId);
+    .eq("delivery_zone_id", deliveryZoneId)
+    .in("status", [...PALLET_ACCEPTING_STATUSES]);
 
   if (
     !palletsError &&
@@ -1248,19 +1329,31 @@ export async function determineZones(
             }
           }
 
-          // If we have matching zones, prioritize by smallest radius (most specific)
+          // If we have matching zones, prioritize by smallest radius (most specific),
+          // then prefer a zone that already has an accepting open pallet (AC2).
           if (matchingZones.length > 0) {
             bumpPreferredDeliveryMatch(matchingZones, preferredDeliveryZoneId);
+            const acceptingIds = await loadDeliveryZoneIdsWithAcceptingPallets(
+              sb,
+              matchingZones.map((z) => z.id),
+            );
+            const ordered = preferDeliveryZoneWithAcceptingPallet(
+              matchingZones,
+              acceptingIds,
+            );
 
-            deliveryZoneId = matchingZones[0].id;
-            deliveryZoneName = matchingZones[0].name;
+            deliveryZoneId = ordered[0].id;
+            deliveryZoneName = ordered[0].name;
 
             console.log(
-              `✅ Selected zone: ${deliveryZoneName} (${matchingZones[0].radiusKm}km radius)`,
+              `✅ Selected zone: ${deliveryZoneName} (${ordered[0].radiusKm}km radius)` +
+                (acceptingIds.has(ordered[0].id)
+                  ? " [accepting pallet]"
+                  : " [no accepting pallet]"),
             );
-            if (matchingZones.length > 1) {
+            if (ordered.length > 1) {
               console.log(
-                `ℹ️  Also within range of: ${matchingZones
+                `ℹ️  Also within range of: ${ordered
                   .slice(1)
                   .map((z) => z.name)
                   .join(", ")}`,
@@ -1296,7 +1389,7 @@ export async function determineZones(
               deliveryZoneId,
               pickupZoneName,
               deliveryZoneName,
-              availableDeliveryZones: matchingZones,
+              availableDeliveryZones: ordered,
               pallets,
               shippingRegionIdForRouting,
             };

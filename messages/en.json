@@ -490,6 +490,7 @@
     "fulfillmentDirectHint": "{estimate} · signature and age check at handover",
     "directBoxHandoverHint": "Signature and age verification (20+) at handover.",
     "sharedPalletPostalUnavailable": "Shared pallet is not available for your postal code (outside the delivery zone).",
+    "sharedPalletNoOpenPallet": "No shared pallet to your area yet",
     "sharedPalletPostalBudbeeUnavailable": "Shared pallet (home delivery) is not available for your postal code.",
     "directBoxPostalUnavailable": "Direct delivery is not available for your postal code.",
     "directBoxLineMarkupNote": "Bottle price with direct delivery ({percent}% above pallet price)",
