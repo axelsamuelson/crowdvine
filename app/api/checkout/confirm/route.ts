@@ -287,6 +287,21 @@ export async function POST(request: Request) {
 
     console.log("Checkout confirm body:", body);
 
+    // M9 / H11: same visitor_id + session_id for reservation row and events.
+    // Rule: body first, then cookie (never invent a new id here).
+    const fromCookiesEarly = await readVisitorIdentityFromCookies();
+    const visitorIdRawEarly =
+      typeof body.visitor_id === "string" ? body.visitor_id.trim() : "";
+    const resolvedVisitorId =
+      (visitorIdRawEarly || fromCookiesEarly.visitorId || "").trim().slice(0, 128) ||
+      null;
+    const sessionIdRawEarly =
+      typeof body.session_id === "string" ? body.session_id.trim() : "";
+    const resolvedAnalyticsSessionId =
+      sessionIdRawEarly && !sessionIdRawEarly.startsWith("server_")
+        ? sessionIdRawEarly.slice(0, 128)
+        : null;
+
     const requestHost =
       request.headers.get("x-forwarded-host") ?? request.headers.get("host");
     if (isB2BHost(requestHost) && !B2B_PRODUCER_ORDERS_ENABLED) {
@@ -1838,14 +1853,10 @@ export async function POST(request: Request) {
           shipping_revenue_gross_cents: groupShippingShareForPersist,
           is_test_purchase: promoIsTestkop,
           // M9: analytics session linkage (nullable; ignored if columns not migrated yet).
-          ...(typeof body.session_id === "string" &&
-          body.session_id.trim() &&
-          !body.session_id.trim().startsWith("server_")
-            ? { session_id: body.session_id.trim().slice(0, 128) }
+          ...(resolvedAnalyticsSessionId
+            ? { session_id: resolvedAnalyticsSessionId }
             : {}),
-          ...(typeof body.visitor_id === "string" && body.visitor_id.trim()
-            ? { visitor_id: body.visitor_id.trim().slice(0, 128) }
-            : {}),
+          ...(resolvedVisitorId ? { visitor_id: resolvedVisitorId } : {}),
           // Only primary row carries the client idempotency key (UNIQUE).
           ...(idempotencyKey && createdReservations.length === 0
             ? { idempotency_key: idempotencyKey }
@@ -2053,14 +2064,10 @@ export async function POST(request: Request) {
         /** Persist charged shipping for Finance audit (öre). Does not rewrite snapshots. */
         shipping_revenue_gross_cents: shippingGrossCentsTotal,
         is_test_purchase: promoIsTestkop,
-        ...(typeof body.session_id === "string" &&
-        body.session_id.trim() &&
-        !body.session_id.trim().startsWith("server_")
-          ? { session_id: body.session_id.trim().slice(0, 128) }
+        ...(resolvedAnalyticsSessionId
+          ? { session_id: resolvedAnalyticsSessionId }
           : {}),
-        ...(typeof body.visitor_id === "string" && body.visitor_id.trim()
-          ? { visitor_id: body.visitor_id.trim().slice(0, 128) }
-          : {}),
+        ...(resolvedVisitorId ? { visitor_id: resolvedVisitorId } : {}),
         ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
         ...(reservationLegalExtra ?? {}),
         ...usReservationExtra,
@@ -3057,19 +3064,12 @@ export async function POST(request: Request) {
             },
           ];
 
-    const fromCookies = await readVisitorIdentityFromCookies();
-    const visitorIdRaw =
-      typeof body.visitor_id === "string" ? body.visitor_id.trim() : "";
-    const visitorId = visitorIdRaw || fromCookies.visitorId;
-    const analyticsSessionIdRaw =
-      typeof body.session_id === "string" ? body.session_id.trim() : "";
-    const analyticsSessionId =
-      analyticsSessionIdRaw && !analyticsSessionIdRaw.startsWith("server_")
-        ? analyticsSessionIdRaw.slice(0, 128)
-        : null;
+    // Reuse the same resolved ids as the reservation insert (body → cookie).
+    const visitorId = resolvedVisitorId;
+    const analyticsSessionId = resolvedAnalyticsSessionId;
     const firstTouch: FirstTouch | null =
-      parseFirstTouchPayload(body.first_touch) || fromCookies.firstTouch;
-    const countryCode = fromCookies.countryCode;
+      parseFirstTouchPayload(body.first_touch) || fromCookiesEarly.firstTouch;
+    const countryCode = fromCookiesEarly.countryCode;
 
     const clientInternal =
       body.internal === true ||

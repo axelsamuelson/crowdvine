@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       status,
       rows,
       notice:
-        "utm_medium=paid_social räknas som Kampanj i v2. Sessions-UTM-kolumner (content/term) kommer i nästa del-PR (M3).",
+        "Betald social räknas som Kampanj. Ytterligare UTM-fält för innehåll och sökterm kommer i en senare uppdatering.",
     });
   } catch {
     return NextResponse.json(

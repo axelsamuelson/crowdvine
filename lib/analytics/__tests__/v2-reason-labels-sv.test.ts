@@ -5,10 +5,12 @@ import {
   SHIPPING_PREVIEW_REASON_LABELS_SV,
   SHIPPING_QUOTE_REASON_LABELS_SV,
   ADD_TO_CART_FAILED_REASON_LABELS_SV,
+  AGE_CONFIRMATION_FAILED_REASON_LABELS_SV,
   checkoutBlockReasonLabelSv,
   shippingPreviewReasonLabelSv,
   abandonReasonLabelSvV2,
   addToCartFailedReasonLabelSv,
+  ageConfirmationFailedReasonLabelSv,
 } from "@/lib/analytics/v2/reason-labels-sv";
 
 describe("reason-labels-sv (bilaga C)", () => {
@@ -69,6 +71,19 @@ describe("reason-labels-sv (bilaga C)", () => {
         "rate_missing",
         "unknown",
       ].sort(),
+    );
+  });
+
+  it("maps age_confirmation_failed.code (bilaga C.6)", () => {
+    expect(AGE_CONFIRMATION_FAILED_REASON_LABELS_SV.age_under_minimum).toBe(
+      "Under åldersgränsen",
+    );
+    expect(ageConfirmationFailedReasonLabelSv("age_under_minimum")).toBe(
+      "Under åldersgränsen",
+    );
+    expect(ageConfirmationFailedReasonLabelSv(null)).toBe("Okänd orsak");
+    expect(ageConfirmationFailedReasonLabelSv("totally_new_code")).toBe(
+      "Okänd orsak",
     );
   });
 });

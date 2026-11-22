@@ -125,6 +125,12 @@ export const CHECKOUT_ERROR_CODE_LABELS_SV: Record<string, string> = {
   incomplete_number: "Kortnumret är ofullständigt",
 };
 
+/** age_confirmation_failed.metadata.code → Swedish (bilaga C.6). */
+export const AGE_CONFIRMATION_FAILED_REASON_LABELS_SV: Record<string, string> =
+  {
+    age_under_minimum: "Under åldersgränsen",
+  };
+
 const UNKNOWN = "Okänd orsak";
 
 /** Label for a machine code; unknown → "Okänd orsak" (show code in tooltip). */
@@ -171,4 +177,10 @@ export function addToCartFailedReasonLabelSv(
   code: string | null | undefined,
 ): string {
   return reasonLabelSv(code, ADD_TO_CART_FAILED_REASON_LABELS_SV);
+}
+
+export function ageConfirmationFailedReasonLabelSv(
+  code: string | null | undefined,
+): string {
+  return reasonLabelSv(code, AGE_CONFIRMATION_FAILED_REASON_LABELS_SV);
 }

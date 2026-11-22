@@ -85,6 +85,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // Organic search + Instagram without UTM never store a campaign.
+  const campaignOptionalChannels = new Set([
+    "organic_search",
+    "instagram_no_utm",
+  ]);
+  const utmCampaign = campaignOptionalChannels.has(testChannel)
+    ? null
+    : body.utm_campaign?.trim() || null;
+
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("analytics_channel_costs")
@@ -92,9 +101,10 @@ export async function POST(request: Request) {
       period_from: periodFrom,
       period_to: periodTo,
       test_channel: testChannel,
-      utm_campaign: body.utm_campaign?.trim() || null,
+      utm_campaign: utmCampaign,
       cost_sek: costSek,
-      source: body.source?.trim() || "manual",
+      // Always manual for admin form entries (ignore client source).
+      source: "manual",
       created_by: admin.id ?? null,
     })
     .select(

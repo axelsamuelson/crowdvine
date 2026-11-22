@@ -183,8 +183,9 @@ function applyRollupFilters(query: any, filters: AnalyticsV2FilterState) {
   if (filters.channel) q = q.eq("channel", filters.channel);
   if (filters.device) q = q.eq("device", filters.device);
 
+  // Match SQL analytics_v2_invited_matches: exclude ⇒ IS NOT TRUE (false OR NULL).
   if (filters.invited === "exclude") {
-    q = q.eq("is_invited_friend", false);
+    q = q.not("is_invited_friend", "is", true);
   } else if (filters.invited === "only") {
     q = q.eq("is_invited_friend", true);
   }
@@ -208,8 +209,9 @@ export function applyCleanFactsFilters(query: any, filters: AnalyticsV2FilterSta
 
   if (filters.channel) q = q.eq("channel", filters.channel);
   if (filters.device) q = q.eq("device", filters.device);
+  // Match SQL analytics_v2_invited_matches: exclude ⇒ IS NOT TRUE (false OR NULL).
   if (filters.invited === "exclude") {
-    q = q.eq("is_invited_friend", false);
+    q = q.not("is_invited_friend", "is", true);
   } else if (filters.invited === "only") {
     q = q.eq("is_invited_friend", true);
   }

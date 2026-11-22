@@ -21,6 +21,15 @@ const TEST_CHANNEL_LABELS: Record<string, string> = {
   organic_search: "Organisk sök",
 };
 
+/** Channels that never store a campaign (always NULL). */
+const NO_CAMPAIGN_CHANNELS = new Set(["organic_search", "instagram_no_utm"]);
+
+function costSourceLabelSv(source: string | null | undefined): string {
+  if (!source) return "—";
+  if (source === "manual") return "Manuell";
+  return source;
+}
+
 const inputClass =
   "h-9 rounded-md border border-gray-200 bg-white px-2 text-sm text-gray-900 dark:border-[#1F1F23] dark:bg-[#0F0F12] dark:text-white";
 
@@ -37,9 +46,8 @@ export function KanaltestPanel() {
     period_from: "2026-11-16",
     period_to: "2026-12-14",
     test_channel: "meta_ads",
-    utm_campaign: "kanaltest_v48",
+    utm_campaign: "",
     cost_sek: "",
-    source: "Manuell",
   });
 
   const load = useCallback(async () => {
@@ -71,11 +79,17 @@ export function KanaltestPanel() {
     setSaving(true);
     setError(null);
     try {
+      const campaign = NO_CAMPAIGN_CHANNELS.has(form.test_channel)
+        ? null
+        : form.utm_campaign.trim() || null;
       const res = await fetch("/api/admin/analytics/v2/channel-costs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          period_from: form.period_from,
+          period_to: form.period_to,
+          test_channel: form.test_channel,
+          utm_campaign: campaign,
           cost_sek: Number(form.cost_sek),
         }),
       });
@@ -85,7 +99,7 @@ export function KanaltestPanel() {
       if (!res.ok) {
         throw new Error(body?.error || `HTTP ${res.status}`);
       }
-      setForm((f) => ({ ...f, cost_sek: "" }));
+      setForm((f) => ({ ...f, cost_sek: "", utm_campaign: "" }));
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte spara");
@@ -93,6 +107,8 @@ export function KanaltestPanel() {
       setSaving(false);
     }
   }
+
+  const campaignDisabled = NO_CAMPAIGN_CHANNELS.has(form.test_channel);
 
   return (
     <div className="space-y-6">
@@ -161,7 +177,13 @@ export function KanaltestPanel() {
               className={inputClass}
               value={form.test_channel}
               onChange={(e) =>
-                setForm((f) => ({ ...f, test_channel: e.target.value }))
+                setForm((f) => ({
+                  ...f,
+                  test_channel: e.target.value,
+                  utm_campaign: NO_CAMPAIGN_CHANNELS.has(e.target.value)
+                    ? ""
+                    : f.utm_campaign,
+                }))
               }
             >
               {Object.entries(TEST_CHANNEL_LABELS).map(([k, label]) => (
@@ -179,7 +201,9 @@ export function KanaltestPanel() {
             <input
               className={inputClass}
               title="utm_campaign"
-              value={form.utm_campaign}
+              value={campaignDisabled ? "" : form.utm_campaign}
+              disabled={campaignDisabled}
+              placeholder={campaignDisabled ? "(ingen)" : undefined}
               onChange={(e) =>
                 setForm((f) => ({ ...f, utm_campaign: e.target.value }))
               }
@@ -202,11 +226,11 @@ export function KanaltestPanel() {
           <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
             Källa
             <input
-              className={inputClass}
-              value={form.source}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, source: e.target.value }))
-              }
+              className={`${inputClass} opacity-70`}
+              value="Manuell"
+              readOnly
+              disabled
+              aria-readonly="true"
             />
           </label>
           <div className="flex items-end">
@@ -265,7 +289,7 @@ export function KanaltestPanel() {
                       {formatSvNumber(Number(r.cost_sek))} kr
                     </td>
                     <td className="hidden px-3 py-2 sm:table-cell">
-                      {r.source || "—"}
+                      {costSourceLabelSv(r.source)}
                     </td>
                   </tr>
                 ))}
