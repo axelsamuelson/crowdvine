@@ -950,16 +950,40 @@ function CheckoutContent({
   ]);
 
   // Persist channel choice across reload when still available (acceptance B).
+  // Do NOT store the initial default before restore — that overwrote a saved
+  // direct_box with shared_pallet on every reload.
   const fulfillmentRestoredRef = useRef(false);
   useEffect(() => {
+    if (!fulfillmentRestoredRef.current) {
+      // Still persist an explicit Direct pick before restore settles so a
+      // mid-flow reload keeps it; never write the default shared yet.
+      if (fulfillmentChannel === "direct_box") {
+        storeFulfillmentChannel("direct_box");
+      }
+      return;
+    }
     storeFulfillmentChannel(fulfillmentChannel);
   }, [fulfillmentChannel]);
   useEffect(() => {
     if (fulfillmentRestoredRef.current) return;
     if (!hasPostalCode || zoneLoading || !zoneFetchCompleted) return;
+    const stored = readStoredFulfillmentChannel();
+    // Wait until Direct is selectable when we have a stored direct choice
+    // (carrier quote may lag zone match). If Direct is offered but not yet
+    // selectable, keep waiting; once deliverySelectable settles true/false
+    // via postalFulfillment, proceed.
+    if (
+      stored === "direct_box" &&
+      !postalFulfillment.directBoxAvailable &&
+      directBoxCheckoutEnabled &&
+      directBoxAvailability.offered &&
+      !directBoxAvailability.deliverySelectable
+    ) {
+      return;
+    }
     fulfillmentRestoredRef.current = true;
     const next = resolveFulfillmentChannelAfterReload({
-      stored: readStoredFulfillmentChannel(),
+      stored,
       sharedPalletAvailable: postalFulfillment.sharedPalletAvailable,
       directBoxAvailable: postalFulfillment.directBoxAvailable,
       fallback: fulfillmentChannel,
@@ -968,6 +992,8 @@ function CheckoutContent({
       setServerQuote(null);
       setQuoteStatus("loading");
       setFulfillmentChannel(next);
+    } else {
+      storeFulfillmentChannel(next);
     }
   }, [
     hasPostalCode,
@@ -975,6 +1001,9 @@ function CheckoutContent({
     zoneFetchCompleted,
     postalFulfillment.sharedPalletAvailable,
     postalFulfillment.directBoxAvailable,
+    directBoxCheckoutEnabled,
+    directBoxAvailability.offered,
+    directBoxAvailability.deliverySelectable,
     fulfillmentChannel,
   ]);
 
