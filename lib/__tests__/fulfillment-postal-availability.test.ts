@@ -89,6 +89,46 @@ describe("fulfillment postal availability (Kiruna / Stockholm)", () => {
     expect(result.preferredChannel).toBe("direct_box");
     expect(result.shouldLogPostalOutOfZone).toBe(false);
   });
+
+  it("in-zone but no accepting pall → no_open_pallet (not out_of_zone copy)", () => {
+    const result = resolveFulfillmentPostalAvailability({
+      zoneMatch: "in_zone",
+      budbeeAvailable: null,
+      hasAcceptingSharedPallet: false,
+      directBoxCheckoutEnabled: true,
+      directBoxDeliverySelectable: true,
+      countryCode: "SE",
+    });
+    expect(result.sharedPalletAvailable).toBe(false);
+    expect(result.sharedUnavailableReason).toBe("no_open_pallet");
+    expect(result.preferredChannel).toBe("direct_box");
+    expect(result.shouldLogPostalOutOfZone).toBe(false);
+  });
+
+  it("out_of_zone wins over no_open_pallet when both could apply", () => {
+    const result = resolveFulfillmentPostalAvailability({
+      zoneMatch: "out_of_zone",
+      budbeeAvailable: null,
+      hasAcceptingSharedPallet: false,
+      directBoxCheckoutEnabled: true,
+      directBoxDeliverySelectable: true,
+      countryCode: "SE",
+    });
+    expect(result.sharedUnavailableReason).toBe("out_of_zone");
+  });
+
+  it("Göteborg in_zone + accepting pall → Delad selectable", () => {
+    const result = resolveFulfillmentPostalAvailability({
+      zoneMatch: "in_zone",
+      budbeeAvailable: null,
+      hasAcceptingSharedPallet: true,
+      directBoxCheckoutEnabled: true,
+      directBoxDeliverySelectable: true,
+      countryCode: "SE",
+    });
+    expect(result.sharedPalletAvailable).toBe(true);
+    expect(result.sharedUnavailableReason).toBeNull();
+  });
 });
 
 describe("Stockholm-area postal heuristic (geocode-down fallback)", () => {

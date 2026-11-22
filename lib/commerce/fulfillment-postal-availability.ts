@@ -63,6 +63,12 @@ export type FulfillmentPostalAvailabilityInput = {
    * null = not checked / fail-open for shared (same as today’s UI).
    */
   budbeeAvailable: boolean | null;
+  /**
+   * Accepting open shared pallet for a covering zone.
+   * false = geo ok (or unknown) but no pall → `no_open_pallet` copy.
+   * null/undefined = not decided yet (fail-open when in_zone).
+   */
+  hasAcceptingSharedPallet?: boolean | null;
   /** DIRECT_BOX_CHECKOUT_ENABLED */
   directBoxCheckoutEnabled: boolean;
   /** Server carrier+quoting gate for the destination country. */
@@ -78,6 +84,7 @@ export type FulfillmentPostalAvailability = {
   sharedUnavailableReason:
     | null
     | "out_of_zone"
+    | "no_open_pallet"
     | "budbee_unavailable"
     | "unsupported_country";
   /** True only when neither channel can fulfill. */
@@ -121,13 +128,16 @@ export function resolveFulfillmentPostalAvailability(
 
   const outOfZone = input.zoneMatch === "out_of_zone";
   const budbeeHardNo = input.budbeeAvailable === false;
+  const noOpenPallet = input.hasAcceptingSharedPallet === false;
   const sharedUnavailableReason: FulfillmentPostalAvailability["sharedUnavailableReason"] =
     outOfZone
       ? "out_of_zone"
-      : budbeeHardNo
-        ? "budbee_unavailable"
-        : null;
-  const sharedPalletAvailable = !outOfZone && !budbeeHardNo;
+      : noOpenPallet
+        ? "no_open_pallet"
+        : budbeeHardNo
+          ? "budbee_unavailable"
+          : null;
+  const sharedPalletAvailable = !outOfZone && !noOpenPallet && !budbeeHardNo;
 
   const swedenOrUnknown = !country || country === "SE";
   const directBoxAvailable =

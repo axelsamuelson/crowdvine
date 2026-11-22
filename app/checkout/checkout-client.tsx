@@ -131,6 +131,8 @@ import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import {
   clearZoneCache,
   isLikelyStockholmAreaPostal,
+  preferDeliveryZoneWithAcceptingPallet,
+  sanitizeDeliveryCityForZoneMatch,
   type PalletInfo,
 } from "@/lib/zone-matching";
 import {
@@ -968,17 +970,27 @@ function CheckoutContent({
       zoneFetchCompleted,
       postal: postalForMatch,
     });
+    // After zones settle: Delad requires an accepting open pall, not only a
+    // covering geo zone (Gothenburg 150 km without a pall ≠ selectable).
+    const hasAcceptingSharedPallet = !zoneFetchCompleted
+      ? null
+      : zoneInfo.zoneError === "NO_DELIVERY_ZONE"
+        ? false
+        : (zoneInfo.pallets?.length ?? 0) > 0 || Boolean(selectedPallet?.id);
     return resolveFulfillmentPostalAvailability({
       zoneMatch,
       budbeeAvailable,
+      hasAcceptingSharedPallet,
       directBoxCheckoutEnabled,
       directBoxDeliverySelectable: directBoxAvailability.deliverySelectable,
       countryCode: ageCountryCode,
     });
   }, [
     zoneInfo.zoneError,
+    zoneInfo.pallets,
     deliveryZoneReady,
     zoneFetchCompleted,
+    selectedPallet?.id,
     effectiveDelivery?.postal,
     postalCodeDraft,
     profile?.postal_code,
@@ -2474,9 +2486,15 @@ function CheckoutContent({
         eff &&
         isZoneDeliveryCompleteForActiveGeo(activeShop, eff)
       ) {
+        // Never inject shopping-geo Stockholm onto a Göteborg/Malmö postal —
+        // that poisoned Mapbox (and the zones cache key) after guest reload.
+        const city = sanitizeDeliveryCityForZoneMatch(
+          eff.postal,
+          eff.city?.trim() || activeShop.city?.trim() || eff.city,
+        );
         deliveryAddress = {
           postcode: eff.postal,
-          city: eff.city?.trim() || activeShop.city?.trim() || eff.city,
+          city: city || eff.postal.replace(/\s+/g, "") || eff.city,
           countryCode: eff.countryCode,
         };
       } else if (
@@ -2486,9 +2504,13 @@ function CheckoutContent({
         eff?.countryCode?.trim()
       ) {
         // Guest / no shopping geo: still match zones from draft or saved lines.
+        const city = sanitizeDeliveryCityForZoneMatch(
+          eff.postal.trim(),
+          eff.city.trim(),
+        );
         deliveryAddress = {
           postcode: eff.postal.trim(),
-          city: eff.city.trim(),
+          city: city || eff.postal.trim().replace(/\s+/g, ""),
           countryCode: eff.countryCode.trim().toUpperCase(),
         };
       } else if (
@@ -2530,21 +2552,14 @@ function CheckoutContent({
           profile?.postal_code?.trim() ||
           ""
         ).replace(/\s+/g, "");
-        const cityGuessRaw =
-          eff?.city?.trim() ||
-          activeShop?.city?.trim() ||
-          profile?.city?.trim() ||
-          "";
         // Drop Stockholm shopping-geo city when postal is clearly outside that area.
-        const cityGuess =
-          cityGuessRaw &&
-          !(
-            /^stockholm$/i.test(cityGuessRaw) &&
-            postalOnly &&
-            !isLikelyStockholmAreaPostal(postalOnly)
-          )
-            ? cityGuessRaw
-            : "";
+        const cityGuess = sanitizeDeliveryCityForZoneMatch(
+          postalOnly,
+          eff?.city?.trim() ||
+            activeShop?.city?.trim() ||
+            profile?.city?.trim() ||
+            "",
+        );
         const ccGuess = (
           eff?.countryCode?.trim() ||
           activeShop?.countryCode ||
@@ -2695,30 +2710,51 @@ function CheckoutContent({
           pallets: zoneData.pallets,
         });
 
-        // Auto-select the best delivery zone (closest/smallest radius)
+        // Prefer server deliveryZoneId (already prefers accepting open pallet).
+        // Do not re-sort by radius alone — that could pick "Gothenburg" 150 km
+        // without a pall over "Göteborg" 50 km with an open pall (# Camille 22/11).
         let selectedDeliveryZoneId = zoneData.deliveryZoneId ?? null;
         let selectedDeliveryZoneName = zoneData.deliveryZoneName ?? null;
 
+        const nextPalletsPreview = zoneData.pallets || [];
         if (
           zoneData.availableDeliveryZones &&
           zoneData.availableDeliveryZones.length > 0
         ) {
-          // Sort by radius (smallest first) to get the most specific zone
-          const sortedZones = [...zoneData.availableDeliveryZones].sort(
+          const palletZoneIds = new Set(
+            nextPalletsPreview
+              .map((p) =>
+                typeof p.delivery_zone_id === "string"
+                  ? p.delivery_zone_id.trim()
+                  : "",
+              )
+              .filter(Boolean),
+          );
+          const byRadius = [...zoneData.availableDeliveryZones].sort(
             (a, b) => a.radiusKm - b.radiusKm,
           );
-          selectedDeliveryZoneId = sortedZones[0].id;
-          selectedDeliveryZoneName = sortedZones[0].name;
-          console.log(
-            `🎯 Auto-selected delivery zone: ${selectedDeliveryZoneName} (${sortedZones[0].radiusKm}km radius)`,
+          const ordered = preferDeliveryZoneWithAcceptingPallet(
+            byRadius,
+            palletZoneIds,
           );
+          const serverPreferred =
+            selectedDeliveryZoneId &&
+            ordered.find((z) => z.id === selectedDeliveryZoneId);
+          const pick = serverPreferred ?? ordered[0];
+          if (pick) {
+            selectedDeliveryZoneId = pick.id;
+            selectedDeliveryZoneName = pick.name;
+            console.log(
+              `🎯 Auto-selected delivery zone: ${selectedDeliveryZoneName} (${pick.radiusKm}km radius)`,
+            );
+          }
         }
 
         // Auto-select the pallet with the most reserved bottles
         let autoSelectedPallet = null;
-        if (zoneData.pallets && zoneData.pallets.length > 0) {
+        if (nextPalletsPreview.length > 0) {
           // Sort by current bottles (most reserved first)
-          const sortedPallets = [...zoneData.pallets].sort(
+          const sortedPallets = [...nextPalletsPreview].sort(
             (a, b) => b.currentBottles - a.currentBottles,
           );
           autoSelectedPallet = sortedPallets[0];
@@ -5627,7 +5663,10 @@ function CheckoutContent({
                                             postalFulfillment.sharedUnavailableReason ===
                                               "budbee_unavailable"
                                               ? "checkout.sharedPalletPostalBudbeeUnavailable"
-                                              : "checkout.sharedPalletPostalUnavailable",
+                                              : postalFulfillment.sharedUnavailableReason ===
+                                                  "no_open_pallet"
+                                                ? "checkout.sharedPalletNoOpenPallet"
+                                                : "checkout.sharedPalletPostalUnavailable",
                                           )
                                         )}
                                       </span>

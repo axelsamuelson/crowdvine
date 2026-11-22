@@ -6,6 +6,7 @@
 
 export type CheckoutShippingSummaryReason =
   | "out_of_zone"
+  | "no_open_pallet"
   | "budbee_unavailable"
   | "no_fulfillment"
   | "no_rate";
@@ -35,6 +36,7 @@ export function resolveCheckoutShippingSummaryDisplay(input: {
   sharedUnavailableReason?:
     | null
     | "out_of_zone"
+    | "no_open_pallet"
     | "budbee_unavailable"
     | "unsupported_country";
   noFulfillmentAvailable?: boolean;
@@ -52,6 +54,9 @@ export function resolveCheckoutShippingSummaryDisplay(input: {
   if (input.channelUnavailable) {
     if (input.sharedUnavailableReason === "budbee_unavailable") {
       return { kind: "unavailable", reason: "budbee_unavailable" };
+    }
+    if (input.sharedUnavailableReason === "no_open_pallet") {
+      return { kind: "unavailable", reason: "no_open_pallet" };
     }
     if (
       input.sharedUnavailableReason === "out_of_zone" ||
@@ -73,12 +78,15 @@ export function shippingSummaryUnavailableMessageKey(
   reason: CheckoutShippingSummaryReason,
 ):
   | "sharedPalletPostalUnavailable"
+  | "sharedPalletNoOpenPallet"
   | "sharedPalletPostalBudbeeUnavailable"
   | "shippingNotAvailable"
   | "shippingUnavailableForPostal" {
   switch (reason) {
     case "budbee_unavailable":
       return "sharedPalletPostalBudbeeUnavailable";
+    case "no_open_pallet":
+      return "sharedPalletNoOpenPallet";
     case "out_of_zone":
       return "sharedPalletPostalUnavailable";
     case "no_fulfillment":

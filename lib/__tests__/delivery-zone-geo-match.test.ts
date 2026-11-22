@@ -8,6 +8,8 @@ import {
   buildDeliveryGeocodeAddress,
   findMatchingDeliveryZones,
   isLikelyStockholmAreaPostal,
+  preferDeliveryZoneWithAcceptingPallet,
+  sanitizeDeliveryCityForZoneMatch,
   type DeliveryZoneGeoRow,
 } from "@/lib/zone-matching";
 import { resolveCheckoutZoneMatchForAvailability } from "@/lib/commerce/fulfillment-postal-availability";
@@ -166,6 +168,80 @@ describe("buildDeliveryGeocodeAddress (postal-only / city=postal seed)", () => {
     });
     expect(q).toMatch(/75310/);
     expect(q).toMatch(/Uppsala/);
+  });
+
+  it("strips shopping-geo Stockholm city for Göteborg 41101 (reload parity)", () => {
+    expect(sanitizeDeliveryCityForZoneMatch("41101", "Stockholm")).toBe("");
+    const q = buildDeliveryGeocodeAddress({
+      postcode: "41101",
+      city: "Stockholm",
+      countryCode: "SE",
+    });
+    expect(q).toMatch(/41101/);
+    expect(q).not.toMatch(/Stockholm/i);
+    // Same query shape as first postal-only visit.
+    expect(q).toBe(
+      buildDeliveryGeocodeAddress({
+        postcode: "41101",
+        city: "",
+        countryCode: "SE",
+      }),
+    );
+  });
+
+  it("keeps Stockholm city for Stockholm-area 11151", () => {
+    expect(sanitizeDeliveryCityForZoneMatch("11151", "Stockholm")).toBe(
+      "Stockholm",
+    );
+    const q = buildDeliveryGeocodeAddress({
+      postcode: "11151",
+      city: "Stockholm",
+      countryCode: "SE",
+    });
+    expect(q).toMatch(/Stockholm/i);
+  });
+
+  it("strips Stockholm for Malmö 21115", () => {
+    expect(sanitizeDeliveryCityForZoneMatch("21115", "Stockholm")).toBe("");
+  });
+});
+
+describe("preferDeliveryZoneWithAcceptingPallet (Göteborg vs Gothenburg)", () => {
+  it("prefers the covering zone that has an accepting open pall", () => {
+    const matches = findMatchingDeliveryZones(
+      POSTAL_COORDS.goteborg41101.lat,
+      POSTAL_COORDS.goteborg41101.lon,
+      PROD_MIRROR_DELIVERY_ZONES,
+    );
+    // Simulate Camille prod: Göteborg 50 has open pall; Gothenburg/150 does not.
+    const ordered = preferDeliveryZoneWithAcceptingPallet(
+      matches,
+      new Set(["z-gbg-50"]),
+    );
+    expect(ordered[0]?.id).toBe("z-gbg-50");
+  });
+
+  it("when only the wider zone has a pall, pick that over empty smaller radius", () => {
+    const matches = [
+      { id: "z-gbg-50", name: "Göteborg 50", radiusKm: 50 },
+      { id: "z-gbg-150", name: "Göteborg 150", radiusKm: 150 },
+    ];
+    const ordered = preferDeliveryZoneWithAcceptingPallet(
+      matches,
+      new Set(["z-gbg-150"]),
+    );
+    expect(ordered[0]?.id).toBe("z-gbg-150");
+    expect(ordered.map((z) => z.id)).toEqual(["z-gbg-150", "z-gbg-50"]);
+  });
+
+  it("leaves order unchanged when no accepting pall exists", () => {
+    const matches = [
+      { id: "z-gbg-50", name: "Göteborg 50", radiusKm: 50 },
+      { id: "z-gbg-150", name: "Göteborg 150", radiusKm: 150 },
+    ];
+    expect(
+      preferDeliveryZoneWithAcceptingPallet(matches, new Set()).map((z) => z.id),
+    ).toEqual(["z-gbg-50", "z-gbg-150"]);
   });
 });
 
