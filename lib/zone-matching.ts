@@ -1011,43 +1011,9 @@ export async function determineZones(
     .map((item) => item.merchandise.id)
     .filter((id): id is string => typeof id === "string" && id.length > 0);
 
-  // Prefetch delivery zones + geocode in parallel with wines when the
-  // destination looks like a normal supported checkout country (SE etc.).
-  const earlyCc = normalizeProfileCountry(deliveryAddress.countryCode);
-  const earlyMode = earlyCc ? getCountryMarketMode(earlyCc) : "unsupported";
-  const canPrefetchDeliveryGeo =
-    Boolean(deliveryAddress.postcode) &&
-    Boolean(earlyCc) &&
-    earlyMode === "normal_checkout" &&
-    isSupportedCheckoutCountry(earlyCc);
-
-  type DeliveryZonePrefetch = {
-    data: DeliveryZoneRow[] | null;
-    error: { message?: string } | null;
-  };
-  let deliveryZonesPrefetch: Promise<DeliveryZonePrefetch> | null = null;
-  let geocodePrefetch: ReturnType<typeof geocodeAddress> | null = null;
-  let prefetchFullAddress: string | null = null;
-
-  if (canPrefetchDeliveryGeo && earlyCc) {
-    prefetchFullAddress = buildDeliveryGeocodeAddress({
-      postcode: deliveryAddress.postcode,
-      city: deliveryAddress.city,
-      countryCode: earlyCc,
-    });
-    deliveryZonesPrefetch = sb
-      .from("pallet_zones")
-      .select("id, name, center_lat, center_lon, radius_km, country_code")
-      .eq("zone_type", "delivery")
-      .or(`country_code.eq.${earlyCc},country_code.is.null`)
-      .then((res) => ({
-        data: (res.data as DeliveryZoneRow[] | null) ?? null,
-        error: res.error,
-      }));
-    geocodePrefetch = geocodeAddress(prefetchFullAddress);
-  }
-
   // One round-trip: wines → producers (+ pickup zone join) instead of 2 serial.
+  // Do NOT start Mapbox/geocode yet — PDP preferred-zone bypass must stay
+  // geocode-free (Vercel SSG timed out when region-name wait joined Mapbox).
   console.log("🍷 Fetching wines+producers for cart items:", wineIds);
   const { data: wineProducerRows, error: winesError } = await sb
     .from("wines")
@@ -1117,19 +1083,13 @@ export async function determineZones(
   let pickupZoneName: string | null = null;
 
   if (shippingRegionIdForRouting) {
-    // Overlap region name lookup with delivery/geocode prefetch when present.
-    const srPromise = sb
+    const { data: srRow } = await sb
       .from("shipping_regions")
       .select("name")
       .eq("id", shippingRegionIdForRouting)
       .maybeSingle();
-    const [srRow] = await Promise.all([
-      srPromise,
-      deliveryZonesPrefetch ?? Promise.resolve(null),
-      geocodePrefetch ?? Promise.resolve(null),
-    ]);
     pickupZoneId = null;
-    const rn = srRow.data?.name != null ? String(srRow.data.name).trim() : "";
+    const rn = srRow?.name != null ? String(srRow.name).trim() : "";
     pickupZoneName = rn.length > 0 ? `${rn} (region)` : "Shipping region";
   } else {
     const producerWithPickupZone =
@@ -1265,20 +1225,17 @@ export async function determineZones(
       return unsupported;
     }
 
-    // Delivery-zone rows + geocode are independent — prefer early prefetch
-    // started alongside wines; otherwise fetch both in parallel here.
+    // Delivery-zone rows + geocode are independent — fetch in parallel after
+    // preferred-zone bypass is ruled out (never block PDP SSG on Mapbox).
     console.log(
       "🔍 Fetching delivery zones for country:",
       countryCodeNormalized,
     );
-    const fullAddress =
-      prefetchFullAddress && earlyCc === countryCodeNormalized
-        ? prefetchFullAddress
-        : buildDeliveryGeocodeAddress({
-            postcode: deliveryAddress.postcode,
-            city: deliveryAddress.city,
-            countryCode: countryCodeNormalized,
-          });
+    const fullAddress = buildDeliveryGeocodeAddress({
+      postcode: deliveryAddress.postcode,
+      city: deliveryAddress.city,
+      countryCode: countryCodeNormalized,
+    });
     console.log("🌍 Geocoding address:", fullAddress, {
       cityPresent: Boolean(String(deliveryAddress.city ?? "").trim()),
       postalOnly:
@@ -1287,29 +1244,18 @@ export async function determineZones(
           String(deliveryAddress.postcode ?? "").replace(/\s+/g, ""),
     });
 
-    const usePrefetch =
-      deliveryZonesPrefetch != null &&
-      geocodePrefetch != null &&
-      earlyCc === countryCodeNormalized;
-
-    const [deliveryZonesQuery, geocodeResult] = usePrefetch
-      ? await Promise.all([deliveryZonesPrefetch!, geocodePrefetch!])
-      : await Promise.all([
-          sb
-            .from("pallet_zones")
-            .select(
-              "id, name, center_lat, center_lon, radius_km, country_code",
-            )
-            .eq("zone_type", "delivery")
-            .or(
-              `country_code.eq.${countryCodeNormalized},country_code.is.null`,
-            )
-            .then((res) => ({
-              data: (res.data as DeliveryZoneRow[] | null) ?? null,
-              error: res.error,
-            })),
-          geocodeAddress(fullAddress),
-        ]);
+    const [deliveryZonesQuery, geocodeResult] = await Promise.all([
+      sb
+        .from("pallet_zones")
+        .select("id, name, center_lat, center_lon, radius_km, country_code")
+        .eq("zone_type", "delivery")
+        .or(`country_code.eq.${countryCodeNormalized},country_code.is.null`)
+        .then((res) => ({
+          data: (res.data as DeliveryZoneRow[] | null) ?? null,
+          error: res.error,
+        })),
+      geocodeAddress(fullAddress),
+    ]);
     const { data: deliveryZones, error: deliveryZonesError } =
       deliveryZonesQuery;
 
