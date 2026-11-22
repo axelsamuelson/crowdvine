@@ -169,6 +169,11 @@ import {
   type ZoneDeliveryLines,
 } from "@/lib/checkout/user-zone-delivery-template";
 import {
+  profileAddressToDeliveryLines,
+  resolveDeliveryAfterProfileSave,
+  resolveEffectiveCheckoutDelivery,
+} from "@/lib/checkout/resolve-delivery-after-profile-save";
+import {
   checkoutContactBlockReason,
   isCheckoutContactComplete,
   isCheckoutEmailComplete,
@@ -517,7 +522,7 @@ function CheckoutContent({
     getCountryMarketMode(checkoutMarketCountry) === "conditional_reservation";
 
   const effectiveDelivery = useMemo(() => {
-    return userZoneRowToDeliveryLines(zoneAddressRow) ?? deliveryDraft;
+    return resolveEffectiveCheckoutDelivery(zoneAddressRow, deliveryDraft);
   }, [zoneAddressRow, deliveryDraft]);
 
   const ageCountryCode = (
@@ -2232,9 +2237,12 @@ function CheckoutContent({
     const queuedOverride = pendingZoneOverrideRef.current;
     pendingZoneOverrideRef.current = null;
 
+    // Prefer refs over render closures — a queued refetch after profile/zone
+    // save must see Kiruna, not a stale Stockholm row from the in-flight render.
     const eff =
       overrideEff ??
       queuedOverride ??
+      deliverySnapshotRef.current ??
       userZoneRowToDeliveryLines(zoneAddressRow) ??
       deliveryDraft;
 
@@ -2536,19 +2544,18 @@ function CheckoutContent({
         );
 
         setZoneFetchCompleted(true);
+        const previousLocationKey = lastZoneLocationKeyRef.current;
         lastZoneLocationKeyRef.current = nextLocationKey;
 
         if (!hasRouting) {
-          // Empty result (e.g. cart race) — keep a previous successful match.
-          setZoneInfo((prev) => {
-            if (
-              prev.pickupZone ||
-              (prev.pallets?.length ?? 0) > 0 ||
-              prev.selectedDeliveryZoneId
-            ) {
-              return prev;
-            }
-            return {
+          // Empty geo match: keep a previous success only for cart races on the
+          // same location. If postal/city changed (e.g. Stockholm → Kiruna),
+          // clearing avoids stale Delad-pall / 99 kr from the prior match.
+          const locationChanged =
+            previousLocationKey !== "" &&
+            previousLocationKey !== nextLocationKey;
+          if (locationChanged) {
+            setZoneInfo({
               pickupZone: null,
               pickupZoneId: null,
               deliveryZone: null,
@@ -2558,8 +2565,30 @@ function CheckoutContent({
               usingFallbackAddress: isUsingFallback,
               zoneError: null,
               zoneErrorMessage: undefined,
-            };
-          });
+            });
+            setSelectedPallet(null);
+          } else {
+            setZoneInfo((prev) => {
+              if (
+                prev.pickupZone ||
+                (prev.pallets?.length ?? 0) > 0 ||
+                prev.selectedDeliveryZoneId
+              ) {
+                return prev;
+              }
+              return {
+                pickupZone: null,
+                pickupZoneId: null,
+                deliveryZone: null,
+                selectedDeliveryZoneId: null,
+                availableDeliveryZones: [],
+                pallets: [],
+                usingFallbackAddress: isUsingFallback,
+                zoneError: null,
+                zoneErrorMessage: undefined,
+              };
+            });
+          }
         } else {
           setZoneInfo({
             pickupZone: nextPickup,
@@ -2596,7 +2625,21 @@ function CheckoutContent({
       if (zoneInfoNeedsRefetchRef.current) {
         zoneInfoNeedsRefetchRef.current = false;
         const again = pendingZoneOverrideRef.current;
-        void updateZoneInfo(again);
+        pendingZoneOverrideRef.current = null;
+        const againLines = again ?? deliverySnapshotRef.current;
+        const againKey = againLines
+          ? [
+              againLines.postal?.trim() || "",
+              againLines.city?.trim() || "",
+              againLines.countryCode?.trim() || "",
+              againLines.regionCode?.trim() || "",
+            ].join("|")
+          : "";
+        // Skip no-op refetch that would re-enter loading for the same postal.
+        if (againKey && againKey === lastZoneLocationKeyRef.current) {
+          return;
+        }
+        void updateZoneInfo(again ?? undefined);
       }
     }
   };
@@ -2728,12 +2771,60 @@ function CheckoutContent({
   };
 
   const handleProfileSaved = async (updatedProfile: UserProfile) => {
-    setProfile(updatedProfile);
-
     const countryCode =
       getCountryCodeFromProfileCountry(updatedProfile.country ?? null) ??
       activeShop?.countryCode ??
       "SE";
+
+    const savedLines = profileAddressToDeliveryLines({
+      address: updatedProfile.address,
+      city: updatedProfile.city,
+      postal_code: updatedProfile.postal_code,
+      countryCode,
+      region: updatedProfile.region ?? activeShop?.regionCode ?? null,
+      full_name: updatedProfile.full_name,
+      phone: updatedProfile.phone,
+      email: updatedProfile.email,
+    });
+
+    const normalizedProfile: UserProfile = savedLines
+      ? {
+          ...updatedProfile,
+          address: savedLines.street,
+          city: savedLines.city,
+          postal_code: savedLines.postal,
+          country: countryCode,
+          region: savedLines.regionCode ?? updatedProfile.region,
+        }
+      : updatedProfile;
+
+    setProfile(normalizedProfile);
+
+    if (savedLines) {
+      // ProfileInfoModal writes profiles; checkout displays zoneAddressRow first.
+      // Align (and persist) the zone template so Sparat. actually updates steg 1–2.
+      const resolved = resolveDeliveryAfterProfileSave({
+        zoneAddressRow,
+        savedLines,
+      });
+      setZoneAddressRow(resolved.nextZoneAddressRow);
+      setDeliveryDraft(resolved.nextDeliveryDraft);
+      setPostalCodeDraft(savedLines.postal);
+      addressPersistedRef.current = true;
+      addressAutoSaveRef.current = true;
+      setEditingAddress(false);
+
+      toast.success(t("checkout.saved"));
+
+      if (resolved.needsZoneAddressPersist && activeShop?.geoZoneId) {
+        // Persist to user_zone_addresses so reload keeps Kiruna (not Stockholm).
+        await handleSaveZoneDelivery({ silent: true, lines: savedLines });
+      } else {
+        void updateZoneInfo(savedLines);
+      }
+      void checkBudbeeAvailability(savedLines.postal, countryCode);
+      return;
+    }
 
     setDeliveryDraft((d) => {
       const base = d ?? {
@@ -2764,24 +2855,12 @@ function CheckoutContent({
     });
 
     if (updatedProfile.postal_code) {
-      setPostalCodeDraft(updatedProfile.postal_code.trim());
-    }
-
-    const hasAddress =
-      updatedProfile.address &&
-      updatedProfile.city &&
-      updatedProfile.postal_code;
-
-    if (hasAddress) {
-      toast.success(t("checkout.saved"));
-      // Zone refresh runs via profile/deliveryDraft effect; nudge Budbee check.
-      void checkBudbeeAvailability(
-        updatedProfile.postal_code!.trim(),
-        countryCode,
+      setPostalCodeDraft(
+        updatedProfile.postal_code.trim().replace(/\s+/g, ""),
       );
-    } else {
-      toast.success(t("checkout.profileSavedAddAddress"));
     }
+
+    toast.success(t("checkout.profileSavedAddAddress"));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
