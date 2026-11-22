@@ -42,13 +42,41 @@ import {
   type DualOfferUiLocale,
 } from "@/lib/checkout/dual-offer-customer-copy";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
-import { formatCheckoutPalletDeliveryLines } from "@/lib/checkout/shared-pallet-close-delivery-copy";
+import {
+  directBoxDeliveryCopy,
+  formatCheckoutPalletDeliveryLines,
+} from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import { CheckoutPalletFillStatus } from "@/components/checkout/checkout-pallet-fill-status";
 import type { CheckoutPalletFillInput } from "@/lib/checkout/pallet-fill-display";
 
 export { formatOfferSek } from "@/lib/checkout/dual-offer-display";
 
 type Locale = DualOfferUiLocale;
+
+function deliveryLabel(quote: OfferQuote, locale: Locale): string {
+  // Direct: home delivery only — no ETA (carrier contract unsigned).
+  if (quote.offer === "direct_box") {
+    return directBoxDeliveryCopy(locale);
+  }
+  return locale === "sv"
+    ? quote.delivery_terms.previewLabelSv
+    : quote.delivery_terms.previewLabelEn;
+}
+
+function sharedCheckoutDeliveryLines(
+  quote: OfferQuote,
+  locale: Locale,
+  deadlineLabel: string | null,
+): { closeLine: string; deliveryLine: string } | null {
+  if (quote.offer !== "shared_pallet") {
+    return {
+      closeLine: deliveryLabel(quote, locale),
+      deliveryLine: "",
+    };
+  }
+  // Checkout: two short lines (full owner constant stays on confirmation/email).
+  return formatCheckoutPalletDeliveryLines(locale, deadlineLabel);
+}
 
 function debitLabel(quote: OfferQuote, locale: Locale): string {
   return locale === "sv"
@@ -974,10 +1002,13 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           </h2>
         )}
 
-        {/* Fill + stängning/leveranstid come from /zones (+ public deadline).
-            Paint as soon as parent has a pallet — do not wait for offer-quotes
-            (guest 401 until ensure-session). */}
-        {!compareMode && showPalletFillStatus && palletFill ? (
+        {/* Guest shared-only: paint fill + stängning/leveranstid from /zones
+            (+ public deadline) before offer-quotes (401 until ensure-session).
+            Once quotes resolve, the shared-only block below matches main. */}
+        {!compareMode &&
+        !state &&
+        showPalletFillStatus &&
+        palletFill ? (
           <CheckoutPalletFillStatus
             locale={locale}
             enabled={showPalletFillStatus}
@@ -989,7 +1020,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           />
         ) : null}
 
-        {!compareMode && earlySharedDeliveryLines ? (
+        {!compareMode && !state && earlySharedDeliveryLines ? (
           <div
             className="space-y-1"
             data-testid="dual-offer-delivery-shared_pallet"
@@ -1005,15 +1036,16 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           </div>
         ) : null}
 
-        {loading && !state && showDirectOffer ? (
+        {loading && !state ? (
           <div
             className="space-y-3"
             data-testid="dual-offer-loading"
             aria-busy="true"
             aria-label={dualOfferMsg(locale, "dualOfferLoading")}
           >
-            <OfferRowSkeleton />
-            <OfferRowSkeleton />
+            {/* Shared-only already painted fill/close above — skip skeleton flash. */}
+            {showDirectOffer || !palletFillId ? <OfferRowSkeleton /> : null}
+            {showDirectOffer ? <OfferRowSkeleton /> : null}
           </div>
         ) : null}
 
@@ -1084,12 +1116,51 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
               className="space-y-2"
               data-testid="dual-offer-shared-only-block"
             >
-              {sharedQuote?.unavailable_reason ? (
+              {showPalletFillStatus && palletFill ? (
+                <CheckoutPalletFillStatus
+                  locale={locale}
+                  enabled={showPalletFillStatus}
+                  palletId={palletFill.palletId}
+                  reservedBottles={palletFill.reservedBottles}
+                  capacity={palletFill.capacity}
+                  cartBottles={palletFill.cartBottles}
+                  fillAvailable={palletFill.fillAvailable}
+                />
+              ) : null}
+
+              {sharedQuote && !sharedQuote.unavailable_reason ? (
+                (() => {
+                  const lines = sharedCheckoutDeliveryLines(
+                    sharedQuote,
+                    locale,
+                    sharedDeadline,
+                  );
+                  return (
+                    <div
+                      className="space-y-1"
+                      data-testid="dual-offer-delivery-shared_pallet"
+                    >
+                      <p className="text-sm text-foreground/85">
+                        {lines?.closeLine}
+                      </p>
+                      {lines?.deliveryLine ? (
+                        <p className="text-sm text-foreground/85">
+                          {lines.deliveryLine}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })()
+              ) : sharedQuote?.unavailable_reason ? (
                 <p className="text-sm text-muted-foreground">
                   {sharedQuote.unavailable_reason}
                 </p>
-              ) : null}
-              {/* Close/delivery already painted above from zones + deadline. */}
+              ) : (
+                <p className="text-sm text-foreground/80">
+                  {dualOfferMsg(locale, "dualOfferConfirmHintNone")}
+                </p>
+              )}
+
               {purchaseSlot}
             </div>
           )
