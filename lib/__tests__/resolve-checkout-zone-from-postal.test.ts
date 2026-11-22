@@ -1,13 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   isLikelyStockholmAreaPostal,
   mayBypassGeocodeWithPreferredDeliveryZone,
   mayFallbackToPreferredWhenNoGeoMatch,
 } from "@/lib/zone-matching";
 import {
+  CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY,
+  CHECKOUT_FULFILLMENT_USER_SET_KEY,
+  CHECKOUT_POSTAL_DRAFT_STORAGE_KEY,
+  clearStoredFulfillmentChannel,
+  clearStoredPostalDraft,
   mergeProfileContactIntoDelivery,
   resolveCheckoutShoppingLocationLabel,
   resolveFulfillmentChannelAfterReload,
+  storeFulfillmentChannel,
+  storePostalDraft,
 } from "@/lib/checkout/resolve-checkout-zone-from-postal";
 import type { ZoneDeliveryLines } from "@/lib/checkout/user-zone-delivery-template";
 
@@ -143,10 +150,11 @@ describe("mergeProfileContactIntoDelivery (acceptance D)", () => {
 });
 
 describe("resolveFulfillmentChannelAfterReload (acceptance B)", () => {
-  it("keeps stored direct_box when still available", () => {
+  it("keeps user-set direct_box when still available", () => {
     expect(
       resolveFulfillmentChannelAfterReload({
         stored: "direct_box",
+        userSet: true,
         sharedPalletAvailable: true,
         directBoxAvailable: true,
         fallback: "shared_pallet",
@@ -154,10 +162,23 @@ describe("resolveFulfillmentChannelAfterReload (acceptance B)", () => {
     ).toBe("direct_box");
   });
 
+  it("ignores auto-stored direct when both channels work (Camille 11151 after GBG)", () => {
+    expect(
+      resolveFulfillmentChannelAfterReload({
+        stored: "direct_box",
+        userSet: false,
+        sharedPalletAvailable: true,
+        directBoxAvailable: true,
+        fallback: "shared_pallet",
+      }),
+    ).toBe("shared_pallet");
+  });
+
   it("falls back to direct when shared unavailable for 98131", () => {
     expect(
       resolveFulfillmentChannelAfterReload({
         stored: "shared_pallet",
+        userSet: true,
         sharedPalletAvailable: false,
         directBoxAvailable: true,
         fallback: "shared_pallet",
@@ -165,14 +186,56 @@ describe("resolveFulfillmentChannelAfterReload (acceptance B)", () => {
     ).toBe("direct_box");
   });
 
-  it("keeps stored shared when available for 11151", () => {
+  it("keeps user-set shared when available for 11151", () => {
     expect(
       resolveFulfillmentChannelAfterReload({
         stored: "shared_pallet",
+        userSet: true,
         sharedPalletAvailable: true,
         directBoxAvailable: true,
         fallback: "direct_box",
       }),
     ).toBe("shared_pallet");
+  });
+});
+
+describe("Byt clears sticky channel + postal draft", () => {
+  const mem = new Map<string, string>();
+  const fakeStorage = {
+    getItem: (k: string) => mem.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      mem.set(k, v);
+    },
+    removeItem: (k: string) => {
+      mem.delete(k);
+    },
+  };
+
+  beforeEach(() => {
+    mem.clear();
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { sessionStorage: fakeStorage },
+    });
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(globalThis, "window");
+  });
+
+  it("clearStoredFulfillmentChannel removes channel + userSet", () => {
+    storeFulfillmentChannel("direct_box", { userSet: true });
+    expect(mem.get(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY)).toBe("direct_box");
+    expect(mem.get(CHECKOUT_FULFILLMENT_USER_SET_KEY)).toBe("1");
+    clearStoredFulfillmentChannel();
+    expect(mem.has(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY)).toBe(false);
+    expect(mem.has(CHECKOUT_FULFILLMENT_USER_SET_KEY)).toBe(false);
+  });
+
+  it("clearStoredPostalDraft removes postal draft", () => {
+    storePostalDraft({ postal: "41101", city: "Göteborg", countryCode: "SE" });
+    expect(mem.has(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY)).toBe(true);
+    clearStoredPostalDraft();
+    expect(mem.has(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY)).toBe(false);
   });
 });
