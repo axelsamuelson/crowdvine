@@ -76,7 +76,9 @@ import {
 } from "@/lib/checkout/dual-offer-customer-copy";
 import {
   checkoutChargeTimingMessageKey,
+  checkoutPaymentModeMatchesChannel,
   checkoutPlaceOrderCtaMessageKey,
+  expectedCheckoutPaymentMode,
 } from "@/lib/checkout/charge-timing-copy";
 import { toast } from "sonner";
 import {
@@ -4159,6 +4161,17 @@ function CheckoutContent({
     }
   }, [authReady]);
 
+  // Fulfillment switch (Delad pall ↔ Direktleverans): drop the previous
+  // intent/mode immediately so footer/CTA cannot keep the wrong charge timing
+  // while Stripe reloads the matching SetupIntent / PaymentIntent.
+  useEffect(() => {
+    setStripeConfirmFn(null);
+    setPaymentMode(null);
+    setStripeIntentId(null);
+    setPaymentElementComplete(false);
+    setStripeError(null);
+  }, [fulfillmentChannel]);
+
   useEffect(() => {
     if (!Number.isFinite(maxRedemption)) return;
     if (redeemPoints > maxRedemption) {
@@ -4169,23 +4182,44 @@ function CheckoutContent({
   const currencyCode =
     shopping.currencyCode || cart?.cost?.totalAmount?.currencyCode || "SEK";
 
+  const expectedPaymentMode = useMemo(
+    () =>
+      expectedCheckoutPaymentMode({
+        fulfillmentChannel,
+      }),
+    [fulfillmentChannel],
+  );
+
+  const paymentModeReadyForChannel = checkoutPaymentModeMatchesChannel({
+    paymentMode,
+    fulfillmentChannel,
+  });
+
+  /** Single gate for loading copy + disabled CTA while Stripe reloads. */
+  const paymentUiReady =
+    paymentModeReadyForChannel &&
+    Boolean(stripeConfirmFn) &&
+    Boolean(stripeIntentId);
+
+  // Copy follows the selected channel immediately; the live Stripe mode only
+  // gates whether the place CTA is enabled.
   const chargeTimingCopyKey = useMemo(
     () =>
       checkoutChargeTimingMessageKey({
-        paymentMode,
+        paymentMode: expectedPaymentMode,
         isUsConditional,
       }),
-    [paymentMode, isUsConditional],
+    [expectedPaymentMode, isUsConditional],
   );
 
   const placeOrderCta = useMemo(
     () =>
       checkoutPlaceOrderCtaMessageKey({
-        paymentMode,
+        paymentMode: expectedPaymentMode,
         isUsConditional,
         isSubmitting,
       }),
-    [paymentMode, isUsConditional, isSubmitting],
+    [expectedPaymentMode, isUsConditional, isSubmitting],
   );
 
   const orderLines: CartItem[] = cart?.lines ?? [];
@@ -6536,9 +6570,7 @@ function CheckoutContent({
                               const bindDisabled =
                                 !isValidCart ||
                                 !legacySharedPalletPaymentAllowed ||
-                                !stripeConfirmFn ||
-                                !paymentMode ||
-                                !stripeIntentId ||
+                                !paymentUiReady ||
                                 !paymentElementComplete ||
                                 isSubmitting ||
                                 zoneLoading ||
@@ -6627,16 +6659,27 @@ function CheckoutContent({
                                 </p>
                               ) : null}
 
+                              {!paymentUiReady ? (
+                                <p
+                                  className="text-sm text-muted-foreground"
+                                  data-checkout-payment-loading="true"
+                                  data-testid="checkout-payment-reloading"
+                                >
+                                  {t("checkout.loadingPayment")}
+                                </p>
+                              ) : null}
+
                               <Button
                                 type="button"
                                 data-testid="checkout-place-reservation"
                                 data-checkout-place-cta={placeOrderCta.key}
+                                data-checkout-payment-ready={
+                                  paymentUiReady ? "true" : "false"
+                                }
                                 className="!h-auto min-h-10 w-full !whitespace-normal break-words !rounded-xl border-transparent bg-black !px-5 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
                                 disabled={
                                   !legacySharedPalletPaymentAllowed ||
-                                  !stripeConfirmFn ||
-                                  !paymentMode ||
-                                  !stripeIntentId ||
+                                  !paymentUiReady ||
                                   isSubmitting ||
                                   zoneLoading ||
                                   isStripeConfirming ||

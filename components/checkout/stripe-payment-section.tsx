@@ -593,10 +593,14 @@ export function StripePaymentSection({
   const [paymentElementLoadError, setPaymentElementLoadError] = useState<
     string | null
   >(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!prefetchedIntent?.clientSecret);
   const [retryNonce, setRetryNonce] = useState(0);
   const onIntentCreatedRef = useRef(onIntentCreated);
   onIntentCreatedRef.current = onIntentCreated;
+  const onConfirmReadyRef = useRef(onConfirmReady);
+  onConfirmReadyRef.current = onConfirmReady;
+  const onPaymentElementCompleteRef = useRef(onPaymentElementComplete);
+  onPaymentElementCompleteRef.current = onPaymentElementComplete;
   const onQuoteRef = useRef(onQuote);
   onQuoteRef.current = onQuote;
   const appliedPrefetchIdRef = useRef<string | null>(
@@ -609,6 +613,18 @@ export function StripePaymentSection({
   useEffect(() => {
     fetchedRef.current = false;
     appliedPrefetchIdRef.current = null;
+    // Drop the previous intent immediately so SetupIntent / PaymentIntent
+    // copy cannot linger across a fulfillment-channel switch (or other
+    // context change) while the matching intent reloads.
+    setClientSecret(null);
+    setPaymentMode(null);
+    setIntentId(null);
+    setAmountInOre(null);
+    setError(null);
+    setPaymentElementLoadError(null);
+    setLoading(true);
+    onConfirmReadyRef.current(null);
+    onPaymentElementCompleteRef.current?.(false);
   }, [
     palletId,
     pactPointsRedeem,
@@ -864,8 +880,15 @@ export function StripePaymentSection({
 
   if (loading && !clientSecret) {
     return (
-      <div className="space-y-3 rounded-md border border-border bg-background p-4">
-        <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+      <div
+        className="space-y-3 rounded-md border border-border bg-background p-4"
+        data-testid="checkout-stripe-loading"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <p className="text-sm text-muted-foreground">
+          {t("checkout.loadingPayment")}
+        </p>
         <div className="h-9 w-full animate-pulse rounded bg-muted" />
         <div className="h-9 w-3/4 animate-pulse rounded bg-muted" />
       </div>

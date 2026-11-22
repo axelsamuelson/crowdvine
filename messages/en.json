@@ -612,6 +612,7 @@
     "noChargeUntilPalletCloses": "Nothing is charged now. You pay only when the pallet closes.",
     "otpEmailHint": "We use this address for order updates.",
     "preparingCheckout": "Preparing payment…",
+    "loadingPayment": "Loading payment…",
     "guestSessionFailed": "Could not prepare payment. Please try again.",
     "otpCheckInbox": "Check your inbox — click the link to continue.",
     "otpEmailLabel": "Email",
