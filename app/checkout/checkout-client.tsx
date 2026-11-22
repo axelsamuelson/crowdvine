@@ -4054,6 +4054,12 @@ function CheckoutContent({
     fulfillmentChannel,
   });
 
+  /** Single gate for loading copy + disabled CTA while Stripe reloads. */
+  const paymentUiReady =
+    paymentModeReadyForChannel &&
+    Boolean(stripeConfirmFn) &&
+    Boolean(stripeIntentId);
+
   // Copy follows the selected channel immediately; the live Stripe mode only
   // gates whether the place CTA is enabled.
   const chargeTimingCopyKey = useMemo(
@@ -6423,9 +6429,7 @@ function CheckoutContent({
                               const bindDisabled =
                                 !isValidCart ||
                                 !legacySharedPalletPaymentAllowed ||
-                                !stripeConfirmFn ||
-                                !paymentModeReadyForChannel ||
-                                !stripeIntentId ||
+                                !paymentUiReady ||
                                 !paymentElementComplete ||
                                 isSubmitting ||
                                 zoneLoading ||
@@ -6514,9 +6518,7 @@ function CheckoutContent({
                                 </p>
                               ) : null}
 
-                              {!paymentModeReadyForChannel ||
-                              !stripeConfirmFn ||
-                              !stripeIntentId ? (
+                              {!paymentUiReady ? (
                                 <p
                                   className="text-sm text-muted-foreground"
                                   data-checkout-payment-loading="true"
@@ -6530,12 +6532,13 @@ function CheckoutContent({
                                 type="button"
                                 data-testid="checkout-place-reservation"
                                 data-checkout-place-cta={placeOrderCta.key}
+                                data-checkout-payment-ready={
+                                  paymentUiReady ? "true" : "false"
+                                }
                                 className="!h-auto min-h-10 w-full !whitespace-normal break-words !rounded-xl border-transparent bg-black !px-5 py-3 text-center text-sm leading-snug text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40 sm:text-base"
                                 disabled={
                                   !legacySharedPalletPaymentAllowed ||
-                                  !stripeConfirmFn ||
-                                  !paymentModeReadyForChannel ||
-                                  !stripeIntentId ||
+                                  !paymentUiReady ||
                                   isSubmitting ||
                                   zoneLoading ||
                                   isStripeConfirming ||
