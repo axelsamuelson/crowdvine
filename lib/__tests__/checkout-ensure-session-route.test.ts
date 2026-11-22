@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import {
+  CHECKOUT_GUEST_PROOF_COOKIE,
+  mintGuestSessionProofToken,
+} from "@/lib/checkout/guest-session-proof";
 
 const getCurrentUser = vi.fn();
 const getSupabaseAdmin = vi.fn();
@@ -53,10 +57,14 @@ vi.mock("@/lib/rate-limiter", async () => {
   };
 });
 
-function makeRequest(email: string) {
+function makeRequest(email: string, cookieHeader?: string) {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+  if (cookieHeader) headers.cookie = cookieHeader;
   return new NextRequest("http://localhost/api/checkout/ensure-session", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify({ email }),
   });
 }
@@ -65,6 +73,7 @@ describe("POST /api/checkout/ensure-session", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    process.env.CHECKOUT_GUEST_PROOF_SECRET = "test-guest-proof-secret";
     isPlatformOpen.mockReturnValue(true);
     getCurrentUser.mockResolvedValue(null);
     signupLimiter.isAllowed.mockReturnValue(true);
@@ -375,5 +384,93 @@ describe("POST /api/checkout/ensure-session", () => {
     const res = await POST(makeRequest("x@example.com"));
     expect(res.status).toBe(403);
     expect(existingCheckoutEmailTaken).not.toHaveBeenCalled();
+  });
+
+  it("existing email + valid guest proof remints session (reload same browser)", async () => {
+    existingCheckoutEmailTaken.mockResolvedValue(true);
+    const proof = mintGuestSessionProofToken(
+      "reload@example.com",
+      "guest-uid-1",
+    );
+    const generateLink = vi.fn().mockResolvedValue({
+      data: {
+        user: { id: "guest-uid-1" },
+        properties: {
+          hashed_token: "remint-hash",
+          verification_type: "magiclink",
+        },
+      },
+      error: null,
+    });
+    const insert = vi.fn();
+    const from = vi.fn(() => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: { id: "guest-uid-1", role: "user" },
+            error: null,
+          }),
+        }),
+      }),
+      insert,
+    }));
+    const ephemeralVerifyOtp = vi.fn().mockResolvedValue({
+      data: {
+        session: {
+          access_token: "access-remint",
+          refresh_token: "refresh-remint",
+        },
+      },
+      error: null,
+    });
+    getSupabaseAdmin.mockReturnValue({
+      auth: { admin: { generateLink }, verifyOtp: vi.fn() },
+      from,
+    });
+    createEphemeralAuthClient.mockReturnValue({
+      auth: { verifyOtp: ephemeralVerifyOtp },
+    });
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(
+      makeRequest(
+        "reload@example.com",
+        `${CHECKOUT_GUEST_PROOF_COOKIE}=${proof}`,
+      ),
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.autoSignedIn).toBe(true);
+    expect(body.reminted).toBe(true);
+    expect(body.session.access_token).toBe("access-remint");
+    expect(insert).not.toHaveBeenCalled();
+    expect(generateLink).toHaveBeenCalled();
+    expect(ephemeralVerifyOtp).toHaveBeenCalled();
+    // Proof cookie refreshed on response
+    const setCookie = res.headers.getSetCookie?.() ?? [];
+    expect(
+      setCookie.some((c) => c.startsWith(`${CHECKOUT_GUEST_PROOF_COOKIE}=`)),
+    ).toBe(true);
+  });
+
+  it("existing email + proof for other email still 409 (no takeover)", async () => {
+    existingCheckoutEmailTaken.mockResolvedValue(true);
+    const proof = mintGuestSessionProofToken("mine@example.com", "uid-mine");
+    const generateLink = vi.fn();
+    getSupabaseAdmin.mockReturnValue({
+      auth: { admin: { generateLink }, verifyOtp: vi.fn() },
+      from: vi.fn(),
+    });
+
+    const { POST } = await import("@/app/api/checkout/ensure-session/route");
+    const res = await POST(
+      makeRequest(
+        "victim@example.com",
+        `${CHECKOUT_GUEST_PROOF_COOKIE}=${proof}`,
+      ),
+    );
+    expect(res.status).toBe(409);
+    expect(generateLink).not.toHaveBeenCalled();
   });
 });
