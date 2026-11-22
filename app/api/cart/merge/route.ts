@@ -64,8 +64,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
+    // No auth user at all: 200 so clients can fire-and-forget without console
+    // 401 noise. Do not reconcile. Any user object (including anonymous /
+    // ensure-session) continues into the merge logic below — same as pre-PR.
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ ok: true, merged: false });
     }
 
     const body = (await request.json().catch(() => null)) as {
@@ -96,6 +99,7 @@ export async function POST(request: Request) {
       const cart = await CartService.getCart();
       return NextResponse.json({
         ok: true,
+        merged: true,
         cart,
         mergedFromCartIds: result.mergedFromCartIds,
       });
@@ -124,7 +128,12 @@ export async function POST(request: Request) {
         await bindCartOwnerAndTouch(sessionCart.id, user.id);
       }
       const cart = await CartService.getCart();
-      return NextResponse.json({ ok: true, conflict: false, cart });
+      return NextResponse.json({
+        ok: true,
+        merged: true,
+        conflict: false,
+        cart,
+      });
     }
 
     const now = new Date().toISOString();
@@ -146,7 +155,7 @@ export async function POST(request: Request) {
     }
 
     const cart = await CartService.getCart();
-    return NextResponse.json({ ok: true, cart });
+    return NextResponse.json({ ok: true, merged: true, cart });
   } catch (e) {
     console.error("[cart/merge] POST error:", e);
     return NextResponse.json({ error: "Merge failed" }, { status: 500 });

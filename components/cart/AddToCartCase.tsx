@@ -48,6 +48,10 @@ import {
   buildOptimisticCaseCart,
   requestCartOpen,
 } from "@/lib/cart/optimistic-case-cart";
+import {
+  ADD_TO_CART_FETCH_TIMEOUT_MS,
+  fetchWithTimeout,
+} from "@/lib/cart/cart-merge-client";
 
 function trackSixPackRuleFirstAdd() {
   emitOnce("six_pack_rule_viewed:first_add", () => {
@@ -475,15 +479,19 @@ export function AddToCartCase({
 
     startSameTransition(async () => {
       try {
-        const response = await fetch("/api/cart/add-quantity", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            variantId: resolvedVariant.id,
-            quantity: 6,
-            source: "producer",
-          }),
-        });
+        const response = await fetchWithTimeout(
+          "/api/cart/add-quantity",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              variantId: resolvedVariant.id,
+              quantity: 6,
+              source: "producer",
+            }),
+          },
+          ADD_TO_CART_FETCH_TIMEOUT_MS,
+        );
         if (response.ok) {
           const result = (await response.json()) as { cart?: Cart };
           if (result.cart) dispatchCartRefresh(result.cart);
@@ -507,7 +515,11 @@ export function AddToCartCase({
           trackSixPackRuleFirstAdd();
         } else {
           // Revert optimistic snapshot on failure (best-effort).
-          if (cartApi?.cart) dispatchCartRefresh(cartApi.cart);
+          // Keep optimistic lines when prior cart was empty (guest first add)
+          // so a late merge/hydrate 401 path cannot blank the drawer.
+          if (cartApi?.cart && (cartApi.cart.totalQuantity ?? 0) > 0) {
+            dispatchCartRefresh(cartApi.cart);
+          }
           void AnalyticsTracker.trackAddToCartFailed({
             reason: "http_error",
             productId: product.id,
@@ -516,7 +528,10 @@ export function AddToCartCase({
           });
         }
       } catch {
-        if (cartApi?.cart) dispatchCartRefresh(cartApi.cart);
+        // Timeout / network: stop spinner; keep optimistic cart for recovery.
+        if (cartApi?.cart && (cartApi.cart.totalQuantity ?? 0) > 0) {
+          dispatchCartRefresh(cartApi.cart);
+        }
         void AnalyticsTracker.trackAddToCartFailed({
           reason: "network_error",
           productId: product.id,
