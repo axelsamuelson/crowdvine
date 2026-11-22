@@ -468,6 +468,8 @@
     "stepPaymentLocked": "Bekräfta ålder och tryck fortsätt för att gå vidare till betalkort.",
     "selectUsState": "Välj din amerikanska delstat eller territorium i zonens leveransuppgifter för att fortsätta.",
     "updatingDelivery": "Uppdaterar leverans…",
+    "deliveryUpdateFailed": "Kunde inte uppdatera leveransalternativ. Försök igen.",
+    "shippingPreviewFailed": "Kunde inte hämta fraktpris. Försök igen.",
     "noPickupZone": "Ingen upphämtningszon hittades.",
     "noPickupForCart": "Leveransadressen fungerar, men vinerna i varukorgen saknar fraktregion/upphämtning. Kontakta support eller prova andra viner.",
     "tryAgain": "Försök igen",

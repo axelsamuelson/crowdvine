@@ -218,6 +218,10 @@ import {
 import { getAnalyticsSessionId } from "@/lib/analytics/event-tracker";
 import { resolveDisplayShippingSek } from "@/lib/checkout/shipping-preview";
 import {
+  resolveShippingDisplayPending,
+  resolveShippingPreviewRetryVisible,
+} from "@/lib/checkout/shipping-display-pending";
+import {
   resolveChannelDisplaySubtotalSek,
   selectChannelBoundQuote,
 } from "@/lib/checkout/channel-display-totals";
@@ -297,6 +301,8 @@ function CheckoutContent({
   );
   const [loading, setLoading] = useState(true);
   const [zoneLoading, setZoneLoading] = useState(false);
+  /** True when zone match exceeded the client watchdog (AC3 — never hang). */
+  const [zoneTimedOut, setZoneTimedOut] = useState(false);
   const [addressSaving, setAddressSaving] = useState(false);
   const [isStripeConfirming, setIsStripeConfirming] = useState(false);
   const [isFinalizingReservation, setIsFinalizingReservation] = useState(false);
@@ -445,6 +451,9 @@ function CheckoutContent({
   const [shippingPreviewStatus, setShippingPreviewStatus] = useState<
     "idle" | "loading" | "ready" | "missing"
   >("idle");
+  /** Bump to re-run public shipping-preview after a failure (AC3). */
+  const [shippingPreviewRetryNonce, setShippingPreviewRetryNonce] =
+    useState(0);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   /** Dual-offer purchase bar (sticky under Totalt / mobile after address). */
   const [dualOfferPurchase, setDualOfferPurchase] =
@@ -2345,7 +2354,13 @@ function CheckoutContent({
 
     if (!silent) {
       setZoneLoading(true);
+      setZoneTimedOut(false);
     }
+
+    const zoneController = new AbortController();
+    const zoneTimeoutId = window.setTimeout(() => {
+      zoneController.abort();
+    }, 15_000);
 
     try {
       const isUsingFallback = Boolean(
@@ -2477,6 +2492,7 @@ function CheckoutContent({
           cartItems: cart.lines,
           deliveryAddress,
         }),
+        signal: zoneController.signal,
       });
 
       if (zoneResponse.ok) {
@@ -2701,9 +2717,18 @@ function CheckoutContent({
         setZoneFetchCompleted(true);
       }
     } catch (error) {
-      console.error("Failed to update zone info:", error);
+      const isAbort =
+        (error instanceof DOMException && error.name === "AbortError") ||
+        (error instanceof Error && error.name === "AbortError");
+      if (isAbort) {
+        console.warn("[Checkout] zone match timed out / aborted");
+        setZoneTimedOut(true);
+      } else {
+        console.error("Failed to update zone info:", error);
+      }
       setZoneFetchCompleted(true);
     } finally {
+      window.clearTimeout(zoneTimeoutId);
       zoneInfoFetchInProgressRef.current = false;
       setZoneLoading(false);
       if (zoneInfoNeedsRefetchRef.current) {
@@ -3765,6 +3790,8 @@ function CheckoutContent({
       !isQuoteBoundToChannel(serverQuote, fulfillmentChannel));
 
   // Public rate preview as soon as postal/country + cart bottles are known.
+  // Do NOT wait on /api/checkout/quote or full address (guests: ensure-session
+  // only after deliveryComplete). Quote may overwrite amounts when ready.
   useEffect(() => {
     if (!hasPostalCode || !cart?.totalQuantity) {
       setShippingPreviewStatus("idle");
@@ -3912,6 +3939,7 @@ function CheckoutContent({
     cart?.totalQuantity,
     cart?.cost?.totalAmount?.amount,
     ageCountryCode,
+    shippingPreviewRetryNonce,
   ]);
 
   useEffect(() => {
@@ -3995,13 +4023,28 @@ function CheckoutContent({
       directShippingSek,
     ],
   );
-  const shippingDisplayPending =
-    hasPostalCode &&
-    channelDisplayShippingSek == null &&
-    (shippingPreviewStatus === "loading" ||
-      shippingPreviewStatus === "idle" ||
-      quoteStatus === "loading" ||
-      channelTotalsPending);
+  // Postal-first: never OR in quoteStatus/channelTotalsPending — guests only
+  // get /api/checkout/quote after ensure-session (full address).
+  const shippingDisplayPending = resolveShippingDisplayPending({
+    hasPostalCode,
+    shippingSek: channelDisplayShippingSek,
+    shippingPreviewStatus,
+  });
+  const sharedShippingRadioPending = resolveShippingDisplayPending({
+    hasPostalCode,
+    shippingSek: sharedShippingSek ?? null,
+    shippingPreviewStatus,
+  });
+  const directShippingRadioPending = resolveShippingDisplayPending({
+    hasPostalCode,
+    shippingSek: directShippingSek ?? null,
+    shippingPreviewStatus,
+  });
+  const shippingPreviewRetryVisible = resolveShippingPreviewRetryVisible({
+    hasPostalCode,
+    shippingSek: lowestShippingSek ?? channelDisplayShippingSek,
+    shippingPreviewStatus,
+  });
 
   const conversionCouponHalfCapReduced = useMemo(() => {
     if (!appliedDiscount) return false;
@@ -4478,6 +4521,7 @@ function CheckoutContent({
     }
     setPostalCodeDraft(v);
     setZoneLoading(true);
+    setZoneTimedOut(false);
     setZoneFetchCompleted(false);
 
     const countryCode =
@@ -5261,12 +5305,66 @@ function CheckoutContent({
                       )}
                     </div>
 
-                    {zoneLoading ? (
-                      <div className="flex items-center gap-3">
+                    {zoneLoading &&
+                    !(
+                      typeof sharedShippingSek === "number" ||
+                      typeof directShippingSek === "number" ||
+                      postalFulfillment.noFulfillmentAvailable ||
+                      !postalFulfillment.sharedPalletAvailable
+                    ) ? (
+                      <div
+                        className="flex items-center gap-3"
+                        data-testid="checkout-zone-loading"
+                      >
                         <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-foreground" />
                         <span className="text-sm text-muted-foreground">
                           {t("checkout.updatingDelivery")}
                         </span>
+                      </div>
+                    ) : null}
+
+                    {zoneTimedOut && !zoneLoading && hasPostalCode ? (
+                      <div
+                        className="space-y-2"
+                        data-testid="checkout-zone-timeout"
+                      >
+                        <p className="text-sm text-destructive" role="alert">
+                          {t("checkout.deliveryUpdateFailed")}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          onClick={() => {
+                            setZoneTimedOut(false);
+                            setZoneFetchCompleted(false);
+                            clearZoneCache();
+                            void updateZoneInfo();
+                          }}
+                        >
+                          {t("checkout.tryAgain")}
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    {shippingPreviewRetryVisible ? (
+                      <div
+                        className="space-y-2"
+                        data-testid="checkout-shipping-preview-retry"
+                      >
+                        <p className="text-sm text-destructive" role="alert">
+                          {t("checkout.shippingPreviewFailed")}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          onClick={() => {
+                            setShippingPreviewRetryNonce((n) => n + 1);
+                          }}
+                        >
+                          {t("checkout.tryAgain")}
+                        </Button>
                       </div>
                     ) : null}
 
@@ -5381,7 +5479,7 @@ function CheckoutContent({
                                                 ),
                                               },
                                             )
-                                          ) : shippingDisplayPending ? (
+                                          ) : sharedShippingRadioPending ? (
                                             <span
                                               className="mt-1 inline-block h-3 w-40 animate-pulse rounded bg-muted"
                                               aria-hidden
@@ -5459,7 +5557,7 @@ function CheckoutContent({
                                               ),
                                             },
                                           )
-                                        ) : shippingDisplayPending ? (
+                                        ) : directShippingRadioPending ? (
                                           <span
                                             className="mt-1 inline-block h-3 w-36 animate-pulse rounded bg-muted"
                                             aria-hidden

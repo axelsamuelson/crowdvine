@@ -468,6 +468,8 @@
     "stepPaymentLocked": "Confirm your age, then continue to enter your card.",
     "selectUsState": "Select your US state or territory in your zone delivery details to continue.",
     "updatingDelivery": "Updating delivery…",
+    "deliveryUpdateFailed": "Could not update delivery options. Please try again.",
+    "shippingPreviewFailed": "Could not load shipping prices. Please try again.",
     "noPickupZone": "No pickup zone found.",
     "noPickupForCart": "Your delivery address works, but the wines in your cart are missing a shipping region/pickup. Contact support or try other wines.",
     "tryAgain": "Try Again",

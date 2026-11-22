@@ -70,6 +70,21 @@ describe("checkout age-gate / address wiring (hotfix)", () => {
     expect(checkoutSrc).toMatch(/fulfillmentDirectSubtitle/);
   });
 
+  it("shipping placeholders wait only on public preview — not quote/address", () => {
+    // Root cause: gray "Uppdaterar leverans" skeletons stayed until full address
+    // because shippingDisplayPending ORed quoteStatus === "loading" /
+    // channelTotalsPending (guests get quote only after ensure-session).
+    expect(checkoutSrc).toMatch(/resolveShippingDisplayPending/);
+    expect(checkoutSrc).toMatch(/resolveShippingPreviewRetryVisible/);
+    expect(checkoutSrc).toMatch(/shippingPreviewRetryNonce/);
+    expect(checkoutSrc).not.toMatch(
+      /shippingDisplayPending\s*=\s*[\s\S]{0,200}quoteStatus\s*===\s*"loading"/,
+    );
+    expect(checkoutSrc).not.toMatch(
+      /shippingDisplayPending\s*=\s*[\s\S]{0,200}channelTotalsPending/,
+    );
+  });
+
   it("scrubs DOB from browser storage and does not autocomplete bday", () => {
     expect(checkoutSrc).toMatch(/scrubCheckoutDobFromBrowserStorage/);
     expect(checkoutSrc).toMatch(/autoComplete=\"off\"/);
