@@ -11,6 +11,12 @@ import {
 } from "@/lib/auth/finalize-signup";
 import { signupLimiter, getClientIdentifier } from "@/lib/rate-limiter";
 import { existingCheckoutEmailTaken } from "@/lib/checkout/ensure-session-existing-user";
+import {
+  CHECKOUT_GUEST_PROOF_COOKIE,
+  guestProofCookieOptions,
+  mintGuestSessionProofToken,
+  readGuestSessionProofFromRequest,
+} from "@/lib/checkout/guest-session-proof";
 
 function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
@@ -32,12 +38,50 @@ function requiresLoginResponse() {
   );
 }
 
+function withGuestProofCookie(
+  response: NextResponse,
+  email: string,
+  userId: string,
+): NextResponse {
+  try {
+    const token = mintGuestSessionProofToken(email, userId);
+    response.cookies.set(
+      CHECKOUT_GUEST_PROOF_COOKIE,
+      token,
+      guestProofCookieOptions(),
+    );
+  } catch (err) {
+    console.error("[checkout/ensure-session] mint guest proof:", err);
+  }
+  return response;
+}
+
+type SessionBody = {
+  ok: true;
+  autoSignedIn: true;
+  userId: string;
+  reminted?: boolean;
+  session: { access_token: string; refresh_token: string };
+};
+
+function sessionSuccessResponse(
+  body: SessionBody,
+  email: string,
+  userId: string,
+): NextResponse {
+  return withGuestProofCookie(NextResponse.json(body), email, userId);
+}
+
 /**
  * POST /api/checkout/ensure-session
  *
  * Open-platform guest checkout: establish a browser session from the delivery
  * email without a login wall — only for brand-new emails. Existing accounts
  * (any role) must use OTP login; we never mint tokens or rewrite profiles for them.
+ *
+ * Exception (Camille 22/11): if this browser already completed ensure-session
+ * for the same email (httpOnly HMAC proof cookie), remint the session after
+ * reload without OTP — without opening email-only takeover (#246).
  */
 export async function POST(request: NextRequest) {
   if (!isPlatformOpen()) {
@@ -94,11 +138,93 @@ export async function POST(request: NextRequest) {
   const sb = getSupabaseAdmin();
 
   try {
-    // CRITICAL: never generateLink / verifyOtp for an existing account.
-    if (await existingCheckoutEmailTaken(sb, email)) {
+    const emailTaken = await existingCheckoutEmailTaken(sb, email);
+    const guestProof = emailTaken
+      ? readGuestSessionProofFromRequest(request, email)
+      : null;
+
+    // Existing email without same-browser proof → OTP wall (#246).
+    if (emailTaken && !guestProof) {
       return requiresLoginResponse();
     }
 
+    // Remint path: email exists but this browser holds a valid guest proof
+    // from a prior ensure-session in this checkout window.
+    if (emailTaken && guestProof) {
+      const { data: profile, error: profileErr } = await sb
+        .from("profiles")
+        .select("id, role")
+        .eq("id", guestProof.userId)
+        .maybeSingle();
+      if (profileErr) {
+        console.error(
+          "[checkout/ensure-session] remint profile check:",
+          profileErr,
+        );
+        return requiresLoginResponse();
+      }
+      // Never remint elevated roles even if proof somehow matched.
+      if (!profile?.id || String(profile.role ?? "") !== "user") {
+        return requiresLoginResponse();
+      }
+
+      const { data: linkData, error: linkError } =
+        await sb.auth.admin.generateLink({
+          type: "magiclink",
+          email,
+        });
+      if (linkError || !linkData?.user?.id) {
+        console.error("[checkout/ensure-session] remint generateLink:", linkError);
+        return NextResponse.json(
+          { error: "Kunde inte återställa kassasessionen. Försök igen." },
+          { status: 500 },
+        );
+      }
+      if (linkData.user.id !== guestProof.userId) {
+        console.warn(
+          "[checkout/ensure-session] remint userId mismatch; refusing",
+        );
+        return requiresLoginResponse();
+      }
+      const tokenHash = linkData.properties?.hashed_token;
+      if (!tokenHash) {
+        return NextResponse.json(
+          { error: "Kunde inte återställa kassasessionen. Försök igen." },
+          { status: 500 },
+        );
+      }
+
+      const authClient = createEphemeralAuthClient();
+      const { data: verified, error: verifyError } =
+        await authClient.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "email",
+        });
+      if (verifyError || !verified.session) {
+        console.error("[checkout/ensure-session] remint verifyOtp:", verifyError);
+        return NextResponse.json(
+          { error: "Kunde inte återställa kassasessionen. Försök igen." },
+          { status: 500 },
+        );
+      }
+
+      return sessionSuccessResponse(
+        {
+          ok: true,
+          autoSignedIn: true,
+          reminted: true,
+          userId: guestProof.userId,
+          session: {
+            access_token: verified.session.access_token,
+            refresh_token: verified.session.refresh_token,
+          },
+        },
+        email,
+        guestProof.userId,
+      );
+    }
+
+    // Brand-new email path (unchanged #246 signup rules).
     const { data: linkData, error: linkError } =
       await sb.auth.admin.generateLink({
         type: "magiclink",
@@ -199,15 +325,19 @@ export async function POST(request: NextRequest) {
       emitSignupCompleted: wasSignup,
     });
 
-    return NextResponse.json({
-      ok: true,
-      autoSignedIn: true,
-      userId,
-      session: {
-        access_token: verified.session.access_token,
-        refresh_token: verified.session.refresh_token,
+    return sessionSuccessResponse(
+      {
+        ok: true,
+        autoSignedIn: true,
+        userId,
+        session: {
+          access_token: verified.session.access_token,
+          refresh_token: verified.session.refresh_token,
+        },
       },
-    });
+      email,
+      userId,
+    );
   } catch (err) {
     console.error("[checkout/ensure-session] unexpected:", err);
     return NextResponse.json(
