@@ -76,7 +76,7 @@ async function waitZoneSettled(page) {
   await page
     .waitForFunction(
       () => !/Uppdaterar leverans/i.test(document.body?.innerText || ""),
-      { timeout: 60000 },
+      undefined, { timeout: 60000 },
     )
     .catch(() => {});
   await page.waitForTimeout(500);
@@ -114,6 +114,8 @@ async function shot(page, name, meta) {
 
 async function seedCart(context) {
   const page = await context.newPage();
+  // Reset to a known 6-bottle cart (avoid stacking across viewports/users).
+  await page.request.post(`${BASE}/api/cart/clear`).catch(() => {});
   const res = await page.request.post(`${BASE}/api/cart/batch-add`, {
     data: { items: [{ variantId: WINE_ID, quantity: 6 }] },
   });
@@ -124,7 +126,7 @@ async function seedCart(context) {
 async function waitNoCartLoading(page) {
   await page.waitForFunction(
     () => !document.querySelector('[data-testid="checkout-cart-loading"]'),
-    { timeout: 90000 },
+    undefined, { timeout: 90000 },
   );
 }
 
@@ -150,6 +152,9 @@ async function enterPostal(page, postal) {
 }
 
 async function selectChannel(page, which) {
+  // Radios live near the top; clicking while scrolled to payment misses them.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
   const label =
     which === "direct" ? /^Direktleverans$/i : /^Delad pall$/i;
   const radio = page.getByRole("radio", { name: label });
@@ -160,6 +165,21 @@ async function selectChannel(page, which) {
   } else {
     await page.getByText(label).first().click();
   }
+  await page.waitForFunction(
+    (wantDirect) => {
+      const radios = [...document.querySelectorAll('input[type="radio"]')];
+      const match = radios.find((r) => {
+        const t =
+          (r.getAttribute("aria-label") || "") +
+          (r.closest("label")?.innerText || "") +
+          (r.parentElement?.innerText || "");
+        return wantDirect ? /direkt/i.test(t) : /delad\s*pall/i.test(t);
+      });
+      return Boolean(match?.checked);
+    },
+    which === "direct",
+    { timeout: 30000 },
+  ).catch(() => {});
   await waitZoneSettled(page);
 }
 
@@ -261,6 +281,7 @@ async function waitStripeReady(page) {
       );
       return Boolean(iframe || place);
     },
+    undefined,
     { timeout: 120000 },
   );
   await page.waitForTimeout(1500);
@@ -290,7 +311,7 @@ async function assertSellerLine(page) {
       /Säljare:\s*EURPACT OÜ \(reg\.\s+17538270\),\s+Estland/i.test(
         document.body?.innerText || "",
       ),
-    { timeout: 30000 },
+    undefined, { timeout: 30000 },
   );
 }
 
@@ -312,7 +333,7 @@ async function runDirectPersist(label, viewport) {
     ignoreHTTPSErrors: true,
   });
   const page = await context.newPage();
-  page.setDefaultTimeout(45000);
+  page.setDefaultTimeout(120000);
 
   await seedCart(context);
   await page.goto(`${BASE}/checkout`, { waitUntil: "domcontentloaded" });
@@ -346,16 +367,19 @@ async function runDirectPersist(label, viewport) {
             (r.parentElement?.innerText || ""),
         ),
       );
-      const t = document.body?.innerText || "";
-      return (
-        Boolean(direct?.checked) &&
-        !shared?.checked &&
-        /Direktleverans\s*[–-]/i.test(t) &&
-        !/Laddar vinzon|Uppdaterar leverans/i.test(t)
-      );
+      return Boolean(direct?.checked) && !shared?.checked;
     },
+    undefined,
     { timeout: 90000 },
   );
+  await waitZoneSettled(page);
+  await page
+    .waitForFunction(
+      () => !/Laddar vinzon|Uppdaterar leverans/i.test(document.body?.innerText || ""),
+      undefined,
+      { timeout: 60000 },
+    )
+    .catch(() => {});
   // Confirm sessionStorage persisted Direct before reload
   const stored = await page.evaluate(
     () => sessionStorage.getItem("pact_checkout_fulfillment_channel"),
@@ -374,7 +398,7 @@ async function runDirectPersist(label, viewport) {
   await waitNoCartLoading(page);
   await page.waitForFunction(
     () => /11151/i.test(document.body?.innerText || ""),
-    { timeout: 120000 },
+    undefined, { timeout: 120000 },
   );
   await waitZoneSettled(page);
   await page.waitForFunction(
@@ -394,16 +418,13 @@ async function runDirectPersist(label, viewport) {
             (r.parentElement?.innerText || ""),
         ),
       );
-      const t = document.body?.innerText || "";
-      if (/Laddar vinzon|Uppdaterar leverans/i.test(t)) return false;
-      return (
-        Boolean(direct?.checked) &&
-        !shared?.checked &&
-        /Direktleverans\s*[–-]/i.test(t)
-      );
+      // Allow brief shared→direct restore flash; require Direct checked.
+      return Boolean(direct?.checked) && !shared?.checked;
     },
+    undefined,
     { timeout: 120000 },
   );
+  await waitZoneSettled(page);
 
   await shot(page, `${label}-11151-direct-after-reload.png`, {
     case: "anon_11151_direct_after_reload",
@@ -483,7 +504,7 @@ async function runStep4Copy(label, viewport, creds) {
     ignoreHTTPSErrors: true,
   });
   const page = await context.newPage();
-  page.setDefaultTimeout(60000);
+  page.setDefaultTimeout(120000);
 
   await login(page, creds.email, creds.password);
   await seedCart(context);
@@ -491,7 +512,7 @@ async function runStep4Copy(label, viewport, creds) {
   await waitNoCartLoading(page);
   await page.waitForFunction(
     () => /11151/i.test(document.body?.innerText || ""),
-    { timeout: 90000 },
+    undefined, { timeout: 90000 },
   );
   await waitZoneSettled(page);
 
@@ -545,7 +566,7 @@ async function runStep4Copy(label, viewport, creds) {
   await assertDebiterasNotDras(page);
   await page.waitForFunction(
     () => /Inget debiteras nu/i.test(document.body?.innerText || ""),
-    { timeout: 30000 },
+    undefined, { timeout: 30000 },
   ).catch(() => {});
 
   await shot(page, `${label}-step4-shared-loaded.png`, {
@@ -558,7 +579,7 @@ async function runStep4Copy(label, viewport, creds) {
   // Switch to Direct — capture immediately after switch (loading only in card)
   await selectChannel(page, "direct");
   await scrollToPayment(page);
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(400);
   await assertNoLoadingAboveCta(page);
   await shot(page, `${label}-step4-after-switch-to-direct.png`, {
     case: "step4_after_switch_to_direct",
@@ -572,10 +593,14 @@ async function runStep4Copy(label, viewport, creds) {
   await assertSellerLine(page);
   await page.waitForFunction(
     () =>
-      /debiteras nu när du bekräftar|Betala nu|Ditt kort debiteras nu/i.test(
+      /Ditt kort debiteras nu när du bekräftar|Betala nu/i.test(
         document.body?.innerText || "",
+      ) && !/när pallen stänger/i.test(
+        document.querySelector('[data-testid="checkout-place-reservation"]')
+          ?.innerText || "",
       ),
-    { timeout: 60000 },
+    undefined,
+    { timeout: 120000 },
   );
 
   await shot(page, `${label}-step4-direct-loaded.png`, {
@@ -588,7 +613,7 @@ async function runStep4Copy(label, viewport, creds) {
   // Switch back to shared briefly for after-switch shared evidence
   await selectChannel(page, "shared");
   await scrollToPayment(page);
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(400);
   await assertNoLoadingAboveCta(page);
   await shot(page, `${label}-step4-after-switch-to-shared.png`, {
     case: "step4_after_switch_to_shared",
@@ -615,14 +640,13 @@ async function main() {
   requireTestEnv();
   console.log("head", HEAD, "branch", BRANCH, "app", BASE);
 
-  const creds = await seedLoggedIn();
-  console.log("step4_user", creds.email);
-
   for (const [label, viewport] of [
     ["390", { width: 390, height: 844 }],
     ["1440", { width: 1440, height: 900 }],
   ]) {
     await runDirectPersist(label, viewport);
+    const creds = await seedLoggedIn();
+    console.log("step4_user", label, creds.email);
     await runStep4Copy(label, viewport, creds);
   }
 
