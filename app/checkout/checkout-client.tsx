@@ -80,6 +80,11 @@ import {
   checkoutPlaceOrderCtaMessageKey,
   expectedCheckoutPaymentMode,
 } from "@/lib/checkout/charge-timing-copy";
+import {
+  GUEST_ENSURE_SESSION_TIMEOUT_MS,
+  resolveGuestEnsureSessionOutcome,
+  shouldClearGuestEnsureAttemptOnCleanup,
+} from "@/lib/checkout/guest-ensure-session-client";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -343,6 +348,10 @@ function CheckoutContent({
   const [guestSessionPending, setGuestSessionPending] = useState(false);
   const [guestRetryNonce, setGuestRetryNonce] = useState(0);
   const guestEnsureAttemptedRef = useRef<string | null>(null);
+  /** Bumps on cleanup so stale error UI does not overwrite a newer attempt. */
+  const guestEnsureGenRef = useRef(0);
+  const checkoutTRef = useRef(t);
+  checkoutTRef.current = t;
   const [cartMergeOpen, setCartMergeOpen] = useState(false);
   const [cartMergeLoading, setCartMergeLoading] = useState(false);
   const [activeShop, setActiveShop] = useState<ResolvedActiveGeoZone | null>(
@@ -1650,8 +1659,23 @@ function CheckoutContent({
     guestEnsureAttemptedRef.current = email;
 
     let cancelled = false;
+    let sessionApplied = false;
+    const gen = ++guestEnsureGenRef.current;
+    const isCurrent = () => guestEnsureGenRef.current === gen;
+
     setGuestSessionPending(true);
     setGuestSessionError(null);
+
+    const timeoutId = window.setTimeout(() => {
+      if (cancelled || !isCurrent() || sessionApplied) return;
+      console.warn("[Checkout] ensure-session timed out");
+      guestEnsureAttemptedRef.current = null;
+      setGuestSessionPending(false);
+      setGuestSessionError(
+        checkoutTRef.current("checkout.guestSessionFailed"),
+      );
+    }, GUEST_ENSURE_SESSION_TIMEOUT_MS);
+
     void (async () => {
       try {
         const res = await fetch("/api/checkout/ensure-session", {
@@ -1660,60 +1684,88 @@ function CheckoutContent({
           credentials: "include",
           body: JSON.stringify({ email }),
         });
-        const data = (await res.json().catch(() => null)) as {
-          ok?: boolean;
-          alreadyAuthenticated?: boolean;
-          autoSignedIn?: boolean;
-          requiresLogin?: boolean;
-          session?: { access_token: string; refresh_token: string };
-          error?: string;
-        } | null;
+        const data = (await res.json().catch(() => null)) as Parameters<
+          typeof resolveGuestEnsureSessionOutcome
+        >[0]["data"];
 
-        if (cancelled) return;
+        const outcome = resolveGuestEnsureSessionOutcome({
+          cancelled,
+          status: res.status,
+          data,
+        });
 
-        if (res.status === 409 || data?.requiresLogin) {
+        if (outcome.kind === "ignore") return;
+
+        if (outcome.kind === "requires_login") {
+          if (!isCurrent()) return;
           setGuestRequiresLogin(true);
           setGuestSessionError(null);
           return;
         }
 
-        if (data?.alreadyAuthenticated) {
+        if (outcome.kind === "already_authenticated") {
+          sessionApplied = true;
           await ensureProfileAfterAuth();
           return;
         }
 
-        if (data?.autoSignedIn && data.session?.access_token) {
+        if (outcome.kind === "apply_session") {
+          // Always setSession — even after effect cleanup — so first-visit
+          // tokens are not dropped (Camille hang → reload remint worked).
           const supabase = getSupabaseBrowserClient();
           const { error } = await supabase.auth.setSession({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
+            access_token: outcome.access_token,
+            refresh_token: outcome.refresh_token,
           });
           if (error) {
             console.error("[Checkout] setSession after ensure-session:", error);
-            setGuestSessionError(t("checkout.guestSessionFailed"));
+            if (isCurrent()) {
+              guestEnsureAttemptedRef.current = null;
+              setGuestSessionError(
+                checkoutTRef.current("checkout.guestSessionFailed"),
+              );
+            }
             return;
           }
+          sessionApplied = true;
           await ensureProfileAfterAuth();
           return;
         }
 
         console.warn(
           "[Checkout] ensure-session failed:",
-          data?.error ?? res.status,
+          outcome.message ?? res.status,
         );
+        if (!isCurrent()) return;
+        guestEnsureAttemptedRef.current = null;
         setGuestSessionError(
-          data?.error?.trim() || t("checkout.guestSessionFailed"),
+          outcome.message ||
+            checkoutTRef.current("checkout.guestSessionFailed"),
         );
       } catch (err) {
         console.error("[Checkout] ensure-session error:", err);
-        if (!cancelled) setGuestSessionError(t("checkout.guestSessionFailed"));
+        if (!isCurrent()) return;
+        guestEnsureAttemptedRef.current = null;
+        setGuestSessionError(
+          checkoutTRef.current("checkout.guestSessionFailed"),
+        );
       } finally {
-        if (!cancelled) setGuestSessionPending(false);
+        window.clearTimeout(timeoutId);
+        // Clear spinner if this gen is still current, or if we applied a
+        // session after cleanup (authReady path may already have unmounted UI).
+        if (isCurrent() || sessionApplied) setGuestSessionPending(false);
       }
     })();
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
+      guestEnsureGenRef.current += 1;
+      // Camille: never leave attempted stuck after a raced cleanup — remount
+      // must be allowed to start a new ensure-session if tokens never applied.
+      if (shouldClearGuestEnsureAttemptOnCleanup(sessionApplied)) {
+        guestEnsureAttemptedRef.current = null;
+      }
     };
   }, [
     platformOpen,
@@ -1724,7 +1776,6 @@ function CheckoutContent({
     ensureProfileAfterAuth,
     guestRetryNonce,
     guestRequiresLogin,
-    t,
   ]);
 
   // After auth is known: merge (if logged in) then fetch cart once. Keeps the
