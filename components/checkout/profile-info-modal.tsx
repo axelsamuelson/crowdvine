@@ -146,7 +146,8 @@ export function ProfileInfoModal({
       const fullName = (formData.full_name ?? "").trim();
       const address = (formData.address ?? "").trim();
       const city = (formData.city ?? "").trim();
-      const postal = (formData.postal_code ?? "").trim();
+      // Match checkout postal draft: strip spaces so "981 31" → "98131".
+      const postal = (formData.postal_code ?? "").trim().replace(/\s+/g, "");
 
       if (!fullName || !email || !address || !city || !postal) {
         toast.warning(t("checkout.profileAddressIncomplete"));
@@ -197,7 +198,19 @@ export function ProfileInfoModal({
       const result = await response.json();
       const updatedProfile = result.profile || result;
 
-      onProfileSaved(updatedProfile);
+      // Prefer submitted address lines — profiles may omit street (zone template
+      // is checkout source of truth after save).
+      onProfileSaved({
+        ...updatedProfile,
+        full_name: payload.full_name,
+        email: payload.email,
+        phone: payload.phone,
+        address: payload.address,
+        city: payload.city,
+        postal_code: payload.postal_code,
+        country: payload.country,
+        region: payload.region,
+      });
       setOpen(false);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

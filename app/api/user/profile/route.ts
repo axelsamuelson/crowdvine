@@ -74,6 +74,8 @@ export async function PUT(request: Request) {
 
     if (full_name !== undefined) updatePayload.full_name = full_name;
     if (phone !== undefined) updatePayload.phone = phone;
+    // Street may live only on user_zone_addresses (migration 145+). Include
+    // address when the column exists; retry without it on schema drift.
     if (address !== undefined) updatePayload.address = address;
     if (city !== undefined) updatePayload.city = city;
     if (postal_code !== undefined) updatePayload.postal_code = postal_code;
@@ -85,16 +87,42 @@ export async function PUT(request: Request) {
     if (cover_image_path !== undefined)
       updatePayload.cover_image_path = cover_image_path;
 
-    const { data, error } = await sb
+    let { data, error } = await sb
       .from("profiles")
       .update(updatePayload)
       .eq("id", user.id)
       .select()
       .single();
 
+    if (
+      error &&
+      address !== undefined &&
+      /['"]address['"]|column.*address/i.test(error.message)
+    ) {
+      delete updatePayload.address;
+      const retry = await sb
+        .from("profiles")
+        .update(updatePayload)
+        .eq("id", user.id)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) throw error;
 
-    return NextResponse.json({ profile: data });
+    // Echo submitted street so checkout can sync zone templates even when
+    // profiles has no address column.
+    const profile =
+      data && typeof data === "object"
+        ? {
+            ...data,
+            ...(typeof address === "string" ? { address } : {}),
+          }
+        : data;
+
+    return NextResponse.json({ profile });
   } catch (error) {
     console.error("Error updating profile:", error);
     return NextResponse.json(
