@@ -88,7 +88,6 @@ import {
   ArrowRight,
   FileText,
 } from "lucide-react";
-import { clearZoneCache } from "@/lib/zone-matching";
 import { ensureVisitorIdentity } from "@/lib/analytics/visitor-identity";
 import {
   isInternalDevice,
@@ -124,7 +123,11 @@ import { formatCartLinePrice } from "@/lib/shopping-context/format";
 import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
 import { localizeCartDiscountLabel } from "@/lib/cart/discount-label";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
-import type { PalletInfo } from "@/lib/zone-matching";
+import {
+  clearZoneCache,
+  isLikelyStockholmAreaPostal,
+  type PalletInfo,
+} from "@/lib/zone-matching";
 import {
   ShareBottlesDialog,
   type ShareAllocation,
@@ -145,6 +148,7 @@ import {
 import type { DirectBoxUiAvailability } from "@/lib/commerce/direct-box-ui-contract";
 import {
   mayOpenComplianceWithoutPallet,
+  resolveCheckoutZoneMatchForAvailability,
   resolveFulfillmentPostalAvailability,
   shouldShowNoPickupForCart,
 } from "@/lib/commerce/fulfillment-postal-availability";
@@ -911,14 +915,17 @@ function CheckoutContent({
   );
 
   const postalFulfillment = useMemo(() => {
-    const zoneMatch =
-      zoneInfo.zoneError === "UNSUPPORTED_COUNTRY"
-        ? ("unsupported_country" as const)
-        : zoneInfo.zoneError === "NO_DELIVERY_ZONE"
-          ? ("out_of_zone" as const)
-          : deliveryZoneReady
-            ? ("in_zone" as const)
-            : ("unknown" as const);
+    const postalForMatch =
+      effectiveDelivery?.postal?.trim() ||
+      postalCodeDraft.trim() ||
+      profile?.postal_code?.trim() ||
+      "";
+    const zoneMatch = resolveCheckoutZoneMatchForAvailability({
+      zoneError: zoneInfo.zoneError,
+      deliveryZoneReady,
+      zoneFetchCompleted,
+      postal: postalForMatch,
+    });
     return resolveFulfillmentPostalAvailability({
       zoneMatch,
       budbeeAvailable,
@@ -929,6 +936,10 @@ function CheckoutContent({
   }, [
     zoneInfo.zoneError,
     deliveryZoneReady,
+    zoneFetchCompleted,
+    effectiveDelivery?.postal,
+    postalCodeDraft,
+    profile?.postal_code,
     budbeeAvailable,
     directBoxCheckoutEnabled,
     directBoxAvailability.deliverySelectable,
@@ -1899,13 +1910,25 @@ function CheckoutContent({
           phone: profile?.phone?.trim() || fromDb.phone || null,
         };
       }
+      const seedPostal =
+        postalCodeDraft.trim() || profile?.postal_code?.trim() || "";
+      // Never seed Stockholm shopping-geo city onto a non-Stockholm postal —
+      // that contaminated zone matching after guest reload (98131).
+      const seedCityRaw =
+        activeShop?.city?.trim() || profile?.city?.trim() || "";
+      const seedCity =
+        seedCityRaw &&
+        !(
+          /^stockholm$/i.test(seedCityRaw) &&
+          seedPostal &&
+          !isLikelyStockholmAreaPostal(seedPostal)
+        )
+          ? seedCityRaw
+          : "";
       return {
         street: "",
-        city: activeShop?.city?.trim() || profile?.city?.trim() || "",
-        postal:
-          postalCodeDraft.trim() ||
-          profile?.postal_code?.trim() ||
-          "",
+        city: seedCity,
+        postal: seedPostal,
         countryCode:
           activeShop?.countryCode ||
           checkoutMarketCountry ||
@@ -2420,11 +2443,21 @@ function CheckoutContent({
           profile?.postal_code?.trim() ||
           ""
         ).replace(/\s+/g, "");
-        const cityGuess =
+        const cityGuessRaw =
           eff?.city?.trim() ||
           activeShop?.city?.trim() ||
           profile?.city?.trim() ||
           "";
+        // Drop Stockholm shopping-geo city when postal is clearly outside that area.
+        const cityGuess =
+          cityGuessRaw &&
+          !(
+            /^stockholm$/i.test(cityGuessRaw) &&
+            postalOnly &&
+            !isLikelyStockholmAreaPostal(postalOnly)
+          )
+            ? cityGuessRaw
+            : "";
         const ccGuess = (
           eff?.countryCode?.trim() ||
           activeShop?.countryCode ||

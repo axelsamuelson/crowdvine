@@ -9,12 +9,46 @@
  */
 
 import type { FulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
+import { isLikelyStockholmAreaPostal } from "@/lib/zone-matching";
 
 export type PostalZoneMatch =
   | "in_zone"
   | "out_of_zone"
   | "unsupported_country"
   | "unknown";
+
+/**
+ * Map checkout zone UI state → PostalZoneMatch for channel availability.
+ *
+ * Guest reload bug (Camille 22/11): before zones settle (or when the API
+ * soft-succeeds with pickupZoneName only and no deliveryZoneId), zoneMatch
+ * was "unknown" → shared_pallet looked available with 99 kr. Fail closed for
+ * non-Stockholm postals while loading, and whenever fetch completed without
+ * a delivery zone.
+ */
+export function resolveCheckoutZoneMatchForAvailability(input: {
+  zoneError: "NO_DELIVERY_ZONE" | "UNSUPPORTED_COUNTRY" | null | undefined;
+  deliveryZoneReady: boolean;
+  zoneFetchCompleted: boolean;
+  postal: string | null | undefined;
+}): PostalZoneMatch {
+  if (input.zoneError === "UNSUPPORTED_COUNTRY") return "unsupported_country";
+  if (input.zoneError === "NO_DELIVERY_ZONE") return "out_of_zone";
+  if (input.deliveryZoneReady) return "in_zone";
+
+  const postal = String(input.postal ?? "").replace(/\s+/g, "");
+  const hasSePostal = /^\d{5}$/.test(postal);
+  if (!hasSePostal) return "unknown";
+
+  // Fetch done, no delivery zone → honest out-of-zone (pickup label alone ≠ coverage).
+  if (input.zoneFetchCompleted) return "out_of_zone";
+
+  // While loading: keep Kiruna etc. fail-closed so Delad pall never flashes
+  // available before/after address or while shipping-preview prices load.
+  if (!isLikelyStockholmAreaPostal(postal)) return "out_of_zone";
+
+  return "unknown";
+}
 
 export type FulfillmentPostalAvailabilityInput = {
   /** Matched pallet delivery zone (geo radius), not Instabee itself. */

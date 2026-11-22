@@ -3,6 +3,7 @@ import {
   mayOpenComplianceWithoutPallet,
   requiresDeliveryZoneIdForChannel,
   requiresPickupOrPalletForChannel,
+  resolveCheckoutZoneMatchForAvailability,
   resolveFulfillmentPostalAvailability,
   shouldHardBlockNoDeliveryZone,
   shouldShowNoPickupForCart,
@@ -95,6 +96,63 @@ describe("Stockholm-area postal heuristic (geocode-down fallback)", () => {
     expect(isLikelyStockholmAreaPostal(STOCKHOLM)).toBe(true);
     expect(isLikelyStockholmAreaPostal(KIRUNA)).toBe(false);
     expect(isLikelyStockholmAreaPostal("11 151")).toBe(true);
+  });
+});
+
+describe("resolveCheckoutZoneMatchForAvailability (guest reload Kiruna)", () => {
+  it("fail-closes 98131 while zones are still loading (no Delad pall flash)", () => {
+    expect(
+      resolveCheckoutZoneMatchForAvailability({
+        zoneError: null,
+        deliveryZoneReady: false,
+        zoneFetchCompleted: false,
+        postal: KIRUNA,
+      }),
+    ).toBe("out_of_zone");
+  });
+
+  it("fail-closes 98131 after fetch completes without a delivery zone", () => {
+    expect(
+      resolveCheckoutZoneMatchForAvailability({
+        zoneError: null,
+        deliveryZoneReady: false,
+        zoneFetchCompleted: true,
+        postal: KIRUNA,
+      }),
+    ).toBe("out_of_zone");
+  });
+
+  it("keeps explicit NO_DELIVERY_ZONE as out_of_zone", () => {
+    expect(
+      resolveCheckoutZoneMatchForAvailability({
+        zoneError: "NO_DELIVERY_ZONE",
+        deliveryZoneReady: false,
+        zoneFetchCompleted: true,
+        postal: KIRUNA,
+      }),
+    ).toBe("out_of_zone");
+  });
+
+  it("allows Stockholm 11151 unknown while loading (both channels may appear)", () => {
+    expect(
+      resolveCheckoutZoneMatchForAvailability({
+        zoneError: null,
+        deliveryZoneReady: false,
+        zoneFetchCompleted: false,
+        postal: STOCKHOLM,
+      }),
+    ).toBe("unknown");
+  });
+
+  it("marks Stockholm in_zone when delivery zone is ready", () => {
+    expect(
+      resolveCheckoutZoneMatchForAvailability({
+        zoneError: null,
+        deliveryZoneReady: true,
+        zoneFetchCompleted: true,
+        postal: STOCKHOLM,
+      }),
+    ).toBe("in_zone");
   });
 });
 

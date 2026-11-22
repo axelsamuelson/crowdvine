@@ -565,6 +565,32 @@ describe("WIRED shared-pallet PI fresh-retrieve fail-closed", () => {
     expect(setupIntentsCreate).not.toHaveBeenCalled();
     expect(paymentIntentsCreate).not.toHaveBeenCalled();
   });
+
+  it("rejects shared_pallet when postal is out of delivery zone (Kiruna 98131)", async () => {
+    zoneAddressRow = {
+      ...zoneAddressRow,
+      city: "Kiruna",
+      postal_code: "98131",
+    };
+    determineZones.mockResolvedValue({
+      deliveryZoneId: null,
+      pickupZoneName: "Synthetic SE Region (region)",
+      pallets: [],
+      noDeliveryZone: {
+        error: "NO_DELIVERY_ZONE",
+        message: "We don't deliver to your area yet.",
+      },
+    });
+
+    const res = await postPaymentIntent({
+      fulfillment_channel: "shared_pallet",
+    });
+    expect(res.status).toBe(422);
+    const json = await res.json();
+    expect(String(json.error)).toMatch(/deliver|zone|area/i);
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
+  });
 });
 
 describe("WIRED shared-pallet SI fresh-retrieve + US terms (B)", () => {

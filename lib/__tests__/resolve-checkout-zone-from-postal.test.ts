@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isLikelyStockholmAreaPostal,
   mayBypassGeocodeWithPreferredDeliveryZone,
   mayFallbackToPreferredWhenNoGeoMatch,
 } from "@/lib/zone-matching";
@@ -57,6 +58,15 @@ describe("mayFallbackToPreferredWhenNoGeoMatch", () => {
 
   it("early-bird may fall back to linked wine-zone delivery", () => {
     expect(mayFallbackToPreferredWhenNoGeoMatch(true)).toBe(true);
+  });
+});
+
+describe("geocode-fail preferred fallback postal gate (guest reload)", () => {
+  it("Stockholm preferred must not apply to Kiruna 98131 on Mapbox failure", () => {
+    // resolveSeDeliveryZoneFallback now returns null unless postal is
+    // Stockholm-area — preferredDeliveryZoneId alone must not invent coverage.
+    expect(isLikelyStockholmAreaPostal("98131")).toBe(false);
+    expect(isLikelyStockholmAreaPostal("11151")).toBe(true);
   });
 });
 

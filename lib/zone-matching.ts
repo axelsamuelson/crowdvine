@@ -694,6 +694,13 @@ async function resolveSeDeliveryZoneFallback(
   deliveryZones: DeliveryZoneRow[],
   postcode?: string | null,
 ): Promise<DeliveryZoneOption | null> {
+  // Preferred (usually Stockholm wine-zone delivery) must never invent
+  // shared-pallet coverage for non-Stockholm postals on Mapbox failure —
+  // guest reload after ensure-session passes preferredDeliveryZoneId and
+  // previously re-enabled Delad pall for 98131 Kiruna.
+  if (!isLikelyStockholmAreaPostal(postcode)) {
+    return null;
+  }
   const preferred = await loadPreferredDeliveryZone(
     sb,
     preferredDeliveryZoneId,
@@ -706,11 +713,6 @@ async function resolveSeDeliveryZoneFallback(
       centerLon: preferred.center_lon,
       radiusKm: preferred.radius_km,
     };
-  }
-  // Without coordinates, never invent Stockholm coverage for Norrland postals
-  // (e.g. 98131 Kiruna) — that blocked honest direct_box-only checkout.
-  if (!isLikelyStockholmAreaPostal(postcode)) {
-    return null;
   }
   const stockholm =
     deliveryZones.find(
@@ -1289,9 +1291,41 @@ export async function determineZones(
       }
     }
   } else {
-    // If no complete address, don't set delivery zone
+    // Incomplete address (missing city): never soft-succeed with pickup-only.
+    // Checkout treated pickupZoneName as "routing" and left zoneError null →
+    // shared_pallet looked available (99 kr) after guest reload for 98131.
     deliveryZoneId = null;
     deliveryZoneName = null;
+    const postal = String(deliveryAddress.postcode ?? "").trim();
+    const ccRaw = String(deliveryAddress.countryCode ?? "").trim();
+    const cc = normalizeProfileCountry(ccRaw);
+    if (
+      postal &&
+      cc &&
+      getCountryMarketMode(cc) !== "unsupported" &&
+      getCountryMarketMode(cc) !== "conditional_reservation"
+    ) {
+      const incompleteNoDelivery: ZoneMatchResult = {
+        pickupZoneId,
+        pickupZoneName,
+        deliveryZoneId: null,
+        deliveryZoneName: null,
+        availableDeliveryZones: [],
+        pallets: [],
+        shippingRegionIdForRouting,
+        noDeliveryZone: {
+          error: "NO_DELIVERY_ZONE",
+          message: "We don't deliver to your area yet.",
+          address: {
+            city: deliveryAddress.city || postal,
+            postcode: postal,
+            countryCode: deliveryAddress.countryCode,
+          },
+        },
+      };
+      cacheZoneResultIfSafe(cacheKey, incompleteNoDelivery);
+      return incompleteNoDelivery;
+    }
   }
 
   const pallets: PalletInfo[] =
@@ -1304,6 +1338,32 @@ export async function determineZones(
           deliveryZoneName,
         })
       : [];
+
+  // Postcode present but no matched delivery zone → honest out-of-zone.
+  // Pickup/shipping-region labels alone must not look like shared coverage.
+  const postalFinal = String(deliveryAddress.postcode ?? "").trim();
+  if (postalFinal && !deliveryZoneId) {
+    const noDeliveryFinal: ZoneMatchResult = {
+      pickupZoneId,
+      pickupZoneName,
+      deliveryZoneId: null,
+      deliveryZoneName: null,
+      availableDeliveryZones: [],
+      pallets: [],
+      shippingRegionIdForRouting,
+      noDeliveryZone: {
+        error: "NO_DELIVERY_ZONE",
+        message: "We don't deliver to your area yet.",
+        address: {
+          city: deliveryAddress.city || postalFinal,
+          postcode: postalFinal,
+          countryCode: deliveryAddress.countryCode,
+        },
+      },
+    };
+    cacheZoneResultIfSafe(cacheKey, noDeliveryFinal);
+    return noDeliveryFinal;
+  }
 
   const result: ZoneMatchResult = {
     pickupZoneId,
