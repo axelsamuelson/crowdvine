@@ -533,10 +533,7 @@ function CheckoutContent({
   const [pactPointsBalance, setPactPointsBalance] = useState(0);
   const [redeemPoints, setRedeemPoints] = useState(0);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [dateOfBirth, setDateOfBirth] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return readStoredPostalDraft()?.dateOfBirth ?? "";
-  });
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [ageDobError, setAgeDobError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsStale, setTermsStale] = useState(false);
@@ -627,20 +624,6 @@ function CheckoutContent({
     countryCode: ageCountryCode,
     ageMinimum: shopping.market.ageMinimum,
   });
-
-  // Same-tab F5: restore ageConfirmed from session draft DOB (guest).
-  const sessionDobRestoredRef = useRef(false);
-  useEffect(() => {
-    if (sessionDobRestoredRef.current) return;
-    const dob = dateOfBirth.trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) return;
-    sessionDobRestoredRef.current = true;
-    if (meetsAgeRequirement(dob, requiredAge)) {
-      setAgeConfirmed(true);
-      setAgeDobError(null);
-      dateOfBirthFilledRef.current = true;
-    }
-  }, [dateOfBirth, requiredAge]);
 
   type CheckoutAnalyticsStep = "postal" | "delivery" | "age_terms" | "payment";
 
@@ -1218,33 +1201,6 @@ function CheckoutContent({
     }
   }, [isUsConditional, selectedPallet?.delivery_zone_id, selectedPallet?.id]);
 
-  const persistSessionDraftFromState = useCallback(
-    (
-      lines: ZoneDeliveryLines | null | undefined,
-      dobOverride?: string,
-    ) => {
-      const postal = (
-        lines?.postal?.trim() ||
-        postalCodeDraft.trim() ||
-        ""
-      ).replace(/\s+/g, "");
-      if (!postal) return;
-      const dob = (dobOverride ?? dateOfBirth).trim();
-      storePostalDraft({
-        postal,
-        city: lines?.city ?? undefined,
-        street: lines?.street ?? undefined,
-        countryCode: lines?.countryCode ?? undefined,
-        regionCode: lines?.regionCode ?? null,
-        fullName: lines?.fullName ?? undefined,
-        email: lines?.email ?? undefined,
-        phone: lines?.phone ?? undefined,
-        dateOfBirth: dob || undefined,
-      });
-    },
-    [dateOfBirth, postalCodeDraft],
-  );
-
   const handleAgeDobChange = useCallback(
     (raw: string) => {
       // Digits-only → ÅÅÅÅ-MM-DD mask (never type=date — browsers show 01/15/1990 in sv).
@@ -1257,8 +1213,6 @@ function CheckoutContent({
         masked = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
       }
       setDateOfBirth(masked);
-      // Persist ISO DOB (and clear partial) into session draft for F5 restore.
-      persistSessionDraftFromState(deliveryDraft, masked);
       if (!masked.trim()) {
         setAgeConfirmed(false);
         setAgeDobError(null);
@@ -1310,13 +1264,7 @@ function CheckoutContent({
         });
       });
     },
-    [
-      ageCountryCode,
-      deliveryDraft,
-      persistSessionDraftFromState,
-      requiredAge,
-      t,
-    ],
+    [ageCountryCode, requiredAge, t],
   );
 
   const handleTermsChecked = useCallback((checked: boolean) => {
@@ -1746,9 +1694,9 @@ function CheckoutContent({
     }
   }, [fetchProfile, fetchCart]);
 
-  // Juliette/Camille: scrub DOB from localStorage + legacy blobs before paint.
-  // Session postal draft may keep ISO dateOfBirth for same-tab F5 (cleared on
-  // order). Server profile DOB still prefills when signed in.
+  // Juliette/Camille: never keep DOB in local/session storage. Scrub legacy
+  // drafts (incl. pre-PR289 checkoutFormData) before paint — without clearing
+  // email/name/phone/address. Server profile DOB still prefills when signed in.
   useLayoutEffect(() => {
     scrubCheckoutDobFromBrowserStorage();
   }, []);
@@ -3052,7 +3000,6 @@ function CheckoutContent({
             fullName: eff.fullName ?? undefined,
             email: eff.email ?? undefined,
             phone: eff.phone ?? undefined,
-            dateOfBirth: dateOfBirth.trim() || undefined,
           });
           if (!silent) toast.success(t("checkout.deliverySaved"));
           await updateZoneInfo(eff, { silent: true });
@@ -3206,7 +3153,6 @@ function CheckoutContent({
         fullName: savedLines.fullName ?? undefined,
         email: savedLines.email ?? undefined,
         phone: savedLines.phone ?? undefined,
-        dateOfBirth: dateOfBirth.trim() || undefined,
       });
       addressPersistedRef.current = true;
       addressAutoSaveRef.current = true;
@@ -4888,7 +4834,6 @@ function CheckoutContent({
       fullName: lines.fullName ?? undefined,
       email: lines.email ?? undefined,
       phone: lines.phone ?? undefined,
-      dateOfBirth: dateOfBirth.trim() || undefined,
     });
     void checkBudbeeAvailability(v, countryCode);
     // Match zones immediately so shipping + pallet show before address step.
@@ -6435,7 +6380,6 @@ function CheckoutContent({
                               fullName: next.fullName ?? undefined,
                               email: next.email ?? undefined,
                               phone: next.phone ?? undefined,
-                              dateOfBirth: dateOfBirth.trim() || undefined,
                             });
                           }
                           return next;

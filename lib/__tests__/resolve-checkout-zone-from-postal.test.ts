@@ -352,7 +352,7 @@ describe("session postal draft contact + Ändra save (Camille F5)", () => {
     Reflect.deleteProperty(globalThis, "window");
   });
 
-  it("stores and reads contact fields + ISO dateOfBirth", () => {
+  it("stores and reads contact fields (never dateOfBirth)", () => {
     storePostalDraft({
       postal: "11151",
       city: "Stockholm",
@@ -361,7 +361,6 @@ describe("session postal draft contact + Ändra save (Camille F5)", () => {
       fullName: "Test Gäst",
       email: "gast@example.com",
       phone: "0701234567",
-      dateOfBirth: "1990-01-15",
     });
     expect(readStoredPostalDraft()).toEqual({
       postal: "11151",
@@ -372,17 +371,41 @@ describe("session postal draft contact + Ändra save (Camille F5)", () => {
       fullName: "Test Gäst",
       email: "gast@example.com",
       phone: "0701234567",
-      dateOfBirth: "1990-01-15",
     });
+    const raw = mem.get(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY) ?? "";
+    expect(raw).not.toMatch(/dateOfBirth|date_of_birth|"dob"/i);
   });
 
-  it("rejects partial DOB masks on read/write", () => {
+  it("never persists DOB even if a legacy blob already had one", () => {
+    mem.set(
+      CHECKOUT_POSTAL_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        postal: "11151",
+        city: "Stockholm",
+        fullName: "Test Gäst",
+        dateOfBirth: "1990-01-15",
+      }),
+    );
+    // read must not surface DOB
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        readStoredPostalDraft() ?? {},
+        "dateOfBirth",
+      ),
+    ).toBe(false);
+    // rewrite must drop DOB from storage
     storePostalDraft({
       postal: "11151",
       city: "Stockholm",
-      dateOfBirth: "1990-01",
+      fullName: "Test Gäst",
+      email: "gast@example.com",
+      phone: "0701234567",
     });
-    expect(readStoredPostalDraft()?.dateOfBirth).toBeUndefined();
+    const rewritten = JSON.parse(
+      mem.get(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY) ?? "{}",
+    );
+    expect(rewritten.dateOfBirth).toBeUndefined();
+    expect(rewritten.email).toBe("gast@example.com");
   });
 
   it("Ändra postal update must rewrite draft so F5 keeps 11151 (not 41101)", () => {
@@ -410,7 +433,6 @@ describe("session postal draft contact + Ändra save (Camille F5)", () => {
       fullName: "Test Gäst",
       email: "gast@example.com",
       phone: "0701234567",
-      dateOfBirth: "1990-01-15",
     });
     clearStoredFulfillmentChannel(); // postal change resets sticky
     storeFulfillmentChannel("direct_box", {
@@ -425,7 +447,6 @@ describe("session postal draft contact + Ändra save (Camille F5)", () => {
     expect(draft?.fullName).toBe("Test Gäst");
     expect(draft?.email).toBe("gast@example.com");
     expect(draft?.phone).toBe("0701234567");
-    expect(draft?.dateOfBirth).toBe("1990-01-15");
     expect(
       shouldResetFulfillmentOnPostalChange({
         previousPostal: readStoredFulfillmentPostal(),
@@ -480,7 +501,6 @@ describe("session postal draft contact + Ändra save (Camille F5)", () => {
       postal: "11151",
       city: "Stockholm",
       fullName: "Test Gäst",
-      dateOfBirth: "1990-01-15",
     });
     storeFulfillmentChannel("direct_box", {
       userSet: true,

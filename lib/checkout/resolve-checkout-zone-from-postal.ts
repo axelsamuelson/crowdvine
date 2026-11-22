@@ -38,8 +38,7 @@ export const CHECKOUT_FULFILLMENT_POSTAL_KEY =
 /**
  * Guest postal / address / contact draft for same-tab reload.
  * sessionStorage only (never localStorage / never server). Cleared when the
- * order is placed. Includes optional dateOfBirth for age step restore —
- * scrub allows this key in sessionStorage only (legacy blobs still stripped).
+ * order is placed. Never includes dateOfBirth — scrub list aware.
  */
 export const CHECKOUT_POSTAL_DRAFT_STORAGE_KEY = "pact_checkout_postal_draft";
 
@@ -81,8 +80,6 @@ export type CheckoutPostalDraftStored = {
   fullName?: string;
   email?: string;
   phone?: string;
-  /** Session-only age confirm (YYYY-MM-DD). Cleared on order. */
-  dateOfBirth?: string;
 };
 
 /** Local copy of Stockholm-area heuristic — avoid importing zone-matching here. */
@@ -261,7 +258,7 @@ export function readStoredPostalDraft(): CheckoutPostalDraftStored | null {
       .trim()
       .replace(/\s+/g, "");
     if (!postal) return null;
-    const dob = optionalTrimmedString(parsed.dateOfBirth);
+    // Never surface dateOfBirth even if a legacy blob still has it.
     return {
       postal,
       city: optionalTrimmedString(parsed.city),
@@ -274,9 +271,6 @@ export function readStoredPostalDraft(): CheckoutPostalDraftStored | null {
       fullName: optionalTrimmedString(parsed.fullName),
       email: optionalTrimmedString(parsed.email),
       phone: optionalTrimmedString(parsed.phone),
-      // Only ISO date — never restore free-text / partial masks.
-      dateOfBirth:
-        dob && /^\d{4}-\d{2}-\d{2}$/.test(dob) ? dob : undefined,
     };
   } catch {
     return null;
@@ -290,7 +284,7 @@ export function storePostalDraft(draft: CheckoutPostalDraftStored): void {
     .replace(/\s+/g, "");
   if (!postal) return;
   try {
-    const dob = draft.dateOfBirth?.trim() || undefined;
+    // Never write DOB — Juliette/Camille: no age in browser storage.
     const payload: CheckoutPostalDraftStored = {
       postal,
       city: draft.city?.trim() || undefined,
@@ -300,8 +294,6 @@ export function storePostalDraft(draft: CheckoutPostalDraftStored): void {
       fullName: draft.fullName?.trim() || undefined,
       email: draft.email?.trim() || undefined,
       phone: draft.phone?.trim() || undefined,
-      dateOfBirth:
-        dob && /^\d{4}-\d{2}-\d{2}$/.test(dob) ? dob : undefined,
     };
     window.sessionStorage.setItem(
       CHECKOUT_POSTAL_DRAFT_STORAGE_KEY,

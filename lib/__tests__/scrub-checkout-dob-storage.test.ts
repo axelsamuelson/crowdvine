@@ -141,7 +141,7 @@ describe("scrubCheckoutDobFromBrowserStorage (Camille / Juliette)", () => {
     expect(CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS).toContain("pact_checkout_draft");
   });
 
-  it("keeps session postal-draft dateOfBirth but strips it from localStorage", () => {
+  it("strips DOB from session postal draft too (Juliette / Camille)", () => {
     const draft = JSON.stringify({
       postal: "11151",
       city: "Stockholm",
@@ -174,8 +174,9 @@ describe("scrubCheckoutDobFromBrowserStorage (Camille / Juliette)", () => {
     const sessionParsed = JSON.parse(
       session._dump().pact_checkout_postal_draft,
     );
-    expect(sessionParsed.dateOfBirth).toBe("1990-01-15");
+    expect(sessionParsed.dateOfBirth).toBeUndefined();
     expect(sessionParsed.fullName).toBe("Test Gäst");
+    expect(sessionParsed.phone).toBe("0701234567");
     expect(
       JSON.parse(session._dump().checkoutFormData).dateOfBirth,
     ).toBeUndefined();

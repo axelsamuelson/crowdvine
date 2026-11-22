@@ -1,10 +1,7 @@
 /**
- * Never persist date of birth in localStorage or legacy blobs (Juliette / Camille).
+ * Never persist date of birth in browser storage (Juliette / Camille).
  * On every checkout visit: delete standalone DOB keys and strip DOB fields from
  * legacy checkout/form JSON blobs — without clearing email/name/phone/address.
- *
- * Exception: sessionStorage `pact_checkout_postal_draft` may keep an ISO
- * dateOfBirth for same-tab F5 restore (cleared when the order is placed).
  * Server profile.date_of_birth may still prefill for signed-in accounts.
  */
 
@@ -153,10 +150,7 @@ type StorageLike = {
   removeItem(key: string): void;
 };
 
-function scrubOneStorage(
-  storage: StorageLike | null | undefined,
-  opts?: { allowSessionPostalDraftDob?: boolean },
-): {
+function scrubOneStorage(storage: StorageLike | null | undefined): {
   keysTouched: string[];
   fieldsRemoved: number;
 } {
@@ -186,14 +180,6 @@ function scrubOneStorage(
     try {
       const raw = storage.getItem(key);
       if (raw == null) continue;
-
-      // Intentional same-tab age restore — leave session postal draft alone.
-      if (
-        opts?.allowSessionPostalDraftDob &&
-        key === "pact_checkout_postal_draft"
-      ) {
-        continue;
-      }
 
       // Standalone DOB key names — delete entirely.
       if (isDobFieldName(key)) {
@@ -256,7 +242,6 @@ function scrubOneStorage(
 
 /**
  * Scrub DOB from localStorage + sessionStorage. Safe on every checkout visit.
- * Preserves sessionStorage postal-draft dateOfBirth for F5 restore.
  */
 export function scrubCheckoutDobFromBrowserStorage(
   storages: {
@@ -270,9 +255,7 @@ export function scrubCheckoutDobFromBrowserStorage(
     : {},
 ): { keysTouched: string[]; fieldsRemoved: number } {
   const a = scrubOneStorage(storages.localStorage ?? null);
-  const b = scrubOneStorage(storages.sessionStorage ?? null, {
-    allowSessionPostalDraftDob: true,
-  });
+  const b = scrubOneStorage(storages.sessionStorage ?? null);
   return {
     keysTouched: [...a.keysTouched, ...b.keysTouched],
     fieldsRemoved: a.fieldsRemoved + b.fieldsRemoved,
