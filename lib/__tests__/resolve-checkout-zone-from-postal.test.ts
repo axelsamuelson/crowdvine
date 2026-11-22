@@ -9,10 +9,12 @@ import {
   CHECKOUT_FULFILLMENT_POSTAL_KEY,
   CHECKOUT_FULFILLMENT_USER_SET_KEY,
   CHECKOUT_POSTAL_DRAFT_STORAGE_KEY,
+  clearCheckoutSessionDrafts,
   clearStoredFulfillmentChannel,
   clearStoredPostalDraft,
   mergeProfileContactIntoDelivery,
   readStoredFulfillmentPostal,
+  readStoredPostalDraft,
   resolveCheckoutShoppingLocationLabel,
   resolveFulfillmentChannelAfterReload,
   shouldResetFulfillmentOnPostalChange,
@@ -323,5 +325,170 @@ describe("Byt clears sticky channel + postal draft", () => {
     expect(mem.has(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY)).toBe(true);
     clearStoredPostalDraft();
     expect(mem.has(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY)).toBe(false);
+  });
+});
+
+describe("session postal draft contact + Ändra save (Camille F5)", () => {
+  const mem = new Map<string, string>();
+  const fakeStorage = {
+    getItem: (k: string) => mem.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      mem.set(k, v);
+    },
+    removeItem: (k: string) => {
+      mem.delete(k);
+    },
+  };
+
+  beforeEach(() => {
+    mem.clear();
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { sessionStorage: fakeStorage },
+    });
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(globalThis, "window");
+  });
+
+  it("stores and reads contact fields + ISO dateOfBirth", () => {
+    storePostalDraft({
+      postal: "11151",
+      city: "Stockholm",
+      street: "Vasagatan 1",
+      countryCode: "SE",
+      fullName: "Test Gäst",
+      email: "gast@example.com",
+      phone: "0701234567",
+      dateOfBirth: "1990-01-15",
+    });
+    expect(readStoredPostalDraft()).toEqual({
+      postal: "11151",
+      city: "Stockholm",
+      street: "Vasagatan 1",
+      countryCode: "SE",
+      regionCode: null,
+      fullName: "Test Gäst",
+      email: "gast@example.com",
+      phone: "0701234567",
+      dateOfBirth: "1990-01-15",
+    });
+  });
+
+  it("rejects partial DOB masks on read/write", () => {
+    storePostalDraft({
+      postal: "11151",
+      city: "Stockholm",
+      dateOfBirth: "1990-01",
+    });
+    expect(readStoredPostalDraft()?.dateOfBirth).toBeUndefined();
+  });
+
+  it("Ändra postal update must rewrite draft so F5 keeps 11151 (not 41101)", () => {
+    // Step 1: Göteborg committed
+    storePostalDraft({
+      postal: "41101",
+      city: "Göteborg",
+      street: "Drottninggatan 10",
+      countryCode: "SE",
+      fullName: "Test Gäst",
+      email: "gast@example.com",
+      phone: "0701234567",
+    });
+    storeFulfillmentChannel("direct_box", {
+      userSet: true,
+      postal: "41101",
+    });
+
+    // Step 2–3: Ändra → 11151 + pick Direkt (must update postal draft)
+    storePostalDraft({
+      postal: "11151",
+      city: "Stockholm",
+      street: "Vasagatan 1",
+      countryCode: "SE",
+      fullName: "Test Gäst",
+      email: "gast@example.com",
+      phone: "0701234567",
+      dateOfBirth: "1990-01-15",
+    });
+    clearStoredFulfillmentChannel(); // postal change resets sticky
+    storeFulfillmentChannel("direct_box", {
+      userSet: true,
+      postal: "11151",
+    });
+
+    // F5: draft postal matches fulfillment postal → keep Direkt
+    const draft = readStoredPostalDraft();
+    expect(draft?.postal).toBe("11151");
+    expect(draft?.street).toBe("Vasagatan 1");
+    expect(draft?.fullName).toBe("Test Gäst");
+    expect(draft?.email).toBe("gast@example.com");
+    expect(draft?.phone).toBe("0701234567");
+    expect(draft?.dateOfBirth).toBe("1990-01-15");
+    expect(
+      shouldResetFulfillmentOnPostalChange({
+        previousPostal: readStoredFulfillmentPostal(),
+        nextPostal: draft?.postal,
+      }),
+    ).toBe(false);
+    expect(
+      resolveFulfillmentChannelAfterReload({
+        stored: "direct_box",
+        userSet: true,
+        storedPostal: readStoredFulfillmentPostal(),
+        currentPostal: draft?.postal,
+        sharedPalletAvailable: true,
+        directBoxAvailable: true,
+        fallback: "shared_pallet",
+      }),
+    ).toBe("direct_box");
+  });
+
+  it("stale draft postal vs fulfillment postal resets Direkt (pre-fix bug)", () => {
+    storePostalDraft({
+      postal: "41101",
+      city: "Göteborg",
+      street: "Drottninggatan 10",
+    });
+    storeFulfillmentChannel("direct_box", {
+      userSet: true,
+      postal: "11151",
+    });
+    const draft = readStoredPostalDraft();
+    expect(
+      shouldResetFulfillmentOnPostalChange({
+        previousPostal: readStoredFulfillmentPostal(),
+        nextPostal: draft?.postal,
+      }),
+    ).toBe(true);
+    expect(
+      resolveFulfillmentChannelAfterReload({
+        stored: "direct_box",
+        userSet: true,
+        storedPostal: readStoredFulfillmentPostal(),
+        currentPostal: draft?.postal,
+        sharedPalletAvailable: true,
+        directBoxAvailable: true,
+        fallback: "shared_pallet",
+      }),
+    ).toBe("shared_pallet");
+  });
+
+  it("clearCheckoutSessionDrafts clears postal draft + sticky channel", () => {
+    storePostalDraft({
+      postal: "11151",
+      city: "Stockholm",
+      fullName: "Test Gäst",
+      dateOfBirth: "1990-01-15",
+    });
+    storeFulfillmentChannel("direct_box", {
+      userSet: true,
+      postal: "11151",
+    });
+    clearCheckoutSessionDrafts();
+    expect(readStoredPostalDraft()).toBeNull();
+    expect(mem.has(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY)).toBe(false);
+    expect(mem.has(CHECKOUT_FULFILLMENT_POSTAL_KEY)).toBe(false);
   });
 });
