@@ -8,10 +8,18 @@ import React, {
   useEffect,
   useMemo,
   useOptimistic,
+  useRef,
   useState,
   useTransition,
 } from "react";
 import * as CartActions from "@/components/cart/actions";
+import {
+  ADD_TO_CART_FETCH_TIMEOUT_MS,
+  CART_MERGE_FETCH_TIMEOUT_MS,
+  fetchWithTimeout,
+  interpretCartMergeHttpStatus,
+  shouldApplyHydratedCart,
+} from "@/lib/cart/cart-merge-client";
 
 export type UpdateType = "plus" | "minus" | "delete";
 
@@ -230,6 +238,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     Cart | undefined,
     CartAction
   >(cart, cartReducer);
+  /** Bumps on add/update/cart-refresh so a late empty hydrate cannot wipe lines. */
+  const mutationEpochRef = useRef(0);
+  const cartQtyRef = useRef(0);
+
+  const applyCart = useCallback((next: Cart | undefined) => {
+    setCart(next);
+    cartQtyRef.current =
+      next && typeof next.totalQuantity === "number" ? next.totalQuantity : 0;
+  }, []);
 
   useEffect(() => {
     // Warm drawer from cache (optional) but keep cartReady false until server.
@@ -245,7 +262,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             typeof parsedCart.totalQuantity === "number" &&
             parsedCart.totalQuantity > 0
           ) {
-            setCart(parsedCart);
+            applyCart(parsedCart);
           }
         }
       }
@@ -254,25 +271,56 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     let cancelled = false;
+    const hydrateEpoch = mutationEpochRef.current;
     void (async () => {
-      try {
-        // Logged-in fresh sessions: merge anonymous → user cart BEFORE the
-        // first getCart, otherwise the badge settles on (0) while checkout
-        // already shows the merged lines.
-        await fetch("/api/cart/merge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ strategy: "auto" }),
-        });
-      } catch {
-        // Guests / merge failures: still proceed to getCart.
-      }
-      if (cancelled) return;
+      // Merge is always fire-and-forget: never block getCart or add-to-cart.
+      // Server reads httpOnly auth cookies — no document.cookie guest guess.
+      // Invariant: shouldBlockAddToCartOnMerge() === false (see unit tests).
+      const mergePromise = (async (): Promise<Cart | null> => {
+        try {
+          const mergeRes = await fetchWithTimeout(
+            "/api/cart/merge",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ strategy: "auto" }),
+            },
+            CART_MERGE_FETCH_TIMEOUT_MS,
+          );
+          let body: {
+            merged?: boolean;
+            cart?: Cart;
+            ok?: boolean;
+          } | null = null;
+          try {
+            body = (await mergeRes.json()) as typeof body;
+          } catch {
+            body = null;
+          }
+          const verdict = interpretCartMergeHttpStatus(mergeRes.status, body);
+          if (verdict.kind !== "merged") return null;
+          return body?.cart ?? null;
+        } catch {
+          // Timeout / network: silent — getCart still hydrates.
+          return null;
+        }
+      })();
+
+      // Hydrate immediately in parallel with merge (add-to-cart never waits).
       try {
         const freshCart = await CartActions.getCart();
         if (cancelled) return;
-        if (freshCart) {
-          setCart(freshCart);
+        const incomingQty = freshCart?.totalQuantity ?? 0;
+        const apply = shouldApplyHydratedCart({
+          incomingTotalQuantity: incomingQty,
+          currentTotalQuantity: cartQtyRef.current,
+          hydrateEpoch,
+          mutationEpoch: mutationEpochRef.current,
+        });
+        if (!apply) {
+          // Keep lines that landed while merge/hydrate was in flight.
+        } else if (freshCart) {
+          applyCart(freshCart);
           try {
             localStorage.setItem("cart-cache", JSON.stringify(freshCart));
             localStorage.setItem("cart-cache-time", Date.now().toString());
@@ -280,19 +328,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             console.warn("Failed to cache cart:", error);
           }
         } else {
-          setCart(undefined);
+          applyCart(undefined);
         }
       } catch {
         // Silent fail — badge stays on skeleton until we mark ready below.
       } finally {
         if (!cancelled) setCartReady(true);
       }
+
+      // Logged-in merge (httpOnly cookies): apply richer cart when it arrives.
+      if (cancelled) return;
+      const mergedCart = await mergePromise;
+      if (cancelled || !mergedCart) return;
+      const applyMerged = shouldApplyHydratedCart({
+        incomingTotalQuantity: mergedCart.totalQuantity ?? 0,
+        currentTotalQuantity: cartQtyRef.current,
+        hydrateEpoch,
+        mutationEpoch: mutationEpochRef.current,
+      });
+      if (!applyMerged) return;
+      applyCart(mergedCart);
+      try {
+        localStorage.setItem("cart-cache", JSON.stringify(mergedCart));
+        localStorage.setItem("cart-cache-time", Date.now().toString());
+      } catch (error) {
+        console.warn("Failed to cache cart:", error);
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applyCart]);
 
   // Separate useEffect for cart-refresh event listener
   useEffect(() => {
@@ -305,7 +372,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       if (customEvent.detail) {
         console.log("🛒 [CONTEXT] Updating cart with new data");
-        setCart(customEvent.detail);
+        mutationEpochRef.current += 1;
+        applyCart(customEvent.detail as Cart);
         try {
           localStorage.setItem(
             "cart-cache",
@@ -320,7 +388,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // No cart data, fetch fresh
         CartActions.getCart().then((freshCart) => {
           if (freshCart) {
-            setCart(freshCart);
+            mutationEpochRef.current += 1;
+            applyCart(freshCart);
           }
         });
       }
@@ -333,10 +402,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       console.log("🛒 [CONTEXT] Removing cart-refresh listener");
       window.removeEventListener("cart-refresh", handleCartRefresh);
     };
-  }, []);
+  }, [applyCart]);
 
   const update = useCallback(
     async (lineId: string, merchandiseId: string, nextQuantity: number) => {
+      mutationEpochRef.current += 1;
       setIsMutating(true);
       try {
         // Optimistic update for instant UI feedback
@@ -354,7 +424,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (fresh) {
-          setCart(fresh);
+          applyCart(fresh);
           // Update localStorage cache
           try {
             localStorage.setItem("cart-cache", JSON.stringify(fresh));
@@ -367,7 +437,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setIsMutating(false);
       }
     },
-    [updateOptimisticCart],
+    [updateOptimisticCart, applyCart],
   );
 
   const add = useCallback(
@@ -393,6 +463,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         normalizedVariantId,
       );
 
+      mutationEpochRef.current += 1;
       setIsMutating(true);
       // Optimistic update for instant UI feedback
       startTransition(() => {
@@ -408,11 +479,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       console.log("🛒 Calling simple API route for addItem...");
       let fresh: Cart | null = null;
       try {
-        const response = await fetch("/api/cart/simple-add", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ variantId: variant.id }),
-        });
+        const response = await fetchWithTimeout(
+          "/api/cart/simple-add",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ variantId: variant.id }),
+          },
+          ADD_TO_CART_FETCH_TIMEOUT_MS,
+        );
 
         if (response.ok) {
           const result = await response.json();
@@ -427,7 +502,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               "🛒 Setting cart with fresh data, items:",
               fresh.lines.length,
             );
-            setCart(fresh);
+            applyCart(fresh);
             // Update localStorage cache
             try {
               localStorage.setItem("cart-cache", JSON.stringify(fresh));
@@ -444,18 +519,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const errorText = await response.text();
           console.error("🛒 Error response:", errorText);
           // If add failed, revert optimistic update
-          setCart(cart);
+          applyCart(cart);
         }
       } catch (apiError) {
         console.error("🛒 Simple API route error:", apiError);
-        // If add failed, revert optimistic update
-        setCart(cart);
+        // Timeout / network: recover UI (stop spinner) without customer error toast.
+        applyCart(cart);
       } finally {
         setIsMutating(false);
       }
       return fresh;
     },
-    [updateOptimisticCart, optimisticCart, cart],
+    [updateOptimisticCart, optimisticCart, cart, applyCart],
   );
 
   const value = useMemo<UseCartReturn>(
