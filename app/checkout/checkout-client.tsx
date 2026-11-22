@@ -240,7 +240,9 @@ import {
 } from "@/lib/checkout/shipping-display-pending";
 import {
   resolveChannelDisplaySubtotalSek,
+  resolveCheckoutPricingChannel,
   selectChannelBoundQuote,
+  shouldShowDirectBoxLinePrices,
 } from "@/lib/checkout/channel-display-totals";
 import { scrubCheckoutDobFromBrowserStorage } from "@/lib/checkout/scrub-checkout-dob-storage";
 
@@ -3900,20 +3902,31 @@ function CheckoutContent({
     authReady,
   ]);
 
+  // Bottle prices: pallpris until postal is known; direct +5% only when
+  // Direktleverans is actually selected (Camille 22/11 21:18: 183→174).
+  const pricingChannel = resolveCheckoutPricingChannel({
+    fulfillmentChannel,
+    hasPostalCode,
+  });
+  const showDirectLinePrices = shouldShowDirectBoxLinePrices({
+    fulfillmentChannel,
+    hasPostalCode,
+  });
+
   // Never paint another channel's quote (Camille: Delsumma 2976 vs lines 6×521).
   const channelBoundQuote = selectChannelBoundQuote(
     serverQuote,
-    fulfillmentChannel,
+    pricingChannel,
   );
   const quoteReadyForChannel =
     quoteStatus === "ready" && channelBoundQuote != null;
 
   const channelClientSubtotalSek =
-    fulfillmentChannel === "direct_box"
+    pricingChannel === "direct_box"
       ? directBoxClientSubtotalSek
       : bottleCost;
   const displaySubtotal = resolveChannelDisplaySubtotalSek({
-    channel: fulfillmentChannel,
+    channel: pricingChannel,
     boundQuote: channelBoundQuote,
     sharedClientSubtotalSek: bottleCost,
     directClientSubtotalSek: directBoxClientSubtotalSek,
@@ -3926,7 +3939,7 @@ function CheckoutContent({
     quoteStatus === "loading" ||
     (quoteStatus === "ready" &&
       serverQuote != null &&
-      !isQuoteBoundToChannel(serverQuote, fulfillmentChannel));
+      !isQuoteBoundToChannel(serverQuote, pricingChannel));
 
   // Public rate preview as soon as postal/country + cart bottles are known.
   // Do NOT wait on /api/checkout/quote or full address (guests: ensure-session
@@ -4513,15 +4526,14 @@ function CheckoutContent({
           ? totalForLine / line.quantity
           : totalForLine;
     // direct_box quote subtotal includes markup — line row must match (not catalog 172).
+    // Only after postal + Direkt selected (never paint +5% pre-postal).
     const markupPct = getDirectBoxPriceMarkupPercent();
-    const unitAmount =
-      fulfillmentChannel === "direct_box"
-        ? directBoxUnitPriceSek(catalogUnit, markupPct)
-        : catalogUnit;
-    const lineAmount =
-      fulfillmentChannel === "direct_box"
-        ? directBoxLineTotalSek(catalogUnit, line.quantity, markupPct)
-        : totalForLine;
+    const unitAmount = showDirectLinePrices
+      ? directBoxUnitPriceSek(catalogUnit, markupPct)
+      : catalogUnit;
+    const lineAmount = showDirectLinePrices
+      ? directBoxLineTotalSek(catalogUnit, line.quantity, markupPct)
+      : totalForLine;
     const unitPriceLabel = formatChargedAmount(
       unitAmount,
       line.cost.totalAmount.currencyCode,
@@ -4981,8 +4993,7 @@ function CheckoutContent({
               <div className="divide-y divide-border">
                 {orderLines.map(renderCartLineRow)}
               </div>
-              {fulfillmentChannel === "direct_box" &&
-              orderLines.length > 0 ? (
+              {showDirectLinePrices && orderLines.length > 0 ? (
                 <p className="mt-1 text-xs text-muted-foreground">
                   {t("checkout.directBoxLineMarkupNote", {
                     percent: String(directBoxMarkupPercent),
