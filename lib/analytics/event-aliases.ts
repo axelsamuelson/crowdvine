@@ -48,6 +48,7 @@ const EVENT_TYPE_LABELS_SV: Readonly<Record<string, string>> = {
   checkout_step_completed: "Checkout-steg klart",
   checkout_step_blocked: "Checkout-steg blockerat",
   shipping_quote_failed: "Fraktpris kunde inte beräknas",
+  shipping_preview_failed: "Fraktförhandsvisning misslyckades",
   checkout_error: "Checkout-fel",
   delivery_ineligible: "Leverans ej möjlig",
   checkout_abandoned: "Checkout övergiven",

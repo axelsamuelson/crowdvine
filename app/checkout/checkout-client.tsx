@@ -204,8 +204,10 @@ import {
 import {
   trackCheckoutStepBlocked,
   trackShippingQuoteFailed,
+  trackShippingPreviewFailed,
   type CheckoutBlockReason,
 } from "@/lib/analytics/checkout-block-events";
+import { getAnalyticsSessionId } from "@/lib/analytics/event-tracker";
 import { resolveDisplayShippingSek } from "@/lib/checkout/shipping-preview";
 import {
   resolveChannelDisplaySubtotalSek,
@@ -3002,6 +3004,10 @@ function CheckoutContent({
     {
       const { visitorId, firstTouch } = ensureVisitorIdentity();
       if (visitorId) formData.append("visitor_id", visitorId);
+      const analyticsSessionId = getAnalyticsSessionId();
+      if (analyticsSessionId) {
+        formData.append("session_id", analyticsSessionId);
+      }
       if (firstTouch) {
         formData.append("first_touch", JSON.stringify(firstTouch));
       }
@@ -3263,6 +3269,10 @@ function CheckoutContent({
       {
         const { visitorId, firstTouch } = ensureVisitorIdentity();
         if (visitorId) formData.append("visitor_id", visitorId);
+        const analyticsSessionId = getAnalyticsSessionId();
+        if (analyticsSessionId) {
+          formData.append("session_id", analyticsSessionId);
+        }
         if (firstTouch) {
           formData.append("first_touch", JSON.stringify(firstTouch));
         }
@@ -3689,6 +3699,12 @@ function CheckoutContent({
     const subtotalSek = parseFloat(cart.cost?.totalAmount?.amount ?? "0") || 0;
     let cancelled = false;
     setShippingPreviewStatus("loading");
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 12_000);
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
@@ -3700,10 +3716,22 @@ function CheckoutContent({
               bottle_count: bottles,
               product_subtotal_sek: subtotalSek,
             }),
+            signal: controller.signal,
           });
           if (cancelled) return;
           if (!res.ok) {
             setShippingPreviewStatus("missing");
+            if (res.status === 400) {
+              trackShippingPreviewFailed({
+                deliveryType: "all",
+                reason: "invalid_request",
+              });
+            } else {
+              trackShippingPreviewFailed({
+                deliveryType: "all",
+                reason: "preview_error",
+              });
+            }
             return;
           }
           const data: unknown = await res.json().catch(() => null);
@@ -3724,6 +3752,10 @@ function CheckoutContent({
               : null;
           if (!preview) {
             setShippingPreviewStatus("missing");
+            trackShippingPreviewFailed({
+              deliveryType: "all",
+              reason: "preview_error",
+            });
             return;
           }
           setShippingByChannel((prev) => {
@@ -3753,15 +3785,45 @@ function CheckoutContent({
             (preview.direct_box &&
               preview.direct_box.complete !== false &&
               typeof preview.direct_box.shipping_sek === "number");
-          setShippingPreviewStatus(hasAny ? "ready" : "missing");
-        } catch {
-          if (!cancelled) setShippingPreviewStatus("missing");
+          if (!hasAny) {
+            setShippingPreviewStatus("missing");
+            trackShippingPreviewFailed({
+              deliveryType: "all",
+              reason: "rate_missing",
+            });
+            return;
+          }
+          setShippingPreviewStatus("ready");
+        } catch (err) {
+          if (cancelled) return;
+          setShippingPreviewStatus("missing");
+          // Cleanup AbortError must not emit. Timeout AbortError → preview_timeout.
+          if (
+            err &&
+            typeof err === "object" &&
+            "name" in err &&
+            (err as { name?: string }).name === "AbortError"
+          ) {
+            if (timedOut) {
+              trackShippingPreviewFailed({
+                deliveryType: "all",
+                reason: "preview_timeout",
+              });
+            }
+            return;
+          }
+          trackShippingPreviewFailed({
+            deliveryType: "all",
+            reason: "preview_error",
+          });
         }
       })();
     }, 100);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      window.clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [
     hasPostalCode,

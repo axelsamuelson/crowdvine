@@ -11,6 +11,7 @@ vi.mock("@/lib/analytics/event-tracker", () => ({
 import {
   trackCheckoutStepBlocked,
   trackShippingQuoteFailed,
+  trackShippingPreviewFailed,
 } from "@/lib/analytics/checkout-block-events";
 import { resetEmitOnceForTests } from "@/lib/analytics/emit-once";
 
@@ -142,5 +143,49 @@ describe("checkout block / shipping quote analytics", () => {
       reason: "user@example.com failed",
     });
     expect(trackEvent.mock.calls[0][0].metadata.reason).toBe("unknown");
+  });
+
+  it("emits shipping_preview_failed once per session+reason (E9)", () => {
+    sessionStorage.setItem("analytics_session_id", "session_test_e9");
+    expect(
+      trackShippingPreviewFailed({
+        deliveryType: "all",
+        reason: "preview_error",
+      }),
+    ).toBe(true);
+    expect(
+      trackShippingPreviewFailed({
+        deliveryType: "all",
+        reason: "preview_error",
+      }),
+    ).toBe(false);
+    expect(
+      trackShippingPreviewFailed({
+        deliveryType: "direct_box",
+        reason: "preview_timeout",
+      }),
+    ).toBe(true);
+
+    expect(trackEvent).toHaveBeenCalledTimes(2);
+    expect(trackEvent.mock.calls[0][0]).toMatchObject({
+      eventType: "shipping_preview_failed",
+      eventCategory: "checkout",
+      metadata: { delivery_type: "all", reason: "preview_error" },
+    });
+    expect(trackEvent.mock.calls[1][0].metadata).toMatchObject({
+      delivery_type: "direct_box",
+      reason: "preview_timeout",
+    });
+  });
+
+  it("sanitizes shipping_preview_failed free-text and bad delivery_type", () => {
+    trackShippingPreviewFailed({
+      deliveryType: "postal-12345",
+      reason: "Stockholm SE-11122",
+    });
+    expect(trackEvent.mock.calls[0][0].metadata).toEqual({
+      delivery_type: "all",
+      reason: "unknown",
+    });
   });
 });

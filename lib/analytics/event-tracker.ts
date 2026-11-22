@@ -96,6 +96,7 @@ export type EventType =
   | "checkout_postal_started"
   | "checkout_delivery_captured"
   | "shipping_quote_failed"
+  | "shipping_preview_failed"
   | "checkout_zone_error"
   | "checkout_stripe_confirm_failed"
   | "checkout_confirm_failed"
@@ -154,16 +155,27 @@ interface TrackEventParams {
   keepalive?: boolean;
 }
 
-export class AnalyticsTracker {
-  private static getSessionId(): string {
-    if (typeof window === "undefined") return "";
+/** sessionStorage key for the browser analytics session (E1 / M9). */
+export const ANALYTICS_SESSION_ID_KEY = "analytics_session_id";
 
-    let sessionId = sessionStorage.getItem("analytics_session_id");
+/** Read or create the analytics session id (client only). */
+export function getAnalyticsSessionId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    let sessionId = sessionStorage.getItem(ANALYTICS_SESSION_ID_KEY);
     if (!sessionId) {
       sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem("analytics_session_id", sessionId);
+      sessionStorage.setItem(ANALYTICS_SESSION_ID_KEY, sessionId);
     }
     return sessionId;
+  } catch {
+    return "";
+  }
+}
+
+export class AnalyticsTracker {
+  private static getSessionId(): string {
+    return getAnalyticsSessionId();
   }
 
   private static isBotClient(): boolean {

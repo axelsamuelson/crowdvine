@@ -101,7 +101,11 @@ export function CheckoutStripeReturnClient() {
         const { isInternalDevice } = await import(
           "@/lib/analytics/internal-device"
         );
+        const { getAnalyticsSessionId } = await import(
+          "@/lib/analytics/event-tracker"
+        );
         const { visitorId, firstTouch } = ensureVisitorIdentity();
+        const analyticsSessionId = getAnalyticsSessionId();
         const res = await fetch("/api/checkout/confirm-stripe-return", {
           method: "POST",
           credentials: "include",
@@ -110,6 +114,7 @@ export function CheckoutStripeReturnClient() {
             intentId,
             intentType,
             ...(visitorId ? { visitor_id: visitorId } : {}),
+            ...(analyticsSessionId ? { session_id: analyticsSessionId } : {}),
             ...(firstTouch ? { first_touch: firstTouch } : {}),
             ...(isInternalDevice() ? { internal: true } : {}),
           }),

@@ -184,6 +184,15 @@ export function clearCheckoutAnalyticsSession(): void {
     clearClaimsWithPrefix(`shipping_quote_failed:${sessionId}:`);
     clearClaimsWithPrefix(`checkout_abandoned:${sessionId}`);
   }
+  try {
+    const analyticsId = sessionStorage.getItem("analytics_session_id");
+    if (analyticsId) {
+      clearClaimsWithPrefix(`shipping_preview_failed:${analyticsId}:`);
+    }
+  } catch {
+    // ignore
+  }
+  clearClaimsWithPrefix(`shipping_preview_failed:${sessionId ?? ""}:`);
   clearClaim(CHECKOUT_SESSION_ID_KEY);
 }
 

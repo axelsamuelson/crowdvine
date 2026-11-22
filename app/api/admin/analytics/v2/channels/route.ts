@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       status,
       rows,
       notice:
-        "Kampanjtrafik kan klassas som Direkt eller Hänvisning tills UTM first-touch är rättat.",
+        "Betald social räknas som Kampanj. Ytterligare UTM-fält för innehåll och sökterm kommer i en senare uppdatering.",
     });
   } catch {
     return NextResponse.json(
