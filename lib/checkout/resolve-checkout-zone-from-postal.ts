@@ -28,10 +28,47 @@ export const CHECKOUT_FULFILLMENT_USER_SET_KEY =
   "pact_checkout_fulfillment_user_set";
 
 /**
+ * Postal the sticky channel choice was made for. Changing to a different
+ * valid postal must clear channel + user_set (Direkt +5% / 149 kr frakt
+ * must not stick onto a new ort).
+ */
+export const CHECKOUT_FULFILLMENT_POSTAL_KEY =
+  "pact_checkout_fulfillment_postal";
+
+/**
  * Guest postal / address lines for reload (Camille 22/11: 3/4 runs wiped
  * postal after remount). sessionStorage only — no DOB; scrub list aware.
  */
 export const CHECKOUT_POSTAL_DRAFT_STORAGE_KEY = "pact_checkout_postal_draft";
+
+/** Digits-only postal for compare (SE 5 digits). */
+export function normalizeCheckoutPostalDigits(
+  raw: string | null | undefined,
+): string {
+  return String(raw ?? "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/\D/g, "");
+}
+
+/**
+ * When the committed postal changes to another valid postal, sticky Direkt
+ * (and user_set) must reset so prices follow the product default again.
+ * First postal / same postal / incomplete drafts → false (reload keeps choice).
+ */
+export function shouldResetFulfillmentOnPostalChange(args: {
+  previousPostal: string | null | undefined;
+  nextPostal: string | null | undefined;
+  /** Min digit length for a committed postal (SE default 5). */
+  minDigits?: number;
+}): boolean {
+  const min = args.minDigits ?? 5;
+  const prev = normalizeCheckoutPostalDigits(args.previousPostal);
+  const next = normalizeCheckoutPostalDigits(args.nextPostal);
+  if (next.length < min) return false;
+  if (prev.length < min) return false;
+  return prev !== next;
+}
 
 export type CheckoutPostalDraftStored = {
   postal: string;
@@ -159,13 +196,26 @@ export function readStoredFulfillmentUserSet(): boolean {
   }
 }
 
+export function readStoredFulfillmentPostal(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(CHECKOUT_FULFILLMENT_POSTAL_KEY);
+    const digits = normalizeCheckoutPostalDigits(raw);
+    return digits || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Persist channel. Pass `userSet: true` only for explicit radio clicks —
  * never for auto-select when shared is out of zone.
+ * When `postal` is provided with userSet, bind the sticky choice to that postal
+ * so a later postal change can clear it.
  */
 export function storeFulfillmentChannel(
   channel: FulfillmentChannel,
-  opts?: { userSet?: boolean },
+  opts?: { userSet?: boolean; postal?: string | null },
 ): void {
   if (typeof window === "undefined") return;
   try {
@@ -175,6 +225,13 @@ export function storeFulfillmentChannel(
     );
     if (opts?.userSet) {
       window.sessionStorage.setItem(CHECKOUT_FULFILLMENT_USER_SET_KEY, "1");
+      const postalDigits = normalizeCheckoutPostalDigits(opts.postal);
+      if (postalDigits) {
+        window.sessionStorage.setItem(
+          CHECKOUT_FULFILLMENT_POSTAL_KEY,
+          postalDigits,
+        );
+      }
     }
   } catch {
     /* private mode */
@@ -241,14 +298,15 @@ export function clearStoredPostalDraft(): void {
 }
 
 /**
- * Clear sticky channel + userSet flag so the next postal re-evaluates
- * availability (Byt must not keep auto-Direct from a prior out_of_zone).
+ * Clear sticky channel + userSet (+ postal binding) so the next postal
+ * re-evaluates availability (Byt / postal change must not keep Direkt).
  */
 export function clearStoredFulfillmentChannel(): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.removeItem(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY);
     window.sessionStorage.removeItem(CHECKOUT_FULFILLMENT_USER_SET_KEY);
+    window.sessionStorage.removeItem(CHECKOUT_FULFILLMENT_POSTAL_KEY);
   } catch {
     /* private mode */
   }
@@ -258,25 +316,40 @@ export function clearStoredFulfillmentChannel(): void {
  * Restore a saved channel only when it is still offered for this postal.
  *
  * Explicit user picks (`userSet`) survive reload when still available
- * (acceptance B). Auto-selected Direct from an out-of-zone postal must NOT
- * override the product default (shared) when both channels work for the new
- * postal (Camille 11151 after GBG).
+ * (acceptance B) and the stored postal matches the current postal.
+ * Auto-selected Direct from an out-of-zone postal must NOT override the
+ * product default (shared) when both channels work for the new postal
+ * (Camille 11151 after GBG). A different committed postal clears stickiness.
  */
 export function resolveFulfillmentChannelAfterReload(args: {
   stored: FulfillmentChannel | null;
   /** True only when the customer clicked a channel radio. */
   userSet?: boolean;
+  /** Postal the sticky choice was stored for (if known). */
+  storedPostal?: string | null;
+  /** Current committed postal. */
+  currentPostal?: string | null;
   sharedPalletAvailable: boolean;
   directBoxAvailable: boolean;
   fallback: FulfillmentChannel;
 }): FulfillmentChannel {
   const {
     stored,
-    userSet = false,
     sharedPalletAvailable,
     directBoxAvailable,
     fallback,
   } = args;
+  let userSet = args.userSet === true;
+  // Sticky user pick only applies to the postal it was made for.
+  if (
+    userSet &&
+    shouldResetFulfillmentOnPostalChange({
+      previousPostal: args.storedPostal,
+      nextPostal: args.currentPostal,
+    })
+  ) {
+    userSet = false;
+  }
   if (userSet && stored === "direct_box" && directBoxAvailable) {
     return "direct_box";
   }

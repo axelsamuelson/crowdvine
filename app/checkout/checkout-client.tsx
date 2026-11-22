@@ -191,10 +191,12 @@ import {
   clearStoredPostalDraft,
   mergeProfileContactIntoDelivery,
   readStoredFulfillmentChannel,
+  readStoredFulfillmentPostal,
   readStoredFulfillmentUserSet,
   readStoredPostalDraft,
   resolveCheckoutShoppingLocationLabel,
   resolveFulfillmentChannelAfterReload,
+  shouldResetFulfillmentOnPostalChange,
   storeFulfillmentChannel,
   storePostalDraft,
 } from "@/lib/checkout/resolve-checkout-zone-from-postal";
@@ -452,6 +454,17 @@ function CheckoutContent({
   });
   /** True after an explicit channel radio click (not auto-select). */
   const fulfillmentUserSetRef = useRef(false);
+  /**
+   * Postal the current sticky channel choice applies to. Changing to another
+   * valid postal resets Direkt + user_set (prices must follow default again).
+   */
+  const fulfillmentChannelPostalRef = useRef<string>(
+    typeof window === "undefined"
+      ? ""
+      : readStoredFulfillmentPostal() ||
+          readStoredPostalDraft()?.postal ||
+          "",
+  );
   const [editingAddress, setEditingAddress] = useState(false);
   /** True while any progressive address input has focus — blocks auto-save/collapse. */
   const [addressFieldFocused, setAddressFieldFocused] = useState(false);
@@ -1019,17 +1032,42 @@ function CheckoutContent({
 
   // Persist *user* channel choice across reload (acceptance B). Never persist
   // auto-selected Direct (out_of_zone → Direct) — that poisoned 11151 after
-  // GBG/Malmö in Camille's guest runs (22/11).
+  // GBG/Malmö in Camille's guest runs (22/11). Bind to current postal so a
+  // later postal change can clear stickiness.
   const fulfillmentRestoredRef = useRef(false);
   useEffect(() => {
     if (!fulfillmentRestoredRef.current) return;
     if (!fulfillmentUserSetRef.current) return;
-    storeFulfillmentChannel(fulfillmentChannel, { userSet: true });
-  }, [fulfillmentChannel]);
+    const postalForStore =
+      fulfillmentChannelPostalRef.current ||
+      postalCodeDraft.trim() ||
+      effectiveDelivery?.postal?.trim() ||
+      "";
+    storeFulfillmentChannel(fulfillmentChannel, {
+      userSet: true,
+      postal: postalForStore,
+    });
+  }, [fulfillmentChannel, postalCodeDraft, effectiveDelivery?.postal]);
   useEffect(() => {
     if (fulfillmentRestoredRef.current) return;
     if (!hasPostalCode || zoneLoading || !zoneFetchCompleted) return;
     const stored = readStoredFulfillmentChannel();
+    const storedPostal = readStoredFulfillmentPostal();
+    const currentPostal =
+      postalCodeDraft.trim() ||
+      effectiveDelivery?.postal?.trim() ||
+      fulfillmentChannelPostalRef.current ||
+      "";
+    // A different committed postal must not keep sticky Direkt / user_set.
+    if (
+      shouldResetFulfillmentOnPostalChange({
+        previousPostal: storedPostal,
+        nextPostal: currentPostal,
+      })
+    ) {
+      clearStoredFulfillmentChannel();
+      fulfillmentUserSetRef.current = false;
+    }
     const userSet =
       fulfillmentUserSetRef.current || readStoredFulfillmentUserSet();
     // Wait until Direct is selectable when we have a *user* stored direct
@@ -1046,9 +1084,12 @@ function CheckoutContent({
     }
     fulfillmentRestoredRef.current = true;
     if (userSet) fulfillmentUserSetRef.current = true;
+    if (currentPostal) fulfillmentChannelPostalRef.current = currentPostal;
     const next = resolveFulfillmentChannelAfterReload({
-      stored,
+      stored: userSet ? stored : null,
       userSet,
+      storedPostal: userSet ? storedPostal : null,
+      currentPostal,
       sharedPalletAvailable: postalFulfillment.sharedPalletAvailable,
       directBoxAvailable: postalFulfillment.directBoxAvailable,
       fallback: fulfillmentChannel,
@@ -1058,7 +1099,10 @@ function CheckoutContent({
       setQuoteStatus("loading");
       setFulfillmentChannel(next);
     } else if (userSet) {
-      storeFulfillmentChannel(next, { userSet: true });
+      storeFulfillmentChannel(next, {
+        userSet: true,
+        postal: currentPostal,
+      });
     }
   }, [
     hasPostalCode,
@@ -1070,6 +1114,8 @@ function CheckoutContent({
     directBoxAvailability.offered,
     directBoxAvailability.deliverySelectable,
     fulfillmentChannel,
+    postalCodeDraft,
+    effectiveDelivery?.postal,
   ]);
 
   // Age/compliance unlock: address + channel only.
@@ -3057,6 +3103,31 @@ function CheckoutContent({
         zoneAddressRow,
         savedLines,
       });
+      // Postal change via Ändra must drop sticky Direkt (same as draft commit).
+      const prevPostal =
+        fulfillmentChannelPostalRef.current ||
+        readStoredFulfillmentPostal() ||
+        postalCodeDraft.trim() ||
+        "";
+      if (
+        shouldResetFulfillmentOnPostalChange({
+          previousPostal: prevPostal,
+          nextPostal: savedLines.postal,
+          minDigits: isUsConditional ? 3 : 5,
+        })
+      ) {
+        clearStoredFulfillmentChannel();
+        fulfillmentUserSetRef.current = false;
+        fulfillmentRestoredRef.current = false;
+        setServerQuote(null);
+        setQuoteStatus("loading");
+        setFulfillmentChannel(
+          palletCloseSwitchDirect && directBoxCheckoutEnabled
+            ? "direct_box"
+            : defaultFulfillmentChannel(),
+        );
+      }
+      fulfillmentChannelPostalRef.current = savedLines.postal;
       setZoneAddressRow(resolved.nextZoneAddressRow);
       setDeliveryDraft(resolved.nextDeliveryDraft);
       setPostalCodeDraft(savedLines.postal);
@@ -4661,6 +4732,37 @@ function CheckoutContent({
     });
   };
 
+  const resetFulfillmentForPostalChange = (nextPostal: string) => {
+    const previousPostal =
+      fulfillmentChannelPostalRef.current ||
+      readStoredFulfillmentPostal() ||
+      "";
+    if (
+      !shouldResetFulfillmentOnPostalChange({
+        previousPostal,
+        nextPostal,
+        minDigits: isUsConditional ? 3 : 5,
+      })
+    ) {
+      fulfillmentChannelPostalRef.current = nextPostal;
+      return false;
+    }
+    // Different valid postal → drop sticky Direkt + user_set; prices follow
+    // product default (Delad pall when open pall exists) until user picks again.
+    clearStoredFulfillmentChannel();
+    fulfillmentUserSetRef.current = false;
+    fulfillmentRestoredRef.current = false;
+    fulfillmentChannelPostalRef.current = nextPostal;
+    setServerQuote(null);
+    setQuoteStatus("loading");
+    setFulfillmentChannel(
+      palletCloseSwitchDirect && directBoxCheckoutEnabled
+        ? "direct_box"
+        : defaultFulfillmentChannel(),
+    );
+    return true;
+  };
+
   const handlePostalDraftCommit = (raw?: string) => {
     const v = (raw ?? postalCodeDraft).trim().replace(/\s+/g, "");
     const ok = isUsConditional ? v.length >= 3 : /^\d{5}$/.test(v);
@@ -4670,6 +4772,7 @@ function CheckoutContent({
       }
       return;
     }
+    resetFulfillmentForPostalChange(v);
     setPostalCodeDraft(v);
     setZoneLoading(true);
     setZoneTimedOut(false);
@@ -5460,6 +5563,7 @@ function CheckoutContent({
                             clearStoredFulfillmentChannel();
                             fulfillmentUserSetRef.current = false;
                             fulfillmentRestoredRef.current = false;
+                            fulfillmentChannelPostalRef.current = "";
                             setFulfillmentChannel(
                               palletCloseSwitchDirect &&
                                 directBoxCheckoutEnabled
@@ -5628,9 +5732,16 @@ function CheckoutContent({
                                         setServerQuote(null);
                                         setQuoteStatus("loading");
                                         fulfillmentUserSetRef.current = true;
+                                        const postalForStore =
+                                          postalCodeDraft.trim() ||
+                                          effectiveDelivery?.postal?.trim() ||
+                                          "";
+                                        fulfillmentChannelPostalRef.current =
+                                          postalForStore;
                                         setFulfillmentChannel("shared_pallet");
                                         storeFulfillmentChannel("shared_pallet", {
                                           userSet: true,
+                                          postal: postalForStore,
                                         });
                                       }}
                                     />
@@ -5705,9 +5816,16 @@ function CheckoutContent({
                                         setServerQuote(null);
                                         setQuoteStatus("loading");
                                         fulfillmentUserSetRef.current = true;
+                                        const postalForStore =
+                                          postalCodeDraft.trim() ||
+                                          effectiveDelivery?.postal?.trim() ||
+                                          "";
+                                        fulfillmentChannelPostalRef.current =
+                                          postalForStore;
                                         setFulfillmentChannel("direct_box");
                                         storeFulfillmentChannel("direct_box", {
                                           userSet: true,
+                                          postal: postalForStore,
                                         });
                                       }}
                                     />
