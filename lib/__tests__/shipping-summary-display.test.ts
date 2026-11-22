@@ -3,7 +3,9 @@ import {
   checkoutCtaMissingPostalHintKey,
   resolveCheckoutShippingSummaryDisplay,
   resolveCheckoutSummaryTotalSek,
+  resolveFillPostalCtaSurface,
   shippingSummaryUnavailableMessageKey,
+  shouldRenderPreStep4PurchaseButton,
 } from "@/lib/checkout/shipping-summary-display";
 
 describe("resolveCheckoutShippingSummaryDisplay", () => {
@@ -99,7 +101,7 @@ describe("resolveCheckoutShippingSummaryDisplay", () => {
 });
 
 describe("checkoutCtaMissingPostalHintKey", () => {
-  it("explains gray Betala nu / continue when postal is missing", () => {
+  it("explains next step when postal is missing (hint text, not a button)", () => {
     expect(
       checkoutCtaMissingPostalHintKey({ hasPostalCode: false }),
     ).toBe("fillPostalToContinue");
@@ -118,6 +120,21 @@ describe("checkoutCtaMissingPostalHintKey", () => {
         cartMinimumBlocks: true,
       }),
     ).toBeNull();
+  });
+});
+
+describe("resolveFillPostalCtaSurface / pre-step-4 Betala nu (Inès)", () => {
+  it("before postal: hint_only — never a gray purchase button", () => {
+    expect(
+      resolveFillPostalCtaSurface({ hasPostalCode: false }),
+    ).toEqual({ kind: "hint_only", hintKey: "fillPostalToContinue" });
+    expect(shouldRenderPreStep4PurchaseButton()).toBe(false);
+  });
+
+  it("after postal: no fill-postal surface", () => {
+    expect(
+      resolveFillPostalCtaSurface({ hasPostalCode: true }),
+    ).toEqual({ kind: "none" });
   });
 });
 

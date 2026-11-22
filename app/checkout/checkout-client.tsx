@@ -5283,18 +5283,13 @@ function CheckoutContent({
                   className="mt-6 hidden min-[1280px]:block"
                   data-testid="checkout-fill-postal-cta"
                 >
-                  <DualOfferPurchaseActions
-                    model={{
-                      locale: shopping.locale === "en" ? "en" : "sv",
-                      variant: "continue",
-                      finalCtaLabel: t("checkout.payNow"),
-                      totalInclLine: null,
-                      legalLine: null,
-                      disabled: true,
-                      confirmNote: fillPostalCtaHint,
-                      onConfirm: () => {},
-                    }}
-                  />
+                  {/* Hint only — no gray Betala nu before step 4 (Inès). */}
+                  <p
+                    className="text-sm text-muted-foreground"
+                    data-testid="checkout-fill-postal-hint"
+                  >
+                    {fillPostalCtaHint}
+                  </p>
                 </div>
               ) : null}
             </div>
@@ -5404,18 +5399,13 @@ function CheckoutContent({
                         className="pt-2 min-[1280px]:hidden"
                         data-testid="checkout-fill-postal-cta-step1"
                       >
-                        <DualOfferPurchaseActions
-                          model={{
-                            locale: shopping.locale === "en" ? "en" : "sv",
-                            variant: "continue",
-                            finalCtaLabel: t("checkout.payNow"),
-                            totalInclLine: null,
-                            legalLine: null,
-                            disabled: true,
-                            confirmNote: fillPostalCtaHint,
-                            onConfirm: () => {},
-                          }}
-                        />
+                        {/* Hint only — no gray Betala nu under postnummer (Inès). */}
+                        <p
+                          className="text-sm text-muted-foreground"
+                          data-testid="checkout-fill-postal-hint"
+                        >
+                          {fillPostalCtaHint}
+                        </p>
                       </div>
                     ) : null}
                   </div>

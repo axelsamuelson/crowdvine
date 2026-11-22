@@ -113,6 +113,29 @@ export function checkoutCtaMissingPostalHintKey(input: {
 }
 
 /**
+ * Pre–step 4 surface when postal is missing (Inès): show the hint text only —
+ * never a gray "Betala nu" / purchase button. Real CTAs live in step 4
+ * (Direkt: Betala nu; Delad: Köp och godkänn … när pallen stänger).
+ */
+export type FillPostalCtaSurface =
+  | { kind: "hint_only"; hintKey: "fillPostalToContinue" }
+  | { kind: "none" };
+
+export function resolveFillPostalCtaSurface(input: {
+  hasPostalCode: boolean;
+  cartMinimumBlocks?: boolean;
+}): FillPostalCtaSurface {
+  const hintKey = checkoutCtaMissingPostalHintKey(input);
+  if (!hintKey) return { kind: "none" };
+  return { kind: "hint_only", hintKey };
+}
+
+/** Gray pre-step-4 purchase button must stay hidden (prefer hide over "Fortsätt"). */
+export function shouldRenderPreStep4PurchaseButton(): boolean {
+  return false;
+}
+
+/**
  * Order-summary Totalt when Frakt cannot be offered/quoted.
  * Never keep a stale shared-pallet fee (e.g. 99) in the total once the
  * shipping row is unavailable — show subtotal (exkl. frakt) instead.
