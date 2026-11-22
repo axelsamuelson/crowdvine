@@ -39,7 +39,7 @@ export function KanaltestPanel() {
     test_channel: "meta_ads",
     utm_campaign: "kanaltest_v48",
     cost_sek: "",
-    source: "manual",
+    source: "Manuell",
   });
 
   const load = useCallback(async () => {
@@ -97,16 +97,22 @@ export function KanaltestPanel() {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-        <p className="font-medium">Utvärdering 14/12: jämför antal, inte andelar, om n &lt; 30</p>
+        <p className="font-medium">
+          Utvärdering 14 december: jämför antal, inte andelar, när underlaget är
+          under 30.
+        </p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
-          <li>Stockholm kan inte mätas (region sparas inte). Visar Sverige.</li>
           <li>
-            Kostnad per session, varukorg och köp visas bara när både kostnad och
-            nämnare finns — annars &quot;saknas&quot;.
+            Stockholm kan inte mätas separat eftersom regionen inte sparas.
+            Siffrorna gäller hela Sverige.
           </li>
           <li>
-            Full kanaltest-tratt (sessioner → köp) kommer i nästa del-PR när
-            sessions-UTM finns i facts (M3).
+            Kostnad per besök, varukorg och köp visas bara när både kostnad och
+            underlag finns. Annars står det &quot;saknas&quot;.
+          </li>
+          <li>
+            Hela kedjan per kanal, från besök till köp, kommer i en senare
+            uppdatering.
           </li>
         </ul>
       </div>
@@ -116,8 +122,8 @@ export function KanaltestPanel() {
           Lägg till kostnad
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Manuell kostnadstabell för kanaltestet (M7). Ingen Meta-koppling i etapp
-          2.
+          Lägg in kostnaderna för kanaltestet för hand. Kostnader från Meta
+          hämtas inte automatiskt än.
         </p>
         <form
           onSubmit={onSubmit}
@@ -128,6 +134,7 @@ export function KanaltestPanel() {
             <input
               className={inputClass}
               type="date"
+              lang="sv-SE"
               required
               value={form.period_from}
               onChange={(e) =>
@@ -140,6 +147,7 @@ export function KanaltestPanel() {
             <input
               className={inputClass}
               type="date"
+              lang="sv-SE"
               required
               value={form.period_to}
               onChange={(e) =>
@@ -163,10 +171,14 @@ export function KanaltestPanel() {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
-            Kampanj (utm_campaign)
+          <label
+            className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400"
+            title="utm_campaign"
+          >
+            Kampanj
             <input
               className={inputClass}
+              title="utm_campaign"
               value={form.utm_campaign}
               onChange={(e) =>
                 setForm((f) => ({ ...f, utm_campaign: e.target.value }))
@@ -224,23 +236,23 @@ export function KanaltestPanel() {
           </p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-[#1F1F23]">
-            <table className="min-w-full text-left text-sm">
+            <table className="w-full min-w-[28rem] text-left text-sm">
               <thead className="text-xs text-gray-600 dark:text-gray-400">
                 <tr>
-                  <th className="px-3 py-2">Period</th>
+                  <th className="whitespace-nowrap px-3 py-2">Period</th>
                   <th className="px-3 py-2">Kanal</th>
                   <th className="px-3 py-2">Kampanj</th>
-                  <th className="px-3 py-2">Kostnad</th>
-                  <th className="px-3 py-2">Källa</th>
+                  <th className="px-3 py-2 text-right">Kostnad</th>
+                  <th className="hidden px-3 py-2 sm:table-cell">Källa</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
                   <tr
                     key={r.id}
-                    className="border-t border-gray-100 tabular-nums dark:border-zinc-800"
+                    className="border-t border-gray-100 dark:border-zinc-800"
                   >
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2 tabular-nums">
                       {r.period_from} – {r.period_to}
                     </td>
                     <td className="px-3 py-2">
@@ -249,10 +261,12 @@ export function KanaltestPanel() {
                     <td className="px-3 py-2">
                       {r.utm_campaign || "(ingen)"}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2 text-right tabular-nums">
                       {formatSvNumber(Number(r.cost_sek))} kr
                     </td>
-                    <td className="px-3 py-2">{r.source || "—"}</td>
+                    <td className="hidden px-3 py-2 sm:table-cell">
+                      {r.source || "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
