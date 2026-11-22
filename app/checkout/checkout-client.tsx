@@ -178,6 +178,7 @@ import {
   resolveDeliveryAfterProfileSave,
   resolveEffectiveCheckoutDelivery,
 } from "@/lib/checkout/resolve-delivery-after-profile-save";
+import { buildCheckoutEditDeliveryDraft } from "@/lib/checkout/profile-modal-form-seed";
 import {
   clearStoredFulfillmentChannel,
   clearStoredPostalDraft,
@@ -2878,12 +2879,19 @@ function CheckoutContent({
           );
         }
         const j = (await res.json()) as { address?: UserZoneAddressTemplate };
+        // Prefer the lines we just saved — a stale PATCH response must not
+        // wipe street/city/postal (guest Ändra second-save wipe).
         if (j.address) {
           setZoneAddressRow({
             ...j.address,
-            full_name: j.address.full_name || eff.fullName,
-            email: j.address.email || eff.email,
-            phone: j.address.phone || eff.phone,
+            full_name: eff.fullName || j.address.full_name,
+            email: eff.email || j.address.email,
+            phone: eff.phone || j.address.phone,
+            address_line1: eff.street || j.address.address_line1,
+            city: eff.city || j.address.city,
+            postal_code: eff.postal || j.address.postal_code,
+            country_code: eff.countryCode || j.address.country_code,
+            region_code: eff.regionCode || j.address.region_code,
           });
         }
         setDeliveryDraft(null);
@@ -2891,17 +2899,7 @@ function CheckoutContent({
         addressPersistedRef.current = true;
         addressAutoSaveRef.current = true;
         if (!silent) toast.success(t("checkout.deliverySaved"));
-        const savedLines =
-          userZoneRowToDeliveryLines(
-            j.address && typeof j.address === "object"
-              ? {
-                  ...j.address,
-                  full_name: j.address.full_name || eff.fullName,
-                  email: j.address.email || eff.email,
-                  phone: j.address.phone || eff.phone,
-                }
-              : null,
-          ) ?? eff;
+        const savedLines = eff;
         await updateZoneInfo(savedLines, { silent: true });
         if (eff.postal && eff.countryCode) {
           void checkBudbeeAvailability(eff.postal, eff.countryCode);
@@ -5339,10 +5337,18 @@ function CheckoutContent({
                       {hasFullAddress ? (
                         <ProfileInfoModal
                           onProfileSaved={handleProfileSaved}
+                          guestMode={platformOpen}
+                          checkoutDelivery={effectiveDelivery}
+                          initialPostalCode={
+                            effectiveDelivery?.postal?.trim() ||
+                            postalCodeDraft.trim() ||
+                            undefined
+                          }
                           trigger={
                             <button
                               type="button"
                               className="text-xs underline underline-offset-2 text-foreground"
+                              data-testid="checkout-postal-edit"
                             >
                               {t("checkout.edit")}
                             </button>
@@ -6013,35 +6019,19 @@ function CheckoutContent({
                       <button
                         type="button"
                         className="text-xs underline underline-offset-2 text-foreground"
+                        data-testid="checkout-address-edit"
                         onClick={() => {
                           addressAutoSaveRef.current = false;
                           addressPersistedRef.current = false;
                           setEditingAddress(true);
-                          const fromDb =
-                            userZoneRowToDeliveryLines(zoneAddressRow);
                           setDeliveryDraft(
-                            fromDb ??
-                              deliveryDraft ?? {
-                                street: effectiveDelivery?.street || "",
-                                city: effectiveDelivery?.city || "",
-                                postal: effectiveDelivery?.postal || "",
-                                countryCode:
-                                  effectiveDelivery?.countryCode || "SE",
-                                regionCode:
-                                  effectiveDelivery?.regionCode ?? null,
-                                fullName:
-                                  effectiveDelivery?.fullName ||
-                                  profile?.full_name ||
-                                  null,
-                                phone:
-                                  effectiveDelivery?.phone ||
-                                  profile?.phone ||
-                                  null,
-                                email:
-                                  effectiveDelivery?.email ||
-                                  profile?.email ||
-                                  null,
-                              },
+                            buildCheckoutEditDeliveryDraft({
+                              zoneLines:
+                                userZoneRowToDeliveryLines(zoneAddressRow),
+                              deliveryDraft,
+                              effectiveDelivery,
+                              profile,
+                            }),
                           );
                         }}
                       >
