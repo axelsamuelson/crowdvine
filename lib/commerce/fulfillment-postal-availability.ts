@@ -9,12 +9,51 @@
  */
 
 import type { FulfillmentChannel } from "@/lib/commerce/fulfillment-channel";
+import { isLikelyStockholmAreaPostal } from "@/lib/zone-matching";
 
 export type PostalZoneMatch =
   | "in_zone"
   | "out_of_zone"
   | "unsupported_country"
   | "unknown";
+
+/**
+ * Map checkout zone UI state → PostalZoneMatch for channel availability.
+ *
+ * Guest reload bug (Camille 22/11): soft-success / unknown made Delad look
+ * available (99 kr). Rules:
+ * - Server `NO_DELIVERY_ZONE` / ready delivery zone are authoritative.
+ * - After fetch completes without a delivery zone → out_of_zone (pickup label
+ *   alone ≠ coverage). This is NOT the Stockholm postal heuristic.
+ * - `isLikelyStockholmAreaPostal` is ONLY a loading flash-guard for Kiruna-class
+ *   postals. It must never be the final answer for Göteborg / Malmö / Uppsala
+ *   (or any non-Stockholm delivery zone) — once the server matches those zones,
+ *   `deliveryZoneReady` wins.
+ */
+export function resolveCheckoutZoneMatchForAvailability(input: {
+  zoneError: "NO_DELIVERY_ZONE" | "UNSUPPORTED_COUNTRY" | null | undefined;
+  deliveryZoneReady: boolean;
+  zoneFetchCompleted: boolean;
+  postal: string | null | undefined;
+}): PostalZoneMatch {
+  if (input.zoneError === "UNSUPPORTED_COUNTRY") return "unsupported_country";
+  if (input.zoneError === "NO_DELIVERY_ZONE") return "out_of_zone";
+  if (input.deliveryZoneReady) return "in_zone";
+
+  const postal = String(input.postal ?? "").replace(/\s+/g, "");
+  const hasSePostal = /^\d{5}$/.test(postal);
+  if (!hasSePostal) return "unknown";
+
+  // Fetch done, no delivery zone → honest out-of-zone (server already decided;
+  // not a Stockholm-prefix heuristic).
+  if (input.zoneFetchCompleted) return "out_of_zone";
+
+  // Loading-only flash guard: non-10–19 prefixes stay fail-closed until zones
+  // settle. Göteborg 41101 becomes in_zone when deliveryZoneReady flips true.
+  if (!isLikelyStockholmAreaPostal(postal)) return "out_of_zone";
+
+  return "unknown";
+}
 
 export type FulfillmentPostalAvailabilityInput = {
   /** Matched pallet delivery zone (geo radius), not Instabee itself. */
