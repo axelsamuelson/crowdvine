@@ -69,11 +69,13 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/formatCheckoutPalletDeliveryLines/);
     expect(panelSrc).not.toMatch(/Budbee/);
     expect(panelSrc).toMatch(/CheckoutPalletFillStatus/);
-    // Fill must paint from /zones palletFill before offer-quotes resolves
-    // (guest 401 / shipping quote used to hide fyllnadsgrad for seconds).
+    // Fill + stängning/leveranstid paint from /zones (+ public deadline)
+    // before offer-quotes resolves (guest 401 until ensure-session).
     expect(panelSrc).toMatch(
-      /Fill comes from \/zones[\s\S]*?CheckoutPalletFillStatus[\s\S]*?dual-offer-loading/,
+      /Fill \+ stängning\/leveranstid come from \/zones[\s\S]*?CheckoutPalletFillStatus/,
     );
+    expect(panelSrc).toMatch(/pallet-charge-deadline/);
+    expect(panelSrc).toMatch(/earlySharedDeliveryLines|earlyChargeDeadlineAt/);
     expect(panelSrc).toMatch(/dualOfferLegalLineSharedWithSwitch/);
     expect(panelSrc).toMatch(/dualOfferAgeCheckLine/);
     expect(panelSrc).toMatch(/dual-offer-age-\$\{quote\.offer\}/);

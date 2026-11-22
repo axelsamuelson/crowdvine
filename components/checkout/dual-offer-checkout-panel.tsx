@@ -42,10 +42,7 @@ import {
   type DualOfferUiLocale,
 } from "@/lib/checkout/dual-offer-customer-copy";
 import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-deadline";
-import {
-  directBoxDeliveryCopy,
-  formatCheckoutPalletDeliveryLines,
-} from "@/lib/checkout/shared-pallet-close-delivery-copy";
+import { formatCheckoutPalletDeliveryLines } from "@/lib/checkout/shared-pallet-close-delivery-copy";
 import { CheckoutPalletFillStatus } from "@/components/checkout/checkout-pallet-fill-status";
 import type { CheckoutPalletFillInput } from "@/lib/checkout/pallet-fill-display";
 
@@ -53,35 +50,10 @@ export { formatOfferSek } from "@/lib/checkout/dual-offer-display";
 
 type Locale = DualOfferUiLocale;
 
-function deliveryLabel(quote: OfferQuote, locale: Locale): string {
-  // Direct: home delivery only — no ETA (carrier contract unsigned).
-  if (quote.offer === "direct_box") {
-    return directBoxDeliveryCopy(locale);
-  }
-  return locale === "sv"
-    ? quote.delivery_terms.previewLabelSv
-    : quote.delivery_terms.previewLabelEn;
-}
-
 function debitLabel(quote: OfferQuote, locale: Locale): string {
   return locale === "sv"
     ? quote.debit_timing.previewLabelSv
     : quote.debit_timing.previewLabelEn;
-}
-
-function sharedCheckoutDeliveryLines(
-  quote: OfferQuote,
-  locale: Locale,
-  deadlineLabel: string | null,
-): { closeLine: string; deliveryLine: string } | null {
-  if (quote.offer !== "shared_pallet") {
-    return {
-      closeLine: deliveryLabel(quote, locale),
-      deliveryLine: "",
-    };
-  }
-  // Checkout: two short lines (full owner constant stays on confirmation/email).
-  return formatCheckoutPalletDeliveryLines(locale, deadlineLabel);
 }
 
 function OfferRowSkeleton() {
@@ -608,6 +580,14 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       ? createOfferCheckoutSessionState(props.initialDual)
       : null,
   );
+  /**
+   * Guest hot path: offer-quotes 401s until ensure-session. Paint stängning /
+   * leveranstid from this deadline (same formula as quotes) as soon as
+   * /zones selected a pallet — do not wait on auth.
+   */
+  const [earlyChargeDeadlineAt, setEarlyChargeDeadlineAt] = useState<
+    string | null
+  >(null);
   const [confirmNote, setConfirmNote] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState<{
@@ -670,6 +650,40 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     [showDirectOffer, preferOffer],
   );
 
+  const palletFillId = palletFill?.palletId
+    ? String(palletFill.palletId).trim()
+    : "";
+
+  // Public deadline for guest card paint (offer-quotes requires session).
+  useEffect(() => {
+    if (!palletFillId) {
+      setEarlyChargeDeadlineAt(null);
+      return;
+    }
+    let cancelled = false;
+    void fetch(
+      `/api/checkout/pallet-charge-deadline?pallet_id=${encodeURIComponent(palletFillId)}`,
+    )
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as { charge_deadline_at?: string | null };
+      })
+      .then((j) => {
+        if (cancelled) return;
+        const iso =
+          typeof j?.charge_deadline_at === "string" && j.charge_deadline_at
+            ? j.charge_deadline_at
+            : null;
+        setEarlyChargeDeadlineAt(iso);
+      })
+      .catch(() => {
+        if (!cancelled) setEarlyChargeDeadlineAt(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [palletFillId]);
+
   useEffect(() => {
     if (!fetchPalletId) {
       if (initialDual) {
@@ -723,6 +737,13 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
       })
       .catch(() => {
         if (gen !== requestGen.current) return;
+        // Shared-only + zones fill: keep card copy (fill/stängning/leveranstid).
+        // Guests get 401 from offer-quotes until ensure-session — not a card failure.
+        if (!showDirectOffer && palletFillId) {
+          setError(false);
+          setLoading(false);
+          return;
+        }
         setError(true);
         setLoading(false);
       });
@@ -735,6 +756,8 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     onStateChange,
     ensurePreferredSelected,
     forceFreshSession,
+    showDirectOffer,
+    palletFillId,
   ]);
 
   const onSelect = useCallback(
@@ -896,12 +919,20 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
     Boolean(state?.dual.direct_box || state?.dual.shared_pallet);
 
   const sharedQuote = state?.dual.shared_pallet ?? null;
-  const sharedDeadline = sharedQuote
-    ? formatSharedPalletChargeDeadline(
-        sharedQuote.charge_deadline_at,
-        locale,
-      )
+  const sharedDeadlineIso =
+    sharedQuote?.charge_deadline_at ?? earlyChargeDeadlineAt;
+  const sharedDeadline = sharedDeadlineIso
+    ? formatSharedPalletChargeDeadline(sharedDeadlineIso, locale)
     : null;
+  /**
+   * Guest/shared-only: paint close+delivery once /zones selected a pallet and
+   * charge deadline is known (public endpoint or quote). Wait for the date so
+   * stängningsraden is complete (…senast {datum}).
+   */
+  const earlySharedDeliveryLines =
+    !compareMode && palletFillId && sharedDeadline
+      ? formatCheckoutPalletDeliveryLines(locale, sharedDeadline)
+      : null;
 
   const purchaseSlot =
     inlinePurchase && purchaseModel ? (
@@ -943,9 +974,9 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           </h2>
         )}
 
-        {/* Fill comes from /zones (selectedPallet) — paint as soon as parent
-            has it. Do not wait for offer-quotes (auth + shipping) which used
-            to delay fyllnadsgrad 6–8s behind zones on the Delad pall card. */}
+        {/* Fill + stängning/leveranstid come from /zones (+ public deadline).
+            Paint as soon as parent has a pallet — do not wait for offer-quotes
+            (guest 401 until ensure-session). */}
         {!compareMode && showPalletFillStatus && palletFill ? (
           <CheckoutPalletFillStatus
             locale={locale}
@@ -958,7 +989,23 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
           />
         ) : null}
 
-        {loading && !state ? (
+        {!compareMode && earlySharedDeliveryLines ? (
+          <div
+            className="space-y-1"
+            data-testid="dual-offer-delivery-shared_pallet"
+          >
+            <p className="text-sm text-foreground/85">
+              {earlySharedDeliveryLines.closeLine}
+            </p>
+            {earlySharedDeliveryLines.deliveryLine ? (
+              <p className="text-sm text-foreground/85">
+                {earlySharedDeliveryLines.deliveryLine}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {loading && !state && showDirectOffer ? (
           <div
             className="space-y-3"
             data-testid="dual-offer-loading"
@@ -966,7 +1013,7 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
             aria-label={dualOfferMsg(locale, "dualOfferLoading")}
           >
             <OfferRowSkeleton />
-            {showDirectOffer ? <OfferRowSkeleton /> : null}
+            <OfferRowSkeleton />
           </div>
         ) : null}
 
@@ -1037,39 +1084,12 @@ export function DualOfferCheckoutPanel(props: DualOfferCheckoutPanelProps) {
               className="space-y-2"
               data-testid="dual-offer-shared-only-block"
             >
-              {sharedQuote && !sharedQuote.unavailable_reason ? (
-                (() => {
-                  const lines = sharedCheckoutDeliveryLines(
-                    sharedQuote,
-                    locale,
-                    sharedDeadline,
-                  );
-                  return (
-                    <div
-                      className="space-y-1"
-                      data-testid="dual-offer-delivery-shared_pallet"
-                    >
-                      <p className="text-sm text-foreground/85">
-                        {lines?.closeLine}
-                      </p>
-                      {lines?.deliveryLine ? (
-                        <p className="text-sm text-foreground/85">
-                          {lines.deliveryLine}
-                        </p>
-                      ) : null}
-                    </div>
-                  );
-                })()
-              ) : sharedQuote?.unavailable_reason ? (
+              {sharedQuote?.unavailable_reason ? (
                 <p className="text-sm text-muted-foreground">
                   {sharedQuote.unavailable_reason}
                 </p>
-              ) : (
-                <p className="text-sm text-foreground/80">
-                  {dualOfferMsg(locale, "dualOfferConfirmHintNone")}
-                </p>
-              )}
-
+              ) : null}
+              {/* Close/delivery already painted above from zones + deadline. */}
               {purchaseSlot}
             </div>
           )
