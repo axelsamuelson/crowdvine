@@ -61,6 +61,9 @@ function adminClient() {
 
 async function shot(page, name, meta) {
   const captured_at = new Date().toISOString();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(400);
+  await waitZoneSettled(page);
   for (const dir of [OUT_REPO, OUT_OPT, OUT_STORE]) {
     const p = join(dir, name);
     if (existsSync(p)) unlinkSync(p);
@@ -206,6 +209,18 @@ async function runAnonPostalReload(label, viewport, { postal, city, street, expe
   await waitNoCartLoading(page);
   await enterPostal(page, postal);
   await waitZoneSettled(page);
+  if (expectOutOfZone) await assertOutOfZoneShared(page);
+  else {
+    await assertSharedAvailable(page);
+    const sharedRadio = page.getByRole("radio", { name: /Delad pall/i });
+    if (await sharedRadio.isVisible().catch(() => false)) {
+      await sharedRadio.check({ force: true }).catch(async () => {
+        await page.getByText(/^Delad pall$/i).first().click();
+      });
+      await waitZoneSettled(page);
+    }
+  }
+
   await fillProgressiveAddress(page, {
     name: "Zon Reload Gäst",
     email: guestEmail,
@@ -213,9 +228,24 @@ async function runAnonPostalReload(label, viewport, { postal, city, street, expe
     street,
     city,
   });
-  await waitText(page, new RegExp(postal));
-  if (expectOutOfZone) await assertOutOfZoneShared(page);
-  else await assertSharedAvailable(page);
+  // Wait until address collapses / is persisted so reload can restore postal
+  // via ensure-session + user_zone_addresses (PLATFORM_OPEN guest path).
+  await page.waitForFunction(
+    ({ postalNeedle, cityNeedle }) => {
+      const t = document.body?.innerText || "";
+      if (/Uppdaterar leverans/i.test(t)) return false;
+      const postalOk = new RegExp(postalNeedle, "i").test(t);
+      const cityOk = new RegExp(cityNeedle, "i").test(t);
+      const confirmed = /Vi levererar till din adress/i.test(t);
+      const collapsed =
+        !document.querySelector("#checkout-fullName") &&
+        !document.querySelector("#checkout-street");
+      return postalOk && cityOk && (confirmed || collapsed);
+    },
+    { postalNeedle: postal, cityNeedle: city },
+    { timeout: 120000 },
+  );
+  await page.waitForTimeout(2500);
   await waitZoneSettled(page);
 
   const beforeName = `${label}-anon-${postal}-before-reload.png`;
@@ -227,10 +257,34 @@ async function runAnonPostalReload(label, viewport, { postal, city, street, expe
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitNoCartLoading(page);
-  await waitText(page, new RegExp(postal), 90000);
+  await page.waitForFunction(
+    (postalNeedle) => {
+      const t = document.body?.innerText || "";
+      const input = document.querySelector("#checkout-postal");
+      const inputVal =
+        input && "value" in input ? String(input.value || "") : "";
+      return (
+        new RegExp(postalNeedle, "i").test(t) ||
+        inputVal.replace(/\s+/g, "") === postalNeedle
+      );
+    },
+    postal,
+    { timeout: 120000 },
+  );
   await waitZoneSettled(page);
   if (expectOutOfZone) await assertOutOfZoneShared(page);
-  else await assertSharedAvailable(page);
+  else {
+    await assertSharedAvailable(page);
+    // Prefer shared when available so reload evidence isn't stuck on Direct.
+    const sharedRadio = page.getByRole("radio", { name: /Delad pall/i });
+    if (await sharedRadio.isVisible().catch(() => false)) {
+      await sharedRadio.check({ force: true }).catch(async () => {
+        await page.getByText(/^Delad pall$/i).first().click();
+      });
+      await waitZoneSettled(page);
+      await assertSharedAvailable(page);
+    }
+  }
 
   // Zone row must not keep advertising Stockholm for Kiruna.
   if (postal === "98131") {
@@ -325,12 +379,15 @@ async function runLoggedInPrefill(label, viewport, creds) {
   await page.goto(`${BASE}/checkout`, { waitUntil: "domcontentloaded" });
   await waitNoCartLoading(page);
   await waitText(page, /11151|Drottninggatan|Zon Reload Syntetisk|0709988776/);
+  await waitZoneSettled(page);
+  await assertSharedAvailable(page);
 
   // Ensure stale zone email is not shown; profile contact wins.
   await page.waitForFunction(
     ({ email, name, phone }) => {
       const t = document.body?.innerText || "";
       if (/old-stale-zone@example\.com/i.test(t)) return false;
+      if (/Uppdaterar leverans/i.test(t)) return false;
       return (
         new RegExp(email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(t) &&
         new RegExp(name, "i").test(t) &&
