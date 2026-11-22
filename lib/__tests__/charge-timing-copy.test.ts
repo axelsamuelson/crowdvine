@@ -186,14 +186,18 @@ describe("checkout charge-timing wiring", () => {
     expect(en.checkout.noChargeUntilPalletCloses).toMatch(
       /not charged now|pallet closes/i,
     );
-    expect(sv.checkout.noChargeUntilPalletCloses).toMatch(
-      /Inget dras nu|pallen stänger/i,
+    expect(sv.checkout.noChargeUntilPalletCloses).toBe(
+      "Inget debiteras nu. Du betalar först när pallen stänger.",
+    );
+    expect(sv.checkout.noChargeUntilPalletCloses).not.toMatch(/\bdras\b/i);
+    expect(sv.checkout.sellingEntity).toBe(
+      "Säljare: EURPACT OÜ (reg. 17538270), Estland",
     );
     expect(en.checkout.chargedOnConfirm).not.toMatch(
       /pallet closes|not charged now/i,
     );
     expect(sv.checkout.chargedOnConfirm).not.toMatch(
-      /pallen stänger|Inget dras nu/i,
+      /pallen stänger|Inget dras nu|Inget debiteras nu/i,
     );
     // Unknown CTA must not embed timing promise
     expect(en.checkout.placeReservation).not.toMatch(
@@ -214,7 +218,7 @@ describe("checkout charge-timing wiring", () => {
     );
   });
 
-  it("checkout and stripe section surface loadingPayment while intent reloads", () => {
+  it("Laddar betalning… only in Stripe card box, not above place CTA", () => {
     const checkout = readFileSync(
       join(__dirname, "../../app/checkout/checkout-client.tsx"),
       "utf8",
@@ -223,8 +227,9 @@ describe("checkout charge-timing wiring", () => {
       join(__dirname, "../../components/checkout/stripe-payment-section.tsx"),
       "utf8",
     );
-    expect(checkout).toContain('t("checkout.loadingPayment")');
-    expect(checkout).toContain("data-testid=\"checkout-payment-reloading\"");
+    // Inès: remove the reloading line above the place-order button.
+    expect(checkout).not.toContain('t("checkout.loadingPayment")');
+    expect(checkout).not.toContain('data-testid="checkout-payment-reloading"');
     expect(stripe).toContain('t("checkout.loadingPayment")');
     expect(stripe).toContain('data-testid="checkout-stripe-loading"');
   });

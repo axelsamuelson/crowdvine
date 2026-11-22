@@ -6725,15 +6725,8 @@ function CheckoutContent({
                                 </p>
                               ) : null}
 
-                              {!paymentUiReady ? (
-                                <p
-                                  className="text-sm text-muted-foreground"
-                                  data-checkout-payment-loading="true"
-                                  data-testid="checkout-payment-reloading"
-                                >
-                                  {t("checkout.loadingPayment")}
-                                </p>
-                              ) : null}
+                              {/* Laddar betalning… lives only in the Stripe card
+                                  box (stripe-payment-section) — not above CTA. */}
 
                               <Button
                                 type="button"
