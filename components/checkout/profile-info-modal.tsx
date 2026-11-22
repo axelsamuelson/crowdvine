@@ -26,6 +26,11 @@ import {
   getSupportedProfileCountries,
   listUsStateCodesSorted,
 } from "@/lib/countries";
+import {
+  seedProfileModalFormFromDelivery,
+  type ProfileModalFormSeed,
+} from "@/lib/checkout/profile-modal-form-seed";
+import type { ZoneDeliveryLines } from "@/lib/checkout/user-zone-delivery-template";
 
 interface ProfileInfo {
   full_name?: string;
@@ -46,6 +51,14 @@ interface ProfileModalProps {
   onOpenChange?: (open: boolean) => void;
   /** Prefill postal when opening (e.g. from checkout draft). */
   initialPostalCode?: string;
+  /**
+   * Guest checkout: seed from kassa delivery lines, skip profile fetch, never
+   * show home-profile incomplete copy, and always apply save via onProfileSaved
+   * (one Spara closes the dialog).
+   */
+  guestMode?: boolean;
+  /** Checkout delivery already filled by the guest (used when guestMode). */
+  checkoutDelivery?: ZoneDeliveryLines | null;
 }
 
 export function ProfileInfoModal({
@@ -54,6 +67,8 @@ export function ProfileInfoModal({
   open: openProp,
   onOpenChange,
   initialPostalCode,
+  guestMode = false,
+  checkoutDelivery = null,
 }: ProfileModalProps) {
   const { t } = useShoppingContext();
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -64,20 +79,25 @@ export function ProfileInfoModal({
     onOpenChange?.(next);
   };
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<ProfileInfo>({
-    full_name: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    country: "SE",
-    region: "",
-  });
+  const [formData, setFormData] = useState<ProfileModalFormSeed>(() =>
+    seedProfileModalFormFromDelivery(null, initialPostalCode),
+  );
 
-  // Load existing profile when modal opens; keep draft postal if profile has none
+  // Load existing profile when modal opens; keep draft postal if profile has none.
+  // Guests: seed once on open from checkout delivery — never blank via a 401 GET,
+  // and do not re-seed on parent re-renders (would wipe typing).
   useEffect(() => {
     if (!open) return;
+
+    if (guestMode) {
+      setFormData(
+        seedProfileModalFormFromDelivery(
+          checkoutDelivery,
+          initialPostalCode,
+        ),
+      );
+      return;
+    }
 
     let cancelled = false;
 
@@ -137,7 +157,9 @@ export function ProfileInfoModal({
     return () => {
       cancelled = true;
     };
-  }, [open, initialPostalCode]);
+    // Intentionally omit checkoutDelivery from deps — capture seed at open only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- guest seed on open
+  }, [open, initialPostalCode, guestMode]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -150,7 +172,12 @@ export function ProfileInfoModal({
       const postal = (formData.postal_code ?? "").trim().replace(/\s+/g, "");
 
       if (!fullName || !email || !address || !city || !postal) {
-        toast.warning(t("checkout.profileAddressIncomplete"));
+        // Guests must never see home-profile incomplete copy.
+        toast.warning(
+          guestMode
+            ? t("checkout.fieldRequired")
+            : t("checkout.profileAddressIncomplete"),
+        );
         return;
       }
 
@@ -162,6 +189,18 @@ export function ProfileInfoModal({
         city,
         postal_code: postal,
       };
+
+      // Guest kassa: apply to checkout draft in one shot (close dialog). Do not
+      // PATCH profiles — that path showed profile errors and could wipe fields.
+      if (guestMode) {
+        onProfileSaved({
+          ...payload,
+          id: "",
+          created_at: new Date().toISOString(),
+        });
+        setOpen(false);
+        return;
+      }
 
       const response = await fetch("/api/user/profile", {
         method: "PATCH",
