@@ -6,13 +6,16 @@ import {
 } from "@/lib/zone-matching";
 import {
   CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY,
+  CHECKOUT_FULFILLMENT_POSTAL_KEY,
   CHECKOUT_FULFILLMENT_USER_SET_KEY,
   CHECKOUT_POSTAL_DRAFT_STORAGE_KEY,
   clearStoredFulfillmentChannel,
   clearStoredPostalDraft,
   mergeProfileContactIntoDelivery,
+  readStoredFulfillmentPostal,
   resolveCheckoutShoppingLocationLabel,
   resolveFulfillmentChannelAfterReload,
+  shouldResetFulfillmentOnPostalChange,
   storeFulfillmentChannel,
   storePostalDraft,
 } from "@/lib/checkout/resolve-checkout-zone-from-postal";
@@ -197,6 +200,83 @@ describe("resolveFulfillmentChannelAfterReload (acceptance B)", () => {
       }),
     ).toBe("shared_pallet");
   });
+
+  it("same postal + reload keeps user-set Direkt", () => {
+    expect(
+      resolveFulfillmentChannelAfterReload({
+        stored: "direct_box",
+        userSet: true,
+        storedPostal: "41101",
+        currentPostal: "41101",
+        sharedPalletAvailable: true,
+        directBoxAvailable: true,
+        fallback: "shared_pallet",
+      }),
+    ).toBe("direct_box");
+  });
+
+  it("postal change 41101→11151 drops sticky Direkt for product default", () => {
+    expect(
+      resolveFulfillmentChannelAfterReload({
+        stored: "direct_box",
+        userSet: true,
+        storedPostal: "41101",
+        currentPostal: "11151",
+        sharedPalletAvailable: true,
+        directBoxAvailable: true,
+        fallback: "shared_pallet",
+      }),
+    ).toBe("shared_pallet");
+  });
+
+  it("first postal with no sticky user pick gives shared default", () => {
+    expect(
+      resolveFulfillmentChannelAfterReload({
+        stored: null,
+        userSet: false,
+        storedPostal: null,
+        currentPostal: "11151",
+        sharedPalletAvailable: true,
+        directBoxAvailable: true,
+        fallback: "direct_box",
+      }),
+    ).toBe("shared_pallet");
+  });
+});
+
+describe("shouldResetFulfillmentOnPostalChange", () => {
+  it("byte av postnummer nollställer Direkt (41101 → 11151)", () => {
+    expect(
+      shouldResetFulfillmentOnPostalChange({
+        previousPostal: "41101",
+        nextPostal: "11151",
+      }),
+    ).toBe(true);
+  });
+
+  it("samma postnummer + reload behåller Direkt (no reset)", () => {
+    expect(
+      shouldResetFulfillmentOnPostalChange({
+        previousPostal: "41101",
+        nextPostal: "41101",
+      }),
+    ).toBe(false);
+  });
+
+  it("första postnummer ger standardvalet (no prior → no reset)", () => {
+    expect(
+      shouldResetFulfillmentOnPostalChange({
+        previousPostal: "",
+        nextPostal: "11151",
+      }),
+    ).toBe(false);
+    expect(
+      shouldResetFulfillmentOnPostalChange({
+        previousPostal: null,
+        nextPostal: "41101",
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("Byt clears sticky channel + postal draft", () => {
@@ -223,13 +303,19 @@ describe("Byt clears sticky channel + postal draft", () => {
     Reflect.deleteProperty(globalThis, "window");
   });
 
-  it("clearStoredFulfillmentChannel removes channel + userSet", () => {
-    storeFulfillmentChannel("direct_box", { userSet: true });
+  it("clearStoredFulfillmentChannel removes channel + userSet + postal", () => {
+    storeFulfillmentChannel("direct_box", {
+      userSet: true,
+      postal: "41101",
+    });
     expect(mem.get(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY)).toBe("direct_box");
     expect(mem.get(CHECKOUT_FULFILLMENT_USER_SET_KEY)).toBe("1");
+    expect(mem.get(CHECKOUT_FULFILLMENT_POSTAL_KEY)).toBe("41101");
+    expect(readStoredFulfillmentPostal()).toBe("41101");
     clearStoredFulfillmentChannel();
     expect(mem.has(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY)).toBe(false);
     expect(mem.has(CHECKOUT_FULFILLMENT_USER_SET_KEY)).toBe(false);
+    expect(mem.has(CHECKOUT_FULFILLMENT_POSTAL_KEY)).toBe(false);
   });
 
   it("clearStoredPostalDraft removes postal draft", () => {
