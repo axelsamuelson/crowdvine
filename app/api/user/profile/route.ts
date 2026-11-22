@@ -25,10 +25,17 @@ export async function GET() {
 
     if (error) throw error;
 
+    // Auth email is source of truth — never prefer a stale profiles.email
+    // (checkout address prefill bug: older guest email in profile/zone row).
+    const authEmail =
+      typeof user.email === "string" && user.email.trim()
+        ? user.email.trim()
+        : null;
+    const base = profile || { id: user.id };
     return NextResponse.json({
-      profile: profile || {
-        id: user.id,
-        email: user.email,
+      profile: {
+        ...base,
+        email: authEmail || (base as { email?: string | null }).email || null,
       },
     });
   } catch (error) {

@@ -577,7 +577,45 @@ async function buildConditionalUsZoneResult(
 export type DetermineZonesOptions = {
   /** From active geo_zones.default_delivery_zone_id — same name as wine zone display. */
   preferredDeliveryZoneId?: string | null;
+  /**
+   * PDP early-bird only: allow linked wine-zone delivery without geocoding.
+   * Checkout / confirm / payment-intent / zones API must leave this unset —
+   * otherwise Stockholm's preferred zone invents shared-pallet coverage for
+   * out-of-zone postals (e.g. 98131 Kiruna) after auth/reload.
+   */
+  preferLinkedDeliveryZone?: boolean;
 };
+
+export type PreferredDeliveryZonePolicy = {
+  preferLinkedDeliveryZone?: boolean;
+  preferredDeliveryZoneId?: string | null;
+  postcode?: string | null;
+};
+
+/**
+ * Whether determineZones may return the linked wine-zone delivery without
+ * geocoding the customer's postal. Always false for checkout (no flag).
+ */
+export function mayBypassGeocodeWithPreferredDeliveryZone(
+  policy: PreferredDeliveryZonePolicy,
+): boolean {
+  if (!policy.preferLinkedDeliveryZone) return false;
+  const preferred = (policy.preferredDeliveryZoneId ?? "").trim();
+  if (!preferred) return false;
+  const postal = (policy.postcode ?? "").trim();
+  if (postal && !isLikelyStockholmAreaPostal(postal)) return false;
+  return true;
+}
+
+/**
+ * After geocode matches zero radii: checkout must return NO_DELIVERY_ZONE.
+ * Only early-bird may fall back to the linked wine-zone delivery.
+ */
+export function mayFallbackToPreferredWhenNoGeoMatch(
+  preferLinkedDeliveryZone?: boolean,
+): boolean {
+  return preferLinkedDeliveryZone === true;
+}
 
 async function loadPreferredDeliveryZone(
   sb: ReturnType<typeof getSupabaseAdmin>,
@@ -723,6 +761,7 @@ export async function determineZones(
 ): Promise<ZoneMatchResult> {
   const preferredDeliveryZoneId =
     options?.preferredDeliveryZoneId?.trim() || null;
+  const preferLinkedDeliveryZone = options?.preferLinkedDeliveryZone === true;
 
   // Create cache key from cart items and delivery address
   const cacheKey = JSON.stringify({
@@ -733,6 +772,7 @@ export async function determineZones(
       countryCode: deliveryAddress.countryCode,
     },
     preferredDeliveryZoneId,
+    preferLinkedDeliveryZone,
   });
 
   // Check cache first
@@ -848,9 +888,16 @@ export async function determineZones(
   let deliveryZoneId: string | null = null;
   let deliveryZoneName: string | null = null;
 
-  // Fast path: active wine-zone / geo preference already linked a delivery zone.
-  // Skip Nominatim geocoding on hot paths (cart add → getCart → early-bird).
-  if (preferredDeliveryZoneId) {
+  // Fast path ONLY when explicitly opted in (PDP early-bird). Checkout must
+  // geocode the customer's postal — preferred Stockholm must not invent
+  // shared-pallet coverage for 98131 Kiruna after auth/reload.
+  if (
+    mayBypassGeocodeWithPreferredDeliveryZone({
+      preferLinkedDeliveryZone,
+      preferredDeliveryZoneId,
+      postcode: deliveryAddress.postcode,
+    })
+  ) {
     const preferred = await loadPreferredDeliveryZone(
       sb,
       preferredDeliveryZoneId,
@@ -1173,42 +1220,49 @@ export async function determineZones(
             return result;
           } else {
             console.log("❌ No delivery zones match this address");
-            const preferred = await loadPreferredDeliveryZone(
-              sb,
-              preferredDeliveryZoneId,
-            );
-            if (preferred) {
-              deliveryZoneId = preferred.id;
-              deliveryZoneName = preferred.name;
-              console.log(
-                `✅ Using linked wine-zone delivery zone: ${deliveryZoneName}`,
+            // Checkout: honest out-of-zone (Kiruna 98131). Never fall back to
+            // Stockholm's linked wine-zone delivery — that re-enabled Delad pall
+            // after reload for authenticated guests.
+            if (
+              mayFallbackToPreferredWhenNoGeoMatch(preferLinkedDeliveryZone)
+            ) {
+              const preferred = await loadPreferredDeliveryZone(
+                sb,
+                preferredDeliveryZoneId,
               );
-              const pallets = await buildPalletInfosForDeliveryPair(sb, {
-                shippingRegionId: shippingRegionIdForRouting,
-                pickupZoneId,
-                pickupZoneDisplayName: pickupZoneName,
-                deliveryZoneId,
-                deliveryZoneName,
-              });
-              const linkedResult: ZoneMatchResult = {
-                pickupZoneId,
-                deliveryZoneId,
-                pickupZoneName,
-                deliveryZoneName,
-                availableDeliveryZones: [
-                  {
-                    id: preferred.id,
-                    name: preferred.name,
-                    centerLat: preferred.center_lat,
-                    centerLon: preferred.center_lon,
-                    radiusKm: preferred.radius_km,
-                  },
-                ],
-                pallets,
-                shippingRegionIdForRouting,
-              };
-              cacheZoneResultIfSafe(cacheKey, linkedResult);
-              return linkedResult;
+              if (preferred) {
+                deliveryZoneId = preferred.id;
+                deliveryZoneName = preferred.name;
+                console.log(
+                  `✅ Using linked wine-zone delivery zone: ${deliveryZoneName}`,
+                );
+                const pallets = await buildPalletInfosForDeliveryPair(sb, {
+                  shippingRegionId: shippingRegionIdForRouting,
+                  pickupZoneId,
+                  pickupZoneDisplayName: pickupZoneName,
+                  deliveryZoneId,
+                  deliveryZoneName,
+                });
+                const linkedResult: ZoneMatchResult = {
+                  pickupZoneId,
+                  deliveryZoneId,
+                  pickupZoneName,
+                  deliveryZoneName,
+                  availableDeliveryZones: [
+                    {
+                      id: preferred.id,
+                      name: preferred.name,
+                      centerLat: preferred.center_lat,
+                      centerLon: preferred.center_lon,
+                      radiusKm: preferred.radius_km,
+                    },
+                  ],
+                  pallets,
+                  shippingRegionIdForRouting,
+                };
+                cacheZoneResultIfSafe(cacheKey, linkedResult);
+                return linkedResult;
+              }
             }
             const noDeliveryResult: ZoneMatchResult = {
               pickupZoneId,

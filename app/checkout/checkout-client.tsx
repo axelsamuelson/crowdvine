@@ -159,7 +159,6 @@ import {
   listUsStateCodesSorted,
 } from "@/lib/countries";
 import { isUsConditionalReservationsEnabledClient } from "@/lib/market/feature-flags";
-import { locationLabelFromZone } from "@/lib/market/location-label";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
@@ -175,6 +174,13 @@ import {
   resolveDeliveryAfterProfileSave,
   resolveEffectiveCheckoutDelivery,
 } from "@/lib/checkout/resolve-delivery-after-profile-save";
+import {
+  mergeProfileContactIntoDelivery,
+  readStoredFulfillmentChannel,
+  resolveCheckoutShoppingLocationLabel,
+  resolveFulfillmentChannelAfterReload,
+  storeFulfillmentChannel,
+} from "@/lib/checkout/resolve-checkout-zone-from-postal";
 import {
   checkoutContactBlockReason,
   isCheckoutContactComplete,
@@ -526,8 +532,23 @@ function CheckoutContent({
     getCountryMarketMode(checkoutMarketCountry) === "conditional_reservation";
 
   const effectiveDelivery = useMemo(() => {
-    return resolveEffectiveCheckoutDelivery(zoneAddressRow, deliveryDraft);
-  }, [zoneAddressRow, deliveryDraft]);
+    const base = resolveEffectiveCheckoutDelivery(
+      zoneAddressRow,
+      deliveryDraft,
+    );
+    // Auth profile contact wins over stale zone-address email/name/phone (D).
+    return mergeProfileContactIntoDelivery(base, {
+      fullName: profile?.full_name,
+      email: profile?.email,
+      phone: profile?.phone,
+    });
+  }, [
+    zoneAddressRow,
+    deliveryDraft,
+    profile?.full_name,
+    profile?.email,
+    profile?.phone,
+  ]);
 
   const ageCountryCode = (
     effectiveDelivery?.countryCode ||
@@ -925,6 +946,64 @@ function CheckoutContent({
   }, [
     postalFulfillment.directBoxAvailable,
     postalFulfillment.sharedPalletAvailable,
+    fulfillmentChannel,
+  ]);
+
+  // Persist channel choice across reload when still available (acceptance B).
+  // Do NOT store the initial default before restore — that overwrote a saved
+  // direct_box with shared_pallet on every reload.
+  const fulfillmentRestoredRef = useRef(false);
+  useEffect(() => {
+    if (!fulfillmentRestoredRef.current) {
+      // Still persist an explicit Direct pick before restore settles so a
+      // mid-flow reload keeps it; never write the default shared yet.
+      if (fulfillmentChannel === "direct_box") {
+        storeFulfillmentChannel("direct_box");
+      }
+      return;
+    }
+    storeFulfillmentChannel(fulfillmentChannel);
+  }, [fulfillmentChannel]);
+  useEffect(() => {
+    if (fulfillmentRestoredRef.current) return;
+    if (!hasPostalCode || zoneLoading || !zoneFetchCompleted) return;
+    const stored = readStoredFulfillmentChannel();
+    // Wait until Direct is selectable when we have a stored direct choice
+    // (carrier quote may lag zone match). If Direct is offered but not yet
+    // selectable, keep waiting; once deliverySelectable settles true/false
+    // via postalFulfillment, proceed.
+    if (
+      stored === "direct_box" &&
+      !postalFulfillment.directBoxAvailable &&
+      directBoxCheckoutEnabled &&
+      directBoxAvailability.offered &&
+      !directBoxAvailability.deliverySelectable
+    ) {
+      return;
+    }
+    fulfillmentRestoredRef.current = true;
+    const next = resolveFulfillmentChannelAfterReload({
+      stored,
+      sharedPalletAvailable: postalFulfillment.sharedPalletAvailable,
+      directBoxAvailable: postalFulfillment.directBoxAvailable,
+      fallback: fulfillmentChannel,
+    });
+    if (next !== fulfillmentChannel) {
+      setServerQuote(null);
+      setQuoteStatus("loading");
+      setFulfillmentChannel(next);
+    } else {
+      storeFulfillmentChannel(next);
+    }
+  }, [
+    hasPostalCode,
+    zoneLoading,
+    zoneFetchCompleted,
+    postalFulfillment.sharedPalletAvailable,
+    postalFulfillment.directBoxAvailable,
+    directBoxCheckoutEnabled,
+    directBoxAvailability.offered,
+    directBoxAvailability.deliverySelectable,
     fulfillmentChannel,
   ]);
 
@@ -1811,12 +1890,13 @@ function CheckoutContent({
         return prev;
       }
       if (fromDb) {
+        // Profile contact wins — never keep an older zone-template email (D).
         return {
           ...fromDb,
           fullName:
-            fromDb.fullName || profile?.full_name?.trim() || null,
-          email: fromDb.email || profile?.email?.trim() || null,
-          phone: fromDb.phone || profile?.phone?.trim() || null,
+            profile?.full_name?.trim() || fromDb.fullName || null,
+          email: profile?.email?.trim() || fromDb.email || null,
+          phone: profile?.phone?.trim() || fromDb.phone || null,
         };
       }
       return {
@@ -4405,12 +4485,9 @@ function CheckoutContent({
       activeShop?.countryCode ||
       checkoutMarketCountry ||
       "SE";
-    // Do not invent Stockholm as city for every SE postal — that made Kiruna
-    // look in-zone when geocoding was unavailable. Keep known city; else blank.
-    const city =
-      deliveryDraft?.city?.trim() ||
-      activeShop?.city?.trim() ||
-      "";
+    // Do not invent Stockholm from active shopping geo — that contaminated
+    // Kiruna 98131 drafts and the "Handlar i" row after reload.
+    const city = deliveryDraft?.city?.trim() || "";
 
     const lines: ZoneDeliveryLines = {
       street: deliveryDraft?.street ?? "",
@@ -5030,25 +5107,43 @@ function CheckoutContent({
                   <h2 className="text-base font-semibold text-foreground">
                     {t("checkout.deliveryDetails")}
                   </h2>
-                  {activeShop ? (
-                    <p className="text-xs text-muted-foreground">
-                      {t("checkout.shoppingIn")}{" "}
-                      <span className="font-medium text-foreground/80">
-                        {locationLabelFromZone(
-                          activeShop.displayName || "",
-                          activeShop.countryCode || "",
-                          shopping.locale === "en" ? "en" : "sv",
-                          activeShop.displayName || "",
-                        )}
-                      </span>
-                      <span> · </span>
-                      <span>{activeShop.currencyCode}</span>
-                    </p>
-                  ) : !zoneTemplatesLoaded ? (
-                    <p className="text-xs text-muted-foreground">
-                      {t("checkout.loadingZone")}
-                    </p>
-                  ) : null}
+                  {(() => {
+                    const shoppingLabel = resolveCheckoutShoppingLocationLabel({
+                      deliveryCity: effectiveDelivery?.city,
+                      deliveryCountryCode: effectiveDelivery?.countryCode,
+                      postal:
+                        effectiveDelivery?.postal?.trim() ||
+                        postalCodeDraft.trim() ||
+                        null,
+                      activeDisplayName: activeShop?.displayName,
+                      activeCountryCode: activeShop?.countryCode,
+                      locale: shopping.locale === "en" ? "en" : "sv",
+                    });
+                    if (shoppingLabel) {
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          {t("checkout.shoppingIn")}{" "}
+                          <span className="font-medium text-foreground/80">
+                            {shoppingLabel}
+                          </span>
+                          {activeShop?.currencyCode ? (
+                            <>
+                              <span> · </span>
+                              <span>{activeShop.currencyCode}</span>
+                            </>
+                          ) : null}
+                        </p>
+                      );
+                    }
+                    if (!zoneTemplatesLoaded) {
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          {t("checkout.loadingZone")}
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {!hasPostalCode ? (
@@ -6659,15 +6754,8 @@ function CheckoutContent({
                                 </p>
                               ) : null}
 
-                              {!paymentUiReady ? (
-                                <p
-                                  className="text-sm text-muted-foreground"
-                                  data-checkout-payment-loading="true"
-                                  data-testid="checkout-payment-reloading"
-                                >
-                                  {t("checkout.loadingPayment")}
-                                </p>
-                              ) : null}
+                              {/* Laddar betalning… lives only in the Stripe card
+                                  box (stripe-payment-section) — not above CTA. */}
 
                               <Button
                                 type="button"
