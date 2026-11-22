@@ -1,10 +1,63 @@
 import { describe, expect, it } from "vitest";
 import {
   checkoutChargeTimingMessageKey,
+  checkoutPaymentModeMatchesChannel,
   checkoutPlaceOrderCtaMessageKey,
+  expectedCheckoutPaymentMode,
 } from "@/lib/checkout/charge-timing-copy";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
+describe("expectedCheckoutPaymentMode", () => {
+  it("maps direct_box to payment_intent and shared_pallet to setup_intent", () => {
+    expect(
+      expectedCheckoutPaymentMode({ fulfillmentChannel: "direct_box" }),
+    ).toBe("payment_intent");
+    expect(
+      expectedCheckoutPaymentMode({ fulfillmentChannel: "shared_pallet" }),
+    ).toBe("setup_intent");
+  });
+
+  it("treats a mismatched live Stripe mode as not ready for the channel", () => {
+    expect(
+      checkoutPaymentModeMatchesChannel({
+        paymentMode: "setup_intent",
+        fulfillmentChannel: "direct_box",
+      }),
+    ).toBe(false);
+    expect(
+      checkoutPaymentModeMatchesChannel({
+        paymentMode: "payment_intent",
+        fulfillmentChannel: "shared_pallet",
+      }),
+    ).toBe(false);
+    expect(
+      checkoutPaymentModeMatchesChannel({
+        paymentMode: null,
+        fulfillmentChannel: "direct_box",
+      }),
+    ).toBe(false);
+    expect(
+      checkoutPaymentModeMatchesChannel({
+        paymentMode: "payment_intent",
+        fulfillmentChannel: "direct_box",
+      }),
+    ).toBe(true);
+  });
+
+  it("channel-expected mode drives direct copy even before Stripe reports", () => {
+    const expected = expectedCheckoutPaymentMode({
+      fulfillmentChannel: "direct_box",
+    });
+    expect(checkoutChargeTimingMessageKey({ paymentMode: expected })).toBe(
+      "chargedOnConfirm",
+    );
+    expect(checkoutPlaceOrderCtaMessageKey({ paymentMode: expected })).toEqual({
+      key: "payNow",
+      needsAmount: false,
+    });
+  });
+});
 
 describe("checkoutChargeTimingMessageKey", () => {
   it("uses immediate-charge copy for payment_intent (Pay now path)", () => {
@@ -93,6 +146,8 @@ describe("checkout charge-timing wiring", () => {
     expect(checkout).toContain("chargeTimingCopyKey");
     expect(checkout).toContain("checkoutPlaceOrderCtaMessageKey");
     expect(checkout).toContain("placeOrderCta");
+    expect(checkout).toContain("expectedCheckoutPaymentMode");
+    expect(checkout).toContain("checkoutPaymentModeMatchesChannel");
     expect(checkout).toContain("data-checkout-charge-timing");
     expect(checkout).toContain("data-checkout-place-cta");
     // Must not still hardcode deferred string as the only footer line
@@ -103,6 +158,20 @@ describe("checkout charge-timing wiring", () => {
     expect(checkout).not.toMatch(
       /paymentMode === "payment_intent"\s*\?\s*t\("checkout\.payNow"\)\s*:\s*isUsConditional/,
     );
+  });
+
+  it("stripe payment section clears intent UI when fulfillment channel changes", () => {
+    const stripe = readFileSync(
+      join(__dirname, "../../components/checkout/stripe-payment-section.tsx"),
+      "utf8",
+    );
+    expect(stripe).toContain("fulfillmentChannel");
+    // Channel/context change must drop the previous secret so pallet copy
+    // cannot linger while the matching intent reloads.
+    expect(stripe).toMatch(
+      /fulfillmentChannel[\s\S]*setClientSecret\(null\)[\s\S]*setPaymentMode\(null\)/,
+    );
+    expect(stripe).toMatch(/loading && !clientSecret/);
   });
 
   it("sv/en timing strings and CTA keys stay model-safe", () => {

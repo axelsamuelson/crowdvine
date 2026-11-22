@@ -76,7 +76,9 @@ import {
 } from "@/lib/checkout/dual-offer-customer-copy";
 import {
   checkoutChargeTimingMessageKey,
+  checkoutPaymentModeMatchesChannel,
   checkoutPlaceOrderCtaMessageKey,
+  expectedCheckoutPaymentMode,
 } from "@/lib/checkout/charge-timing-copy";
 import { toast } from "sonner";
 import {
@@ -4018,6 +4020,17 @@ function CheckoutContent({
     }
   }, [authReady]);
 
+  // Fulfillment switch (Delad pall ↔ Direktleverans): drop the previous
+  // intent/mode immediately so footer/CTA cannot keep the wrong charge timing
+  // while Stripe reloads the matching SetupIntent / PaymentIntent.
+  useEffect(() => {
+    setStripeConfirmFn(null);
+    setPaymentMode(null);
+    setStripeIntentId(null);
+    setPaymentElementComplete(false);
+    setStripeError(null);
+  }, [fulfillmentChannel]);
+
   useEffect(() => {
     if (!Number.isFinite(maxRedemption)) return;
     if (redeemPoints > maxRedemption) {
@@ -4028,23 +4041,38 @@ function CheckoutContent({
   const currencyCode =
     shopping.currencyCode || cart?.cost?.totalAmount?.currencyCode || "SEK";
 
+  const expectedPaymentMode = useMemo(
+    () =>
+      expectedCheckoutPaymentMode({
+        fulfillmentChannel,
+      }),
+    [fulfillmentChannel],
+  );
+
+  const paymentModeReadyForChannel = checkoutPaymentModeMatchesChannel({
+    paymentMode,
+    fulfillmentChannel,
+  });
+
+  // Copy follows the selected channel immediately; the live Stripe mode only
+  // gates whether the place CTA is enabled.
   const chargeTimingCopyKey = useMemo(
     () =>
       checkoutChargeTimingMessageKey({
-        paymentMode,
+        paymentMode: expectedPaymentMode,
         isUsConditional,
       }),
-    [paymentMode, isUsConditional],
+    [expectedPaymentMode, isUsConditional],
   );
 
   const placeOrderCta = useMemo(
     () =>
       checkoutPlaceOrderCtaMessageKey({
-        paymentMode,
+        paymentMode: expectedPaymentMode,
         isUsConditional,
         isSubmitting,
       }),
-    [paymentMode, isUsConditional, isSubmitting],
+    [expectedPaymentMode, isUsConditional, isSubmitting],
   );
 
   const orderLines: CartItem[] = cart?.lines ?? [];
@@ -6396,7 +6424,7 @@ function CheckoutContent({
                                 !isValidCart ||
                                 !legacySharedPalletPaymentAllowed ||
                                 !stripeConfirmFn ||
-                                !paymentMode ||
+                                !paymentModeReadyForChannel ||
                                 !stripeIntentId ||
                                 !paymentElementComplete ||
                                 isSubmitting ||
@@ -6486,6 +6514,18 @@ function CheckoutContent({
                                 </p>
                               ) : null}
 
+                              {!paymentModeReadyForChannel ||
+                              !stripeConfirmFn ||
+                              !stripeIntentId ? (
+                                <p
+                                  className="text-sm text-muted-foreground"
+                                  data-checkout-payment-loading="true"
+                                  data-testid="checkout-payment-reloading"
+                                >
+                                  {t("checkout.preparingCheckout")}
+                                </p>
+                              ) : null}
+
                               <Button
                                 type="button"
                                 data-testid="checkout-place-reservation"
@@ -6494,7 +6534,7 @@ function CheckoutContent({
                                 disabled={
                                   !legacySharedPalletPaymentAllowed ||
                                   !stripeConfirmFn ||
-                                  !paymentMode ||
+                                  !paymentModeReadyForChannel ||
                                   !stripeIntentId ||
                                   isSubmitting ||
                                   zoneLoading ||

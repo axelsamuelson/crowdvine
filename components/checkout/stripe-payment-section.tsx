@@ -593,10 +593,14 @@ export function StripePaymentSection({
   const [paymentElementLoadError, setPaymentElementLoadError] = useState<
     string | null
   >(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!prefetchedIntent?.clientSecret);
   const [retryNonce, setRetryNonce] = useState(0);
   const onIntentCreatedRef = useRef(onIntentCreated);
   onIntentCreatedRef.current = onIntentCreated;
+  const onConfirmReadyRef = useRef(onConfirmReady);
+  onConfirmReadyRef.current = onConfirmReady;
+  const onPaymentElementCompleteRef = useRef(onPaymentElementComplete);
+  onPaymentElementCompleteRef.current = onPaymentElementComplete;
   const onQuoteRef = useRef(onQuote);
   onQuoteRef.current = onQuote;
   const appliedPrefetchIdRef = useRef<string | null>(
@@ -609,6 +613,18 @@ export function StripePaymentSection({
   useEffect(() => {
     fetchedRef.current = false;
     appliedPrefetchIdRef.current = null;
+    // Drop the previous intent immediately so SetupIntent / PaymentIntent
+    // copy cannot linger across a fulfillment-channel switch (or other
+    // context change) while the matching intent reloads.
+    setClientSecret(null);
+    setPaymentMode(null);
+    setIntentId(null);
+    setAmountInOre(null);
+    setError(null);
+    setPaymentElementLoadError(null);
+    setLoading(true);
+    onConfirmReadyRef.current(null);
+    onPaymentElementCompleteRef.current?.(false);
   }, [
     palletId,
     pactPointsRedeem,
