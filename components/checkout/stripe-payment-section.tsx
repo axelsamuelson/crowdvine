@@ -880,8 +880,15 @@ export function StripePaymentSection({
 
   if (loading && !clientSecret) {
     return (
-      <div className="space-y-3 rounded-md border border-border bg-background p-4">
-        <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+      <div
+        className="space-y-3 rounded-md border border-border bg-background p-4"
+        data-testid="checkout-stripe-loading"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <p className="text-sm text-muted-foreground">
+          {t("checkout.loadingPayment")}
+        </p>
         <div className="h-9 w-full animate-pulse rounded bg-muted" />
         <div className="h-9 w-3/4 animate-pulse rounded bg-muted" />
       </div>

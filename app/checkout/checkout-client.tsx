@@ -6524,7 +6524,7 @@ function CheckoutContent({
                                   data-checkout-payment-loading="true"
                                   data-testid="checkout-payment-reloading"
                                 >
-                                  {t("checkout.preparingCheckout")}
+                                  {t("checkout.loadingPayment")}
                                 </p>
                               ) : null}
 

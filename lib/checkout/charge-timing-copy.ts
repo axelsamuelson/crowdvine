@@ -12,9 +12,11 @@
  * - same mode rules; unknown/loading/error must not use
  *   `placeReservationWithPayment` (that string promises pallet-close timing)
  *
- * Channel switches must update copy immediately via
- * `expectedCheckoutPaymentMode` — never leave stale SetupIntent / pallet
- * wording visible while a PaymentIntent (or vice versa) is still loading.
+ * Channel switches (and the initial Stripe wait) must update copy immediately
+ * via `expectedCheckoutPaymentMode` — never leave stale SetupIntent / pallet
+ * wording, or a neutral "Köp" CTA, while a PaymentIntent (or vice versa) is
+ * still loading. Pair with a short `loadingPayment` status; keep the place
+ * CTA disabled until the matching intent is ready.
  */
 export type CheckoutPaymentMode = "payment_intent" | "setup_intent";
 

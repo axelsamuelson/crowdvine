@@ -205,6 +205,28 @@ describe("checkout charge-timing wiring", () => {
     // SI CTA may keep deferred timing (known setup_intent only)
     expect(en.checkout.placeReservationWithPayment).toMatch(/pallet closes/i);
     expect(sv.checkout.placeReservationWithPayment).toMatch(/pallen stänger/i);
+    // Neutral Stripe reload copy (AC2) — short, no mode promise
+    expect(en.checkout.loadingPayment).toMatch(/loading payment/i);
+    expect(sv.checkout.loadingPayment).toMatch(/Laddar betalning/i);
+    expect(en.checkout.loadingPayment).not.toMatch(/pallet|pay now|charged/i);
+    expect(sv.checkout.loadingPayment).not.toMatch(
+      /pallen|Betala nu|debiteras|Inget dras/i,
+    );
+  });
+
+  it("checkout and stripe section surface loadingPayment while intent reloads", () => {
+    const checkout = readFileSync(
+      join(__dirname, "../../app/checkout/checkout-client.tsx"),
+      "utf8",
+    );
+    const stripe = readFileSync(
+      join(__dirname, "../../components/checkout/stripe-payment-section.tsx"),
+      "utf8",
+    );
+    expect(checkout).toContain('t("checkout.loadingPayment")');
+    expect(checkout).toContain("data-testid=\"checkout-payment-reloading\"");
+    expect(stripe).toContain('t("checkout.loadingPayment")');
+    expect(stripe).toContain('data-testid="checkout-stripe-loading"');
   });
 
   it("place CTA button classes allow wrap at narrow widths", () => {
