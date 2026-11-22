@@ -230,6 +230,30 @@ export function storePostalDraft(draft: CheckoutPostalDraftStored): void {
   }
 }
 
+/** Clear guest postal draft (Byt / wipe). */
+export function clearStoredPostalDraft(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY);
+  } catch {
+    /* private mode */
+  }
+}
+
+/**
+ * Clear sticky channel + userSet flag so the next postal re-evaluates
+ * availability (Byt must not keep auto-Direct from a prior out_of_zone).
+ */
+export function clearStoredFulfillmentChannel(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY);
+    window.sessionStorage.removeItem(CHECKOUT_FULFILLMENT_USER_SET_KEY);
+  } catch {
+    /* private mode */
+  }
+}
+
 /**
  * Restore a saved channel only when it is still offered for this postal.
  *

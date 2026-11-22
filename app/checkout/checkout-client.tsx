@@ -179,6 +179,8 @@ import {
   resolveEffectiveCheckoutDelivery,
 } from "@/lib/checkout/resolve-delivery-after-profile-save";
 import {
+  clearStoredFulfillmentChannel,
+  clearStoredPostalDraft,
   mergeProfileContactIntoDelivery,
   readStoredFulfillmentChannel,
   readStoredFulfillmentUserSet,
@@ -5357,6 +5359,19 @@ function CheckoutContent({
                               d ? { ...d, postal: "" } : d,
                             );
                             setBudbeeAvailable(null);
+                            // Byt must re-arm channel restore so a prior
+                            // out_of_zone auto-Direct does not stick on the
+                            // next postal (Camille 11151 after GBG).
+                            clearStoredPostalDraft();
+                            clearStoredFulfillmentChannel();
+                            fulfillmentUserSetRef.current = false;
+                            fulfillmentRestoredRef.current = false;
+                            setFulfillmentChannel(
+                              palletCloseSwitchDirect &&
+                                directBoxCheckoutEnabled
+                                ? "direct_box"
+                                : defaultFulfillmentChannel(),
+                            );
                           }}
                         >
                           {t("checkout.edit")}

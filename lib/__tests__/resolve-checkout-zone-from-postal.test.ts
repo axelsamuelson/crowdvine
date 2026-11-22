@@ -1,13 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   isLikelyStockholmAreaPostal,
   mayBypassGeocodeWithPreferredDeliveryZone,
   mayFallbackToPreferredWhenNoGeoMatch,
 } from "@/lib/zone-matching";
 import {
+  CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY,
+  CHECKOUT_FULFILLMENT_USER_SET_KEY,
+  CHECKOUT_POSTAL_DRAFT_STORAGE_KEY,
+  clearStoredFulfillmentChannel,
+  clearStoredPostalDraft,
   mergeProfileContactIntoDelivery,
   resolveCheckoutShoppingLocationLabel,
   resolveFulfillmentChannelAfterReload,
+  storeFulfillmentChannel,
+  storePostalDraft,
 } from "@/lib/checkout/resolve-checkout-zone-from-postal";
 import type { ZoneDeliveryLines } from "@/lib/checkout/user-zone-delivery-template";
 
@@ -189,5 +196,46 @@ describe("resolveFulfillmentChannelAfterReload (acceptance B)", () => {
         fallback: "direct_box",
       }),
     ).toBe("shared_pallet");
+  });
+});
+
+describe("Byt clears sticky channel + postal draft", () => {
+  const mem = new Map<string, string>();
+  const fakeStorage = {
+    getItem: (k: string) => mem.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      mem.set(k, v);
+    },
+    removeItem: (k: string) => {
+      mem.delete(k);
+    },
+  };
+
+  beforeEach(() => {
+    mem.clear();
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { sessionStorage: fakeStorage },
+    });
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(globalThis, "window");
+  });
+
+  it("clearStoredFulfillmentChannel removes channel + userSet", () => {
+    storeFulfillmentChannel("direct_box", { userSet: true });
+    expect(mem.get(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY)).toBe("direct_box");
+    expect(mem.get(CHECKOUT_FULFILLMENT_USER_SET_KEY)).toBe("1");
+    clearStoredFulfillmentChannel();
+    expect(mem.has(CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY)).toBe(false);
+    expect(mem.has(CHECKOUT_FULFILLMENT_USER_SET_KEY)).toBe(false);
+  });
+
+  it("clearStoredPostalDraft removes postal draft", () => {
+    storePostalDraft({ postal: "41101", city: "Göteborg", countryCode: "SE" });
+    expect(mem.has(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY)).toBe(true);
+    clearStoredPostalDraft();
+    expect(mem.has(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY)).toBe(false);
   });
 });
