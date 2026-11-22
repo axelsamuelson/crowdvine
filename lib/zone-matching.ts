@@ -33,7 +33,7 @@ export function clearZoneCache() {
 }
 
 // Calculate distance between two points using Haversine formula
-function calculateDistance(
+export function calculateDistanceKm(
   lat1: number,
   lon1: number,
   lat2: number,
@@ -50,6 +50,90 @@ function calculateDistance(
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+}
+
+/** @deprecated Use {@link calculateDistanceKm} */
+function calculateDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  return calculateDistanceKm(lat1, lon1, lat2, lon2);
+}
+
+export type DeliveryZoneGeoRow = {
+  id: string;
+  name: string | null;
+  center_lat: number | null;
+  center_lon: number | null;
+  radius_km: number | null;
+};
+
+/**
+ * Match coordinates against all delivery-zone radii (smallest radius first).
+ * Pure — used by determineZones and unit tests with prod-mirroring fixtures
+ * (Göteborg / Malmö / Uppsala / …), not only Stockholm.
+ */
+export function findMatchingDeliveryZones(
+  lat: number,
+  lon: number,
+  zones: DeliveryZoneGeoRow[],
+): DeliveryZoneOption[] {
+  const matchingZones: DeliveryZoneOption[] = [];
+  for (const zone of zones) {
+    if (
+      zone.center_lat == null ||
+      zone.center_lon == null ||
+      zone.radius_km == null
+    ) {
+      continue;
+    }
+    const distance = calculateDistanceKm(
+      lat,
+      lon,
+      zone.center_lat,
+      zone.center_lon,
+    );
+    if (distance <= zone.radius_km) {
+      matchingZones.push({
+        id: zone.id,
+        name: String(zone.name ?? ""),
+        centerLat: zone.center_lat,
+        centerLon: zone.center_lon,
+        radiusKm: zone.radius_km,
+      });
+    }
+  }
+  matchingZones.sort((a, b) => a.radiusKm - b.radiusKm);
+  return matchingZones;
+}
+
+/**
+ * Build Mapbox query for checkout zone match. City may be missing (guest
+ * postal-only) or equal to the postcode (UI seed) — still geocode postcode+country
+ * so non-Stockholm delivery zones (Göteborg, Malmö, …) can match.
+ */
+export function buildDeliveryGeocodeAddress(input: {
+  postcode: string;
+  city?: string | null;
+  countryCode: string;
+}): string {
+  const postal = String(input.postcode ?? "").trim();
+  const cityRaw = String(input.city ?? "").trim();
+  const postalDigits = postal.replace(/\s+/g, "");
+  const cityDigits = cityRaw.replace(/\s+/g, "");
+  const city =
+    cityRaw && cityDigits !== postalDigits ? cityRaw : "";
+  const cc =
+    normalizeProfileCountry(String(input.countryCode ?? "").trim()) ||
+    String(input.countryCode ?? "").trim().toUpperCase();
+  return createFullAddress({
+    street: city ? `${postal} ${city}` : postal,
+    postcode: postal,
+    city: city || undefined,
+    country: getCountryDisplayName(cc || "SE", "en"),
+  });
 }
 
 type PalletZoneEmbed = {
@@ -939,12 +1023,10 @@ export async function determineZones(
     }
   }
 
-  // Only set delivery zone if we have a valid delivery address
-  if (
-    deliveryAddress.countryCode &&
-    deliveryAddress.city &&
-    deliveryAddress.postcode
-  ) {
+  // Delivery match needs postcode + country. City may be missing (guest
+  // postal-only) — geocode postcode+country against ALL delivery zones
+  // (Göteborg / Malmö / Uppsala / …), not only Stockholm.
+  if (deliveryAddress.countryCode && deliveryAddress.postcode) {
     const profileCc = normalizeProfileCountry(deliveryAddress.countryCode);
 
     if (!profileCc || getCountryMarketMode(profileCc) === "unsupported") {
@@ -1028,15 +1110,20 @@ export async function determineZones(
     }
 
     if (!deliveryZonesError && deliveryZones && deliveryZones.length > 0) {
-      // Use automatic geocoding to get exact coordinates
-      const fullAddress = createFullAddress({
-        street: `${deliveryAddress.postcode} ${deliveryAddress.city}`,
+      // Geocode postcode (+ city when real) against every delivery zone.
+      const fullAddress = buildDeliveryGeocodeAddress({
         postcode: deliveryAddress.postcode,
         city: deliveryAddress.city,
-        country: getCountryDisplayName(countryCodeNormalized, "en"),
+        countryCode: countryCodeNormalized,
       });
 
-      console.log("🌍 Geocoding address:", fullAddress);
+      console.log("🌍 Geocoding address:", fullAddress, {
+        cityPresent: Boolean(String(deliveryAddress.city ?? "").trim()),
+        postalOnly:
+          !String(deliveryAddress.city ?? "").trim() ||
+          String(deliveryAddress.city ?? "").replace(/\s+/g, "") ===
+            String(deliveryAddress.postcode ?? "").replace(/\s+/g, ""),
+      });
       const geocodeResult = await geocodeAddress(fullAddress);
 
       const geocodeFailed =
@@ -1046,16 +1133,29 @@ export async function determineZones(
 
       if (geocodeFailed) {
         if ("error" in geocodeResult) {
-          console.warn("⚠️ Geocoding failed:", geocodeResult.message);
+          console.warn(
+            "⚠️ Geocoding failed (fail-closed for shared pallet; no zone invent):",
+            geocodeResult.message,
+            {
+              postcode: deliveryAddress.postcode,
+              city: deliveryAddress.city,
+              countryCode: deliveryAddress.countryCode,
+            },
+          );
         } else {
           console.warn(
-            "⚠️ Invalid coordinates from geocoding:",
+            "⚠️ Invalid coordinates from geocoding (fail-closed for shared pallet):",
             geocodeResult.lat,
             geocodeResult.lon,
+            {
+              postcode: deliveryAddress.postcode,
+              city: deliveryAddress.city,
+            },
           );
         }
-        // Graceful degrade: preferred / Stockholm SE zone so a Mapbox outage
-        // does not strand valid Swedish checkout (B2C still needs a pallet).
+        // Graceful degrade: preferred / Stockholm SE zone ONLY for Stockholm-area
+        // postals so a Mapbox outage does not strand valid Stockholm checkout.
+        // Non-Stockholm (Göteborg / Malmö / Kiruna / …): fail-closed for pall.
         const fallback = await resolveSeDeliveryZoneFallback(
           sb,
           preferredDeliveryZoneId,
@@ -1092,7 +1192,7 @@ export async function determineZones(
           cacheZoneResultIfSafe(cacheKey, fallbackResult);
           return fallbackResult;
         }
-        // Geocode down and postal outside Stockholm-area → honest out-of-zone
+        // Geocode down and no Stockholm-area preferred → honest out-of-zone
         // (direct_box may still fulfill; shared_pallet must not pretend coverage).
         const noDeliveryOnGeocodeFail: ZoneMatchResult = {
           pickupZoneId,
@@ -1106,7 +1206,7 @@ export async function determineZones(
             error: "NO_DELIVERY_ZONE",
             message: "We don't deliver to your area yet.",
             address: {
-              city: deliveryAddress.city,
+              city: deliveryAddress.city || deliveryAddress.postcode,
               postcode: deliveryAddress.postcode,
               countryCode: deliveryAddress.countryCode,
             },
@@ -1129,9 +1229,11 @@ export async function determineZones(
             lon: addressLon,
           });
 
-          // Find all zones that contain this address
-          const matchingZones: DeliveryZoneOption[] = [];
-
+          const matchingZones = findMatchingDeliveryZones(
+            addressLat,
+            addressLon,
+            deliveryZones,
+          );
           for (const zone of deliveryZones) {
             if (zone.center_lat && zone.center_lon && zone.radius_km) {
               const distance = calculateDistance(
@@ -1140,27 +1242,14 @@ export async function determineZones(
                 zone.center_lat,
                 zone.center_lon,
               );
-
               console.log(
                 `📏 Distance to ${zone.name}: ${distance.toFixed(2)}km (radius: ${zone.radius_km}km)`,
               );
-
-              if (distance <= zone.radius_km) {
-                matchingZones.push({
-                  id: zone.id,
-                  name: zone.name,
-                  centerLat: zone.center_lat,
-                  centerLon: zone.center_lon,
-                  radiusKm: zone.radius_km,
-                });
-              }
             }
           }
 
           // If we have matching zones, prioritize by smallest radius (most specific)
           if (matchingZones.length > 0) {
-            // Sort by radius (smallest first) to prefer more specific zones
-            matchingZones.sort((a, b) => a.radiusKm - b.radiusKm);
             bumpPreferredDeliveryMatch(matchingZones, preferredDeliveryZoneId);
 
             deliveryZoneId = matchingZones[0].id;
@@ -1291,41 +1380,10 @@ export async function determineZones(
       }
     }
   } else {
-    // Incomplete address (missing city): never soft-succeed with pickup-only.
-    // Checkout treated pickupZoneName as "routing" and left zoneError null →
-    // shared_pallet looked available (99 kr) after guest reload for 98131.
+    // Missing postcode or country — cannot match delivery; do not soft-succeed
+    // with pickup-only (that re-enabled Delad pall after guest reload for 98131).
     deliveryZoneId = null;
     deliveryZoneName = null;
-    const postal = String(deliveryAddress.postcode ?? "").trim();
-    const ccRaw = String(deliveryAddress.countryCode ?? "").trim();
-    const cc = normalizeProfileCountry(ccRaw);
-    if (
-      postal &&
-      cc &&
-      getCountryMarketMode(cc) !== "unsupported" &&
-      getCountryMarketMode(cc) !== "conditional_reservation"
-    ) {
-      const incompleteNoDelivery: ZoneMatchResult = {
-        pickupZoneId,
-        pickupZoneName,
-        deliveryZoneId: null,
-        deliveryZoneName: null,
-        availableDeliveryZones: [],
-        pallets: [],
-        shippingRegionIdForRouting,
-        noDeliveryZone: {
-          error: "NO_DELIVERY_ZONE",
-          message: "We don't deliver to your area yet.",
-          address: {
-            city: deliveryAddress.city || postal,
-            postcode: postal,
-            countryCode: deliveryAddress.countryCode,
-          },
-        },
-      };
-      cacheZoneResultIfSafe(cacheKey, incompleteNoDelivery);
-      return incompleteNoDelivery;
-    }
   }
 
   const pallets: PalletInfo[] =

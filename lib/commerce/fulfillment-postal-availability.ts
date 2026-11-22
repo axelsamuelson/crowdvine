@@ -20,11 +20,15 @@ export type PostalZoneMatch =
 /**
  * Map checkout zone UI state → PostalZoneMatch for channel availability.
  *
- * Guest reload bug (Camille 22/11): before zones settle (or when the API
- * soft-succeeds with pickupZoneName only and no deliveryZoneId), zoneMatch
- * was "unknown" → shared_pallet looked available with 99 kr. Fail closed for
- * non-Stockholm postals while loading, and whenever fetch completed without
- * a delivery zone.
+ * Guest reload bug (Camille 22/11): soft-success / unknown made Delad look
+ * available (99 kr). Rules:
+ * - Server `NO_DELIVERY_ZONE` / ready delivery zone are authoritative.
+ * - After fetch completes without a delivery zone → out_of_zone (pickup label
+ *   alone ≠ coverage). This is NOT the Stockholm postal heuristic.
+ * - `isLikelyStockholmAreaPostal` is ONLY a loading flash-guard for Kiruna-class
+ *   postals. It must never be the final answer for Göteborg / Malmö / Uppsala
+ *   (or any non-Stockholm delivery zone) — once the server matches those zones,
+ *   `deliveryZoneReady` wins.
  */
 export function resolveCheckoutZoneMatchForAvailability(input: {
   zoneError: "NO_DELIVERY_ZONE" | "UNSUPPORTED_COUNTRY" | null | undefined;
@@ -40,11 +44,12 @@ export function resolveCheckoutZoneMatchForAvailability(input: {
   const hasSePostal = /^\d{5}$/.test(postal);
   if (!hasSePostal) return "unknown";
 
-  // Fetch done, no delivery zone → honest out-of-zone (pickup label alone ≠ coverage).
+  // Fetch done, no delivery zone → honest out-of-zone (server already decided;
+  // not a Stockholm-prefix heuristic).
   if (input.zoneFetchCompleted) return "out_of_zone";
 
-  // While loading: keep Kiruna etc. fail-closed so Delad pall never flashes
-  // available before/after address or while shipping-preview prices load.
+  // Loading-only flash guard: non-10–19 prefixes stay fail-closed until zones
+  // settle. Göteborg 41101 becomes in_zone when deliveryZoneReady flips true.
   if (!isLikelyStockholmAreaPostal(postal)) return "out_of_zone";
 
   return "unknown";
