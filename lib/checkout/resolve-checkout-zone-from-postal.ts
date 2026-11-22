@@ -19,6 +19,28 @@ import type { ZoneDeliveryLines } from "@/lib/checkout/user-zone-delivery-templa
 export const CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY =
   "pact_checkout_fulfillment_channel";
 
+/**
+ * Marks that the stored channel was an explicit radio pick (not auto-select
+ * when shared was out_of_zone). Without this, GBG→auto-Direct poisoned 11151
+ * reloads (Camille 22/11).
+ */
+export const CHECKOUT_FULFILLMENT_USER_SET_KEY =
+  "pact_checkout_fulfillment_user_set";
+
+/**
+ * Guest postal / address lines for reload (Camille 22/11: 3/4 runs wiped
+ * postal after remount). sessionStorage only — no DOB; scrub list aware.
+ */
+export const CHECKOUT_POSTAL_DRAFT_STORAGE_KEY = "pact_checkout_postal_draft";
+
+export type CheckoutPostalDraftStored = {
+  postal: string;
+  city?: string;
+  street?: string;
+  countryCode?: string;
+  regionCode?: string | null;
+};
+
 /** Local copy of Stockholm-area heuristic — avoid importing zone-matching here. */
 function isLikelyStockholmAreaPostal(postcode: string | null | undefined): boolean {
   const digits = String(postcode ?? "").replace(/\D/g, "");
@@ -128,12 +150,80 @@ export function readStoredFulfillmentChannel(): FulfillmentChannel | null {
   }
 }
 
-export function storeFulfillmentChannel(channel: FulfillmentChannel): void {
+export function readStoredFulfillmentUserSet(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(CHECKOUT_FULFILLMENT_USER_SET_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Persist channel. Pass `userSet: true` only for explicit radio clicks —
+ * never for auto-select when shared is out of zone.
+ */
+export function storeFulfillmentChannel(
+  channel: FulfillmentChannel,
+  opts?: { userSet?: boolean },
+): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(
       CHECKOUT_FULFILLMENT_CHANNEL_STORAGE_KEY,
       channel,
+    );
+    if (opts?.userSet) {
+      window.sessionStorage.setItem(CHECKOUT_FULFILLMENT_USER_SET_KEY, "1");
+    }
+  } catch {
+    /* private mode */
+  }
+}
+
+export function readStoredPostalDraft(): CheckoutPostalDraftStored | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(CHECKOUT_POSTAL_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CheckoutPostalDraftStored;
+    const postal = String(parsed?.postal ?? "")
+      .trim()
+      .replace(/\s+/g, "");
+    if (!postal) return null;
+    return {
+      postal,
+      city: typeof parsed.city === "string" ? parsed.city : undefined,
+      street: typeof parsed.street === "string" ? parsed.street : undefined,
+      countryCode:
+        typeof parsed.countryCode === "string" ? parsed.countryCode : undefined,
+      regionCode:
+        parsed.regionCode === null || typeof parsed.regionCode === "string"
+          ? parsed.regionCode
+          : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function storePostalDraft(draft: CheckoutPostalDraftStored): void {
+  if (typeof window === "undefined") return;
+  const postal = String(draft.postal ?? "")
+    .trim()
+    .replace(/\s+/g, "");
+  if (!postal) return;
+  try {
+    const payload: CheckoutPostalDraftStored = {
+      postal,
+      city: draft.city?.trim() || undefined,
+      street: draft.street?.trim() || undefined,
+      countryCode: draft.countryCode?.trim() || undefined,
+      regionCode: draft.regionCode ?? null,
+    };
+    window.sessionStorage.setItem(
+      CHECKOUT_POSTAL_DRAFT_STORAGE_KEY,
+      JSON.stringify(payload),
     );
   } catch {
     /* private mode */
@@ -142,19 +232,36 @@ export function storeFulfillmentChannel(channel: FulfillmentChannel): void {
 
 /**
  * Restore a saved channel only when it is still offered for this postal.
+ *
+ * Explicit user picks (`userSet`) survive reload when still available
+ * (acceptance B). Auto-selected Direct from an out-of-zone postal must NOT
+ * override the product default (shared) when both channels work for the new
+ * postal (Camille 11151 after GBG).
  */
 export function resolveFulfillmentChannelAfterReload(args: {
   stored: FulfillmentChannel | null;
+  /** True only when the customer clicked a channel radio. */
+  userSet?: boolean;
   sharedPalletAvailable: boolean;
   directBoxAvailable: boolean;
   fallback: FulfillmentChannel;
 }): FulfillmentChannel {
-  const { stored, sharedPalletAvailable, directBoxAvailable, fallback } = args;
-  if (stored === "direct_box" && directBoxAvailable) return "direct_box";
-  if (stored === "shared_pallet" && sharedPalletAvailable) {
+  const {
+    stored,
+    userSet = false,
+    sharedPalletAvailable,
+    directBoxAvailable,
+    fallback,
+  } = args;
+  if (userSet && stored === "direct_box" && directBoxAvailable) {
+    return "direct_box";
+  }
+  if (userSet && stored === "shared_pallet" && sharedPalletAvailable) {
     return "shared_pallet";
   }
   if (!sharedPalletAvailable && directBoxAvailable) return "direct_box";
   if (sharedPalletAvailable && !directBoxAvailable) return "shared_pallet";
+  if (sharedPalletAvailable) return "shared_pallet";
+  if (directBoxAvailable) return "direct_box";
   return fallback;
 }

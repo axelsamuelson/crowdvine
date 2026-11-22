@@ -181,9 +181,12 @@ import {
 import {
   mergeProfileContactIntoDelivery,
   readStoredFulfillmentChannel,
+  readStoredFulfillmentUserSet,
+  readStoredPostalDraft,
   resolveCheckoutShoppingLocationLabel,
   resolveFulfillmentChannelAfterReload,
   storeFulfillmentChannel,
+  storePostalDraft,
 } from "@/lib/checkout/resolve-checkout-zone-from-postal";
 import {
   checkoutContactBlockReason,
@@ -347,7 +350,21 @@ function CheckoutContent({
     useState<UserZoneAddressTemplate | null>(null);
   const [zoneTemplatesLoaded, setZoneTemplatesLoaded] = useState(false);
   const [deliveryDraft, setDeliveryDraft] = useState<ZoneDeliveryLines | null>(
-    null,
+    () => {
+      if (typeof window === "undefined") return null;
+      const stored = readStoredPostalDraft();
+      if (!stored) return null;
+      return {
+        street: stored.street ?? "",
+        city: stored.city ?? "",
+        postal: stored.postal,
+        countryCode: stored.countryCode ?? "SE",
+        regionCode: stored.regionCode ?? null,
+        fullName: null,
+        phone: null,
+        email: null,
+      };
+    },
   );
   // Payment method selection removed - payment happens when pallet fills
   const [selectedPallet, setSelectedPallet] = useState<PalletInfo | null>(null);
@@ -413,7 +430,12 @@ function CheckoutContent({
     purpose: "testkop";
     description: string | null;
   } | null>(null);
-  const [postalCodeDraft, setPostalCodeDraft] = useState("");
+  const [postalCodeDraft, setPostalCodeDraft] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return readStoredPostalDraft()?.postal ?? "";
+  });
+  /** True after an explicit channel radio click (not auto-select). */
+  const fulfillmentUserSetRef = useRef(false);
   const [editingAddress, setEditingAddress] = useState(false);
   /** True while any progressive address input has focus — blocks auto-save/collapse. */
   const [addressFieldFocused, setAddressFieldFocused] = useState(false);
@@ -969,30 +991,25 @@ function CheckoutContent({
     fulfillmentChannel,
   ]);
 
-  // Persist channel choice across reload when still available (acceptance B).
-  // Do NOT store the initial default before restore — that overwrote a saved
-  // direct_box with shared_pallet on every reload.
+  // Persist *user* channel choice across reload (acceptance B). Never persist
+  // auto-selected Direct (out_of_zone → Direct) — that poisoned 11151 after
+  // GBG/Malmö in Camille's guest runs (22/11).
   const fulfillmentRestoredRef = useRef(false);
   useEffect(() => {
-    if (!fulfillmentRestoredRef.current) {
-      // Still persist an explicit Direct pick before restore settles so a
-      // mid-flow reload keeps it; never write the default shared yet.
-      if (fulfillmentChannel === "direct_box") {
-        storeFulfillmentChannel("direct_box");
-      }
-      return;
-    }
-    storeFulfillmentChannel(fulfillmentChannel);
+    if (!fulfillmentRestoredRef.current) return;
+    if (!fulfillmentUserSetRef.current) return;
+    storeFulfillmentChannel(fulfillmentChannel, { userSet: true });
   }, [fulfillmentChannel]);
   useEffect(() => {
     if (fulfillmentRestoredRef.current) return;
     if (!hasPostalCode || zoneLoading || !zoneFetchCompleted) return;
     const stored = readStoredFulfillmentChannel();
-    // Wait until Direct is selectable when we have a stored direct choice
-    // (carrier quote may lag zone match). If Direct is offered but not yet
-    // selectable, keep waiting; once deliverySelectable settles true/false
-    // via postalFulfillment, proceed.
+    const userSet =
+      fulfillmentUserSetRef.current || readStoredFulfillmentUserSet();
+    // Wait until Direct is selectable when we have a *user* stored direct
+    // choice (carrier quote may lag zone match).
     if (
+      userSet &&
       stored === "direct_box" &&
       !postalFulfillment.directBoxAvailable &&
       directBoxCheckoutEnabled &&
@@ -1002,8 +1019,10 @@ function CheckoutContent({
       return;
     }
     fulfillmentRestoredRef.current = true;
+    if (userSet) fulfillmentUserSetRef.current = true;
     const next = resolveFulfillmentChannelAfterReload({
       stored,
+      userSet,
       sharedPalletAvailable: postalFulfillment.sharedPalletAvailable,
       directBoxAvailable: postalFulfillment.directBoxAvailable,
       fallback: fulfillmentChannel,
@@ -1012,8 +1031,8 @@ function CheckoutContent({
       setServerQuote(null);
       setQuoteStatus("loading");
       setFulfillmentChannel(next);
-    } else {
-      storeFulfillmentChannel(next);
+    } else if (userSet) {
+      storeFulfillmentChannel(next, { userSet: true });
     }
   }, [
     hasPostalCode,
@@ -4579,6 +4598,13 @@ function CheckoutContent({
       email: deliveryDraft?.email || profile?.email?.trim() || null,
     };
     setDeliveryDraft(lines);
+    storePostalDraft({
+      postal: v,
+      city,
+      street: lines.street,
+      countryCode,
+      regionCode: lines.regionCode,
+    });
     void checkBudbeeAvailability(v, countryCode);
     // Match zones immediately so shipping + pallet show before address step.
     void updateZoneInfo(lines);
@@ -5492,7 +5518,11 @@ function CheckoutContent({
                                         }
                                         setServerQuote(null);
                                         setQuoteStatus("loading");
+                                        fulfillmentUserSetRef.current = true;
                                         setFulfillmentChannel("shared_pallet");
+                                        storeFulfillmentChannel("shared_pallet", {
+                                          userSet: true,
+                                        });
                                       }}
                                     />
                                     <span className="min-w-0">
@@ -5562,7 +5592,11 @@ function CheckoutContent({
                                         }
                                         setServerQuote(null);
                                         setQuoteStatus("loading");
+                                        fulfillmentUserSetRef.current = true;
                                         setFulfillmentChannel("direct_box");
+                                        storeFulfillmentChannel("direct_box", {
+                                          userSet: true,
+                                        });
                                       }}
                                     />
                                     <span className="min-w-0">
@@ -6090,9 +6124,21 @@ function CheckoutContent({
                       }
 
                       const patch = (partial: Partial<ZoneDeliveryLines>) =>
-                        setDeliveryDraft((d) =>
-                          d ? { ...d, ...partial } : d,
-                        );
+                        setDeliveryDraft((d) => {
+                          if (!d) return d;
+                          const next = { ...d, ...partial };
+                          const postal = next.postal?.trim().replace(/\s+/g, "");
+                          if (postal) {
+                            storePostalDraft({
+                              postal,
+                              city: next.city,
+                              street: next.street,
+                              countryCode: next.countryCode,
+                              regionCode: next.regionCode,
+                            });
+                          }
+                          return next;
+                        });
 
                       // All address fields visible at once for browser autofill.
                       return (

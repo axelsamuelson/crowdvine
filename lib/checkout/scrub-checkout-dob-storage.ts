@@ -8,6 +8,7 @@
 /** Known checkout draft / form blob keys (current + pre-PR289 / speculative). */
 export const CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS = [
   "pact_checkout_draft",
+  "pact_checkout_postal_draft",
   "pact-checkout-draft",
   "checkout_draft",
   "checkout-draft",

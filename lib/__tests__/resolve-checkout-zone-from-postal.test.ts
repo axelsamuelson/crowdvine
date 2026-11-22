@@ -143,10 +143,11 @@ describe("mergeProfileContactIntoDelivery (acceptance D)", () => {
 });
 
 describe("resolveFulfillmentChannelAfterReload (acceptance B)", () => {
-  it("keeps stored direct_box when still available", () => {
+  it("keeps user-set direct_box when still available", () => {
     expect(
       resolveFulfillmentChannelAfterReload({
         stored: "direct_box",
+        userSet: true,
         sharedPalletAvailable: true,
         directBoxAvailable: true,
         fallback: "shared_pallet",
@@ -154,10 +155,23 @@ describe("resolveFulfillmentChannelAfterReload (acceptance B)", () => {
     ).toBe("direct_box");
   });
 
+  it("ignores auto-stored direct when both channels work (Camille 11151 after GBG)", () => {
+    expect(
+      resolveFulfillmentChannelAfterReload({
+        stored: "direct_box",
+        userSet: false,
+        sharedPalletAvailable: true,
+        directBoxAvailable: true,
+        fallback: "shared_pallet",
+      }),
+    ).toBe("shared_pallet");
+  });
+
   it("falls back to direct when shared unavailable for 98131", () => {
     expect(
       resolveFulfillmentChannelAfterReload({
         stored: "shared_pallet",
+        userSet: true,
         sharedPalletAvailable: false,
         directBoxAvailable: true,
         fallback: "shared_pallet",
@@ -165,10 +179,11 @@ describe("resolveFulfillmentChannelAfterReload (acceptance B)", () => {
     ).toBe("direct_box");
   });
 
-  it("keeps stored shared when available for 11151", () => {
+  it("keeps user-set shared when available for 11151", () => {
     expect(
       resolveFulfillmentChannelAfterReload({
         stored: "shared_pallet",
+        userSet: true,
         sharedPalletAvailable: true,
         directBoxAvailable: true,
         fallback: "direct_box",
