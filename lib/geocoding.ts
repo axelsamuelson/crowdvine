@@ -1,4 +1,11 @@
 // Geocoding via Mapbox Geocoding API (MAPBOX_ACCESS_TOKEN / NEXT_PUBLIC_MAPBOX_TOKEN)
+// When Mapbox is missing/down, SE postcodes can still resolve via
+// lib/se-postal-approx-geocode.ts so zone radii match (not Stockholm invent).
+
+import {
+  approxGeocodeSePostal,
+  extractSePostalDigits,
+} from "@/lib/se-postal-approx-geocode";
 
 export interface GeocodeResult {
   lat: number;
@@ -89,6 +96,26 @@ function mapboxFeatureToGeocodeResult(feature: MapboxFeature): GeocodeResult | n
   };
 }
 
+function sePostalApproxResult(
+  query: string,
+): GeocodeResult | null {
+  const postal = extractSePostalDigits(query);
+  if (!postal) return null;
+  const approx = approxGeocodeSePostal(postal);
+  if (!approx) return null;
+  return {
+    lat: approx.lat,
+    lon: approx.lon,
+    display_name: `${postal} ${approx.place}, Sweden (approx band ${approx.band})`,
+    address: {
+      postcode: postal,
+      city: approx.place,
+      country: "Sweden",
+      country_code: "SE",
+    },
+  };
+}
+
 async function fetchMapboxGeocode(
   query: string,
   options: { country?: string } = {},
@@ -171,7 +198,26 @@ export async function geocodeAddress(
 
       const result = await fetchMapboxGeocode(cleanAddress);
       if ("error" in result) {
-        if (result.error === "GEOCODING_UNAVAILABLE") return result;
+        if (result.error === "GEOCODING_UNAVAILABLE") {
+          // Prod 22/11: Mapbox env missing → every /zones call failed geocode.
+          // SE postal approx lets Göteborg/Malmö match real radii without
+          // inventing Stockholm coverage (Kiruna 98xxx stays out of zone).
+          const approx = sePostalApproxResult(cleanAddress);
+          if (approx) {
+            console.warn(
+              "⚠️ Mapbox unavailable — using SE postal approx geocode:",
+              {
+                postal: approx.address?.postcode,
+                place: approx.address?.city,
+                lat: approx.lat,
+                lon: approx.lon,
+              },
+            );
+            geocodeCache.set(cleanAddress, approx);
+            return approx;
+          }
+          return result;
+        }
         if (result.error === "NO_RESULTS") {
           // Try fallback with a simpler address before giving up
           break;

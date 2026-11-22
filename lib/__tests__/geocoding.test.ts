@@ -73,7 +73,7 @@ describe("geocoding (Mapbox)", () => {
     expect(calledUrl.startsWith("https://api.mapbox.com/")).toBe(true);
   });
 
-  it("returns GEOCODING_UNAVAILABLE when Mapbox token is missing", async () => {
+  it("returns GEOCODING_UNAVAILABLE when Mapbox token is missing and no SE postal", async () => {
     delete process.env.MAPBOX_ACCESS_TOKEN;
     delete process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     global.fetch = vi.fn() as unknown as typeof fetch;
@@ -83,6 +83,20 @@ describe("geocoding (Mapbox)", () => {
     expect(result).toMatchObject({
       error: "GEOCODING_UNAVAILABLE",
     });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("uses SE postal approx when Mapbox token is missing (prod Camille 41101)", async () => {
+    delete process.env.MAPBOX_ACCESS_TOKEN;
+    delete process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    global.fetch = vi.fn() as unknown as typeof fetch;
+
+    const result = await geocodeAddress("41101, 41101, Sweden");
+
+    expect("error" in result).toBe(false);
+    if ("error" in result) return;
+    expect(result.address?.city).toBe("Göteborg");
+    expect(result.lat).toBeCloseTo(57.7089, 2);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
