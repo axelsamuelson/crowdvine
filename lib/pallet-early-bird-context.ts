@@ -235,6 +235,8 @@ export async function resolvePalletEarlyBirdContext(
 
   let zones = await determineZones(zoneCart, deliveryAddress, {
     preferredDeliveryZoneId: activeGeo.defaultDeliveryZoneId,
+    // PDP early-bird: linked wine-zone is intentional. Checkout must not set this.
+    preferLinkedDeliveryZone: true,
   });
 
   if (
@@ -243,6 +245,7 @@ export async function resolvePalletEarlyBirdContext(
   ) {
     zones = await determineZones(zoneCart, STOCKHOLM_FALLBACK_GEO_ADDRESS, {
       preferredDeliveryZoneId: activeGeo.defaultDeliveryZoneId,
+      preferLinkedDeliveryZone: true,
     });
   }
 
