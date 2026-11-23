@@ -83,6 +83,22 @@ describe("best pet nat Systembolaget guide", () => {
     expect(serialized).not.toContain("Inga priser");
     expect(serialized).not.toContain("#haggan-pet-nat");
     expect(serialized).not.toContain("Producent och region");
+    const whatIsPetNat = bestPetNatWinesSystembolagetSvArticle.sections.find(
+      (section) => section.heading?.sv === "Vad är pét-nat?",
+    );
+    const whatIsSv = Array.isArray(whatIsPetNat?.body.sv)
+      ? whatIsPetNat.body.sv
+      : [];
+    expect(whatIsSv).toEqual([
+      "Pét-nat (pétillant naturel) är mousserande vin gjort med den äldsta metoden, méthode ancestrale. Vinet buteljeras innan första jäsningen är klar, och kolsyran bildas i flaskan av druvans eget socker, utan tillsatt jäst eller socker. Därför är pét-nat ofta lätt grumligt, med mjukare bubblor än champagne, och ibland med kvarvarande jästfällning i flaskan.",
+      "Läs mer om vad [pet nat](/guider/vad-ar-pet-nat) är och hur det görs, eller [köp pet nat direkt från producenten](/vin/pet-nat).",
+    ]);
+    expect(whatIsSv[0]?.split(/(?<=\.)\s+/)).toHaveLength(3);
+    expect(
+      bestPetNatWinesSystembolagetSvArticle.internalLinks
+        .filter((link) => link.label.sv.trim().length > 0)
+        .map((link) => link.href.sv),
+    ).not.toContain("/vin/pet-nat");
     expect(bestPetNatWinesSystembolagetSvArticle.showRankedWineFacts).toBe(true);
     expect(bestPetNatWinesSystembolagetArticle.showRankedWineFacts).toBeUndefined();
     expect(bestPetNatWinesSystembolagetArticle.h1.en).toBe(

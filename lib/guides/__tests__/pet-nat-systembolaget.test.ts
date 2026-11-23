@@ -1,10 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { createElement, Fragment } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
 
-import { bestPetNatWinesSystembolagetArticle } from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/guider/vad-ar-pet-nat",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+import {
+  bestPetNatWinesSystembolagetArticle,
+  bestPetNatWinesSystembolagetSvArticle,
+} from "@/lib/guides/articles/best-pet-nat-wines-systembolaget";
 import { buyNaturalWineOnlineSwedenArticle } from "@/lib/guides/articles/buy-natural-wine-online-sweden";
 import { whatIsPetNatArticle } from "@/lib/guides/articles/what-is-pet-nat";
 import { whatIsNaturalWineArticle } from "@/lib/guides/articles/what-is-natural-wine";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
+import { renderArticleGuidePage } from "@/lib/guides/render-article-guide";
+import { buildSystembolagetRankedListMetadata } from "@/lib/guides/systembolaget-ranked-list";
 import { articleVisibleForLocale } from "@/lib/guides/guide-types";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import {
@@ -128,12 +142,28 @@ describe("pet nat Systembolaget guides", () => {
       .filter((link) => link.label.sv.trim().length > 0)
       .map((link) => link.href.sv);
     expect(hrefs).toEqual([
-      "/guider/basta-pet-nat-systembolaget",
       "/guider/basta-mousserande-naturviner-systembolaget",
       "/guider/vad-ar-naturvin",
       "/guider/basta-naturvinerna-pa-systembolaget",
       "/vin/pet-nat",
     ]);
+    const lookFor = article.sections.find(
+      (section) => section.heading?.sv === "Vad du ska titta efter",
+    );
+    const lookForSv = Array.isArray(lookFor?.body.sv)
+      ? lookFor.body.sv.join("\n")
+      : (lookFor?.body.sv ?? "");
+    expect(lookForSv).toContain(
+      "[pet nat på Systembolaget](/guider/basta-pet-nat-systembolaget)",
+    );
+    expect(lookForSv.match(/\/guider\/basta-pet-nat-systembolaget/g)).toHaveLength(
+      1,
+    );
+    expect(lookForSv).not.toContain("/vin/pet-nat");
+    expect(
+      article.internalLinks.find((link) => link.href.sv === "/vin/pet-nat")?.label
+        .sv,
+    ).toBe("Pet nat att köpa →");
   });
 
   it("replaces the English explainer and keeps Systembolaget links off that page", () => {
@@ -243,5 +273,74 @@ describe("pet nat Systembolaget guides", () => {
     expect(strings.some((text) => text.includes("/guider/basta-pet-nat-systembolaget"))).toBe(
       true,
     );
+  });
+
+  it("keeps Swedish titles, canonicals and hreflang, and renders relative links", async () => {
+    const listMeta = await buildSystembolagetRankedListMetadata(
+      bestPetNatWinesSystembolagetSvArticle,
+      "sv",
+    );
+    expect(listMeta.title).toBe("Bästa pet nat på Systembolaget – vårt urval");
+    expect(listMeta.alternates).toEqual({
+      canonical: "https://pactwines.com/guider/basta-pet-nat-systembolaget",
+      languages: {
+        sv: "https://pactwines.com/guider/basta-pet-nat-systembolaget",
+        en: "https://pactwines.com/guides/best-pet-nat-systembolaget",
+        "x-default": "https://pactwines.com/guider/basta-pet-nat-systembolaget",
+      },
+    });
+
+    const explainerMeta = buildArticleGuideMeta(
+      whatIsPetNatArticle,
+      "sv",
+      "https://pactwines.com",
+      "PACT Wines",
+    );
+    expect(explainerMeta.title).toBe(
+      "Vad är pet nat? Så görs pétillant naturel",
+    );
+    expect(explainerMeta.alternates).toEqual({
+      canonical: "https://pactwines.com/guider/vad-ar-pet-nat",
+      languages: {
+        sv: "https://pactwines.com/guider/vad-ar-pet-nat",
+        en: "https://pactwines.com/guides/what-is-pet-nat",
+        "x-default": "https://pactwines.com/guides/what-is-pet-nat",
+      },
+    });
+
+    const section = bestPetNatWinesSystembolagetSvArticle.sections.find(
+      (item) => item.heading?.sv === "Vad är pét-nat?",
+    );
+    const paragraph = Array.isArray(section?.body.sv) ? section.body.sv[1] : "";
+    const listHtml = renderToStaticMarkup(
+      createElement(
+        Fragment,
+        null,
+        renderArticleRichText(paragraph ?? "", "pet-nat"),
+      ),
+    );
+    expect(listHtml).toContain('href="/guider/vad-ar-pet-nat"');
+    expect(listHtml).toContain('href="/vin/pet-nat"');
+    expect(listHtml).toContain(">pet nat<");
+    expect(listHtml).toContain(">köp pet nat direkt från producenten<");
+    expect(listHtml).not.toContain("nofollow");
+    expect(listHtml).not.toContain("http");
+
+    const explainerHtml = renderToStaticMarkup(
+      await renderArticleGuidePage(whatIsPetNatArticle, "sv"),
+    );
+    expect(explainerHtml).toContain(
+      'href="/guider/basta-pet-nat-systembolaget"',
+    );
+    expect(explainerHtml).toContain(">pet nat på Systembolaget<");
+    expect(explainerHtml).toContain('href="/vin/pet-nat"');
+    expect(explainerHtml).toContain(">Pet nat att köpa →<");
+    expect(explainerHtml.match(/href="\/guider\/basta-pet-nat-systembolaget"/g)).toHaveLength(1);
+    expect(explainerHtml.match(/href="\/vin\/pet-nat"/g)).toHaveLength(1);
+    const explainerBody = explainerHtml.split("Vidare läsning")[0] ?? "";
+    expect(explainerBody.match(/href="\/guider\/basta-pet-nat-systembolaget"/g)).toHaveLength(1);
+    expect(explainerBody).not.toContain('href="/vin/pet-nat"');
+    expect(explainerHtml).not.toMatch(/href="\/guider\/basta-pet-nat-systembolaget"[^>]*nofollow/);
+    expect(explainerHtml).not.toMatch(/href="\/vin\/pet-nat"[^>]*nofollow/);
   });
 });
