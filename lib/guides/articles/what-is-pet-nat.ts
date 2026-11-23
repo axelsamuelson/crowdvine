@@ -428,7 +428,7 @@ export const whatIsPetNatArticle: GuideArticleContent = {
     {
       label: {
         en: "Pet nat in the shop →",
-        sv: "pet nat att köpa",
+        sv: "Pet nat att köpa →",
       },
       href: {
         en: "/wine/pet-nat",

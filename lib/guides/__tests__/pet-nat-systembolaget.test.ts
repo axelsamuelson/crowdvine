@@ -163,7 +163,7 @@ describe("pet nat Systembolaget guides", () => {
     expect(
       article.internalLinks.find((link) => link.href.sv === "/vin/pet-nat")?.label
         .sv,
-    ).toBe("pet nat att köpa");
+    ).toBe("Pet nat att köpa →");
   });
 
   it("replaces the English explainer and keeps Systembolaget links off that page", () => {
@@ -334,7 +334,7 @@ describe("pet nat Systembolaget guides", () => {
     );
     expect(explainerHtml).toContain(">pet nat på Systembolaget<");
     expect(explainerHtml).toContain('href="/vin/pet-nat"');
-    expect(explainerHtml).toContain(">pet nat att köpa<");
+    expect(explainerHtml).toContain(">Pet nat att köpa →<");
     expect(explainerHtml.match(/href="\/guider\/basta-pet-nat-systembolaget"/g)).toHaveLength(1);
     expect(explainerHtml.match(/href="\/vin\/pet-nat"/g)).toHaveLength(1);
     const explainerBody = explainerHtml.split("Vidare läsning")[0] ?? "";
