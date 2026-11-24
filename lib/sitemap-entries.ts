@@ -12,7 +12,7 @@ import { TOP_100_PRODUCERS_UPDATED_AT } from "@/lib/guides/top-100-producers";
 import { TOP_100_WINES_UPDATED_AT } from "@/lib/guides/top-100-wines";
 import { worldsBestNaturalChampagneGuide } from "@/lib/guides/worlds-best-natural-champagne";
 import { worldsBestOrangeWinesGuide } from "@/lib/guides/worlds-best-orange-wines";
-import { articlePath } from "@/lib/guides/guide-types";
+import { articlePath, articleUpdatedOn } from "@/lib/guides/guide-types";
 import { generateProducerSlug } from "@/lib/producer-handle";
 import {
   isNoindexCategorySlug,
@@ -119,12 +119,21 @@ function staticPagesForProfile(
         new Date(`${TOP_100_PRODUCERS_UPDATED_AT}T00:00:00.000Z`),
       ),
       ...publishedBilingualArticleGuides().flatMap((guide) => {
-        const lastModified = guide.updated
-          ? new Date(`${guide.updated}T00:00:00.000Z`)
-          : new Date();
+        const lastModifiedFor = (locale: "en" | "sv") => {
+          const day = articleUpdatedOn(guide, locale);
+          return day ? new Date(`${day}T00:00:00.000Z`) : new Date();
+        };
         return [
-          weeklyEntry(`${baseUrl}${articlePath(guide, "en")}`, 0.75, lastModified),
-          weeklyEntry(`${baseUrl}${articlePath(guide, "sv")}`, 0.75, lastModified),
+          weeklyEntry(
+            `${baseUrl}${articlePath(guide, "en")}`,
+            0.75,
+            lastModifiedFor("en"),
+          ),
+          weeklyEntry(
+            `${baseUrl}${articlePath(guide, "sv")}`,
+            0.75,
+            lastModifiedFor("sv"),
+          ),
         ];
       }),
       // English-only label comparison guide (no Swedish route yet).

@@ -116,9 +116,17 @@ describe("sparkling and pet nat categories", () => {
     expect(petNatSv).toMatchObject({
       canonical: "/vin/pet-nat",
       hreflang: "pet-nat",
+      title: "Pet nat | PACT Wines",
+      h1: "Pet nat",
+      metaDescription:
+        "Pet nat är mousserande vin på méthode ancestrale, där jäsningen avslutas i flaskan. Pétillant naturel, utan en andra jäsning.",
       filter: { tags: ["pet_nat"] },
-      descriptionLink: { href: "/guider/vad-ar-pet-nat" },
+      descriptionLink: { href: "/guider/vad-ar-pet-nat", label: "Vad är pet nat?" },
     });
+    expect(petNatSv?.description).toBe(
+      "Pet nat, pétillant naturel, är mousserande vin som buteljeras innan den första jäsningen är klar, så att bubblorna bildas i flaskan. Bubblorna är mjukare än i champagne, och vinet är ofta lätt grumligt av jästfällningen som ligger kvar. Pet nat görs vit, rosé, röd och orange, och de flesta är torra. Vi köper direkt från producenterna och levererar i hela Sverige, på delad pall eller direkt hem. Vill du veta mer om hur det görs, läs [Vad är pet nat?](/guider/vad-ar-pet-nat)",
+    );
+    expect(petNatSv?.description).not.toMatch(/[—–]/);
     expect(petNatEn).toMatchObject({
       canonical: "/wine/pet-nat",
       hreflang: "pet-nat",

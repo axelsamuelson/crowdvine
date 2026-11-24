@@ -19,7 +19,7 @@ import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import { buildArticleGuideMeta } from "@/lib/guides/guide-article-seo";
 import { renderArticleGuidePage } from "@/lib/guides/render-article-guide";
 import { buildSystembolagetRankedListMetadata } from "@/lib/guides/systembolaget-ranked-list";
-import { articleVisibleForLocale } from "@/lib/guides/guide-types";
+import { articleUpdatedOn, articleVisibleForLocale } from "@/lib/guides/guide-types";
 import { guideCopy } from "@/lib/guides/guide-copy";
 import {
   isIndexableGuideHref,
@@ -125,19 +125,53 @@ describe("pet nat Systembolaget guides", () => {
     expect(article.h1.sv).toBe("Vad är pet nat?");
     expect(article.lede?.sv.split(/(?<=\.)\s+/).length).toBeGreaterThanOrEqual(2);
     expect(article.lede?.sv.split(/(?<=\.)\s+/).length).toBeLessThanOrEqual(3);
-    expect(article.meta.sv.length).toBeLessThanOrEqual(155);
+    expect(article.meta.sv).toBe(
+      "Pet nat är mousserande vin som buteljeras innan jäsningen är klar, så att bubblorna bildas i flaskan. Så görs det, skillnaden mot champagne och prosecco, och hur du öppnar flaskan.",
+    );
     expect(
       articleVisibleForLocale(article.sections, "sv").map(
         (section) => section.heading?.sv,
       ),
     ).toEqual([
-      "Vad det betyder",
-      "Hur det görs",
+      undefined,
+      "Vad betyder pétillant naturel?",
+      "Hur pet nat görs",
       "Skillnad mot champagne och cava",
+      "Skillnad mot prosecco",
+      "Var pet nat kommer ifrån",
+      "Stilar",
+      "Hur smakar pet nat?",
       "Så serverar du",
       "Vad du ska titta efter",
     ]);
-    expect(articleVisibleForLocale(article.faqs ?? [], "sv")).toHaveLength(3);
+    expect(
+      articleVisibleForLocale(article.faqs ?? [], "sv").map(
+        (faq) => faq.question.sv,
+      ),
+    ).toEqual([
+      "Vad är pet nat?",
+      "Är pet nat samma sak som champagne?",
+      "Är pet nat alltid naturvin?",
+      "Är pet nat alltid torrt?",
+      "Varför är vinet grumligt?",
+      "Hur öppnar man en pet nat?",
+    ]);
+    const swedish = [
+      article.meta.sv,
+      article.lede?.sv ?? "",
+      ...articleVisibleForLocale(article.sections, "sv").flatMap((section) => [
+        section.heading?.sv ?? "",
+        ...(Array.isArray(section.body.sv) ? section.body.sv : [section.body.sv]),
+      ]),
+      ...articleVisibleForLocale(article.faqs ?? [], "sv").flatMap((faq) => [
+        faq.question.sv,
+        faq.answer.sv,
+      ]),
+    ].join("\n");
+    expect(swedish).not.toMatch(/[—–]/);
+    expect(swedish).toContain(
+      "[Vad är orange vin?](/guider/vad-ar-orange-vin)",
+    );
     const hrefs = article.internalLinks
       .filter((link) => link.label.sv.trim().length > 0)
       .map((link) => link.href.sv);
@@ -342,5 +376,19 @@ describe("pet nat Systembolaget guides", () => {
     expect(explainerBody).not.toContain('href="/vin/pet-nat"');
     expect(explainerHtml).not.toMatch(/href="\/guider\/basta-pet-nat-systembolaget"[^>]*nofollow/);
     expect(explainerHtml).not.toMatch(/href="\/vin\/pet-nat"[^>]*nofollow/);
+    expect(explainerHtml).toContain('"dateModified":"2026-11-24"');
+    expect(explainerHtml).not.toContain("Naturviner hos PACT");
+    expect(articleUpdatedOn(whatIsPetNatArticle, "en")).toBe("2026-11-07");
+    expect(articleUpdatedOn(whatIsPetNatArticle, "sv")).toBe("2026-11-24");
+    for (const question of [
+      "Vad är pet nat?",
+      "Är pet nat samma sak som champagne?",
+      "Är pet nat alltid naturvin?",
+      "Är pet nat alltid torrt?",
+      "Varför är vinet grumligt?",
+      "Hur öppnar man en pet nat?",
+    ]) {
+      expect(explainerHtml).toContain(`"name":${JSON.stringify(question)}`);
+    }
   });
 });

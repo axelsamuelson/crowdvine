@@ -294,7 +294,7 @@ export const GUIDE_SHOP_LINKS: Record<string, GuideShopLinksEntry> = {
   "/guider/vad-ar-naturvin": [
     { href: "/vin", anchor: "naturvin online" },
   ],
-  "/guider/vad-ar-pet-nat": [{ href: "/vin", anchor: "naturvin" }],
+  "/guider/vad-ar-pet-nat": "NONE",
   "/guider/jura-natural-wine": [
     {
       href: "/vin/naturvin-jura",

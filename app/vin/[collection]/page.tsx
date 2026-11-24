@@ -52,6 +52,7 @@ import {
 import { buildFaqPageJsonLd } from "@/lib/wine-category-faq";
 import { CategoryFaqSection } from "@/components/shop/category-faq-section";
 import { CategoryPillLinks } from "@/components/shop/category-pill-links";
+import { renderArticleRichText } from "@/lib/guides/article-guide-shell";
 import { RegionProducerLinks } from "@/components/shop/region-producer-links";
 import { isWineRegionBelowIndexMinimum } from "@/lib/wine-region-live-counts";
 import {
@@ -316,7 +317,11 @@ export default async function VinCollectionPage(props: {
               {category.h1}
             </h1>
             {description.trim() ? (
-              <p className="leading-relaxed text-stone-600">{description}</p>
+              <p className="leading-relaxed text-stone-600">
+                {description.includes("](")
+                  ? renderArticleRichText(description, "category-description")
+                  : description}
+              </p>
             ) : null}
             {category.descriptionLink ? (
               <CategoryPillLinks

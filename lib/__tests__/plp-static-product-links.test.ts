@@ -113,4 +113,32 @@ describe("category PLP server HTML", () => {
     }
     expect(html.match(/href="\/produkt\/wine-\d+"/g)).toHaveLength(products.length);
   });
+
+  it("renders the pet nat intro above the wine grid", async () => {
+    vi.mocked(fetchProductsData).mockResolvedValue([wine(1)]);
+
+    const page = await VinCollectionPage({
+      params: Promise.resolve({ collection: "pet-nat" }),
+    });
+    const html = renderToStaticMarkup(
+      createElement(
+        NuqsTestingAdapter,
+        null,
+        createElement(ProductsProvider, {
+          initialServerResultsCount: 1,
+          children: page,
+        }),
+      ),
+    );
+
+    const intro = html.indexOf("buteljeras innan den första jäsningen");
+    const guideLink = html.indexOf('href="/guider/vad-ar-pet-nat"');
+    const grid = html.indexOf('id="shop-product-grid"');
+    expect(intro).toBeGreaterThan(-1);
+    expect(guideLink).toBeGreaterThan(intro);
+    expect(grid).toBeGreaterThan(guideLink);
+    expect(html).toContain(">Vad är pet nat?<");
+    expect(html).toContain("<h1");
+    expect(html).toContain(">Pet nat<");
+  });
 });

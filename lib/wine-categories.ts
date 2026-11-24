@@ -187,7 +187,7 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     metaDescription:
       "Pet nat är mousserande vin på méthode ancestrale, där jäsningen avslutas i flaskan. Pétillant naturel, utan en andra jäsning.",
     description:
-      "Pet nat, kort för pétillant naturel, är mousserande vin där jäsningen börjar i tank och avslutas i flaskan. Metoden kallas också méthode ancestrale.",
+      "Pet nat, pétillant naturel, är mousserande vin som buteljeras innan den första jäsningen är klar, så att bubblorna bildas i flaskan. Bubblorna är mjukare än i champagne, och vinet är ofta lätt grumligt av jästfällningen som ligger kvar. Pet nat görs vit, rosé, röd och orange, och de flesta är torra. Vi köper direkt från producenterna och levererar i hela Sverige, på delad pall eller direkt hem. Vill du veta mer om hur det görs, läs [Vad är pet nat?](/guider/vad-ar-pet-nat)",
     descriptionLink: {
       label: "Vad är pet nat?",
       href: "/guider/vad-ar-pet-nat",
