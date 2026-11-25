@@ -100,6 +100,16 @@ describe("pet nat guide product block", () => {
     expect(html).not.toContain(">Pet Nat 7<");
     expect(html).not.toContain("Naturviner hos PACT");
 
+    vi.mocked(fetchProductsData).mockRejectedValue(new Error("fetch failed"));
+    const failed = await GuideTaggedWineBlock({
+      tag: "pet_nat",
+      heading: "Pet nat att köpa hos PACT",
+      intro: "Pet nat som vi köper direkt från producenterna.",
+      link: { href: "/vin/pet-nat", label: "Se alla pet nat →" },
+      locale: "sv",
+    });
+    expect(failed).toBeNull();
+
     vi.mocked(fetchProductsData).mockResolvedValue([]);
     const empty = await GuideTaggedWineBlock({
       tag: "pet_nat",

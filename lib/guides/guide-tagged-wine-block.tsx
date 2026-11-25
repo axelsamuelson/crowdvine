@@ -39,11 +39,19 @@ export async function GuideTaggedWineBlock({
   const isB2BSite = isB2BHost(
     headerList.get("x-forwarded-host") ?? headerList.get("host"),
   );
-  const rawProducts = await fetchProductsData({
-    ...wineCategoryCatalogFilters({ tags: [tag] }),
-    isB2BSite,
-    locale,
-  });
+  let rawProducts;
+  try {
+    rawProducts = await fetchProductsData({
+      ...wineCategoryCatalogFilters({ tags: [tag] }),
+      isB2BSite,
+      locale,
+    });
+  } catch (error) {
+    // CI builds against a placeholder Supabase host. A failed catalog read
+    // hides the block instead of failing the page prerender.
+    console.error("[GuideTaggedWineBlock]", error);
+    return null;
+  }
   const products = mapProductDataToShopProducts(rawProducts).slice(0, limit);
   if (products.length === 0) return null;
 
