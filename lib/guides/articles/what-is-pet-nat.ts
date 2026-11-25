@@ -4,6 +4,7 @@ import type { GuideArticleContent } from "@/lib/guides/guide-types";
 export const whatIsPetNatArticle: GuideArticleContent = {
   published: true,
   updated: "2026-11-07",
+  updatedByLocale: { sv: "2026-11-24" },
   slug: {
     en: "what-is-pet-nat",
     sv: "vad-ar-pet-nat",
@@ -15,7 +16,7 @@ export const whatIsPetNatArticle: GuideArticleContent = {
   },
   meta: {
     en: "Pet nat is sparkling wine bottled before its first fermentation finishes, so the bubbles form in the bottle. How it is made, how it differs from Champagne and Prosecco, and how to open and serve it.",
-    sv: "Vad pet nat är, hur pétillant naturel görs i flaskan, och hur det skiljer sig från champagne och cava.",
+    sv: "Pet nat är mousserande vin som buteljeras innan jäsningen är klar, så att bubblorna bildas i flaskan. Så görs det, skillnaden mot champagne och prosecco, och hur du öppnar flaskan.",
   },
   h1: {
     en: "What is pet nat?",
@@ -23,7 +24,7 @@ export const whatIsPetNatArticle: GuideArticleContent = {
   },
   lede: {
     en: 'Pet nat is sparkling wine bottled before its first fermentation has finished, so the bubbles form in the bottle. The name is short for the French pétillant naturel, roughly "naturally sparkling". It is the oldest way of making sparkling wine, usually called the méthode ancestrale, or ancestral method.',
-    sv: "Pet nat är mousserande vin där jäsningen avslutas i flaskan. Namnet är en förkortning av franskans pétillant naturel, lätt mousserande där kolsyran kommer från jäsningen som redan pågår. Metoden säger hur bubblorna blir till, inte hur druvorna odlats.",
+    sv: "Pet nat är mousserande vin som buteljeras innan den första jäsningen är klar, så att bubblorna bildas i flaskan. Namnet är en förkortning av franskans *pétillant naturel*, ungefär naturligt mousserande. Det är det äldsta sättet att göra mousserande vin, och metoden kallas *méthode ancestrale*.",
   },
   breadcrumbShort: {
     en: "What is pet nat?",
@@ -47,90 +48,141 @@ export const whatIsPetNatArticle: GuideArticleContent = {
   sections: [
     {
       locales: ["sv"],
-      heading: {
-        en: "What the name means",
-        sv: "Vad det betyder",
-      },
       body: {
-        en: [
-          "Pétillant naturel is French. Pétillant means lightly sparkling. Naturel refers to the carbon dioxide coming from the fermentation already under way, not from a second fermentation started with added sugar and yeast. In Swedish and English the name is usually shortened to pet nat.",
-          "Pet nat is not an appellation of its own. It is a method that can be used in many countries and with many grapes.",
-        ],
+        en: [],
         sv: [
-          "Pétillant naturel är franska. Pétillant betyder lätt mousserande. Naturel syftar på att kolsyran kommer från jäsningen som redan pågår, inte från en andra jäsning som startas med tillsatt socker och jäst. På svenska och engelska kortas namnet oftast till pet nat.",
-          "Pet nat är inte en egen ursprungsbeteckning. Det är en metod som kan användas i många länder och på många druvor.",
+          "Metoden säger hur bubblorna blir till, inte hur druvorna odlats. Många pet nat kommer från naturvinsproducenter, men metoden gör inte i sig ett vin till naturvin. Läs mer i [Vad är naturvin?](/guider/vad-ar-naturvin)",
         ],
       },
     },
     {
       locales: ["sv"],
       heading: {
-        en: "How it is made",
-        sv: "Hur det görs",
+        en: "",
+        sv: "Vad betyder pétillant naturel?",
       },
       body: {
-        en: [
-          "The grapes are pressed and fermentation starts in tank, sometimes in barrel. Before the yeast has consumed all the sugar, the wine is bottled and sealed, usually with a crown cap. Fermentation continues in the bottle. The carbon dioxide that forms stays in the wine and becomes the bubbles.",
-          "The bottle is often not disgorged, so the yeast sediment stays in and the wine can look cloudy. Some producers do disgorge. A crown cap is the common closure because it holds the pressure. Some use a cork and a cage. A cork does not rule out pet nat, and a crown cap is not proof on its own.",
-        ],
+        en: [],
         sv: [
-          "Druvorna pressas och jäsningen börjar i tank, ibland på fat. Innan jästen har förbrukat allt socker buteljeras vinet och försluts, oftast med kronkork. Jäsningen fortsätter i flaskan. Koldioxiden som bildas stannar i vinet och blir bubblor.",
-          "Ofta degorgeras flaskan inte, så jästfällningen ligger kvar och vinet kan se grumligt ut. En del producenter degorgerar. Kronkork är den vanliga förslutningen eftersom den håller trycket. En del använder kork och bygel. Kork utesluter alltså inte att det är pet nat, och kronkork är inte ett bevis i sig.",
+          "*Pétillant* betyder lätt mousserande. *Naturel* syftar på att kolsyran kommer från jäsningen som redan pågår, inte från en andra jäsning som startas med tillsatt socker och jäst. På svenska och engelska kortas namnet oftast till pet nat.",
+          "Pet nat är inte en ursprungsbeteckning. Det är en metod som kan användas i alla länder och på alla druvor, och begreppet är inte skyddat i lag.",
         ],
       },
     },
     {
       locales: ["sv"],
       heading: {
-        en: "How it differs from Champagne and Cava",
+        en: "",
+        sv: "Hur pet nat görs",
+      },
+      body: {
+        en: [],
+        sv: [
+          "Druvorna pressas och jäsningen börjar i tank, ibland på fat. Innan jästen har förbrukat allt socker kyler producenten ner vinet för att bromsa jäsningen och buteljerar det, oftast med kronkork. Jäsningen avslutas i flaskan. Koldioxiden som bildas stannar i vinet och blir bubblor.",
+          "Tidpunkten avgör. Buteljeras vinet för tidigt finns för mycket socker kvar, och trycket kan bli för högt. Buteljeras det för sent blir vinet nästan stilla. Det är ett av skälen till att pet nat skiljer sig mer mellan flaskor än champagne.",
+          "Ofta degorgeras flaskan inte, så jästfällningen ligger kvar och vinet kan se grumligt ut. En del producenter degorgerar. Kronkork är den vanliga förslutningen eftersom den håller trycket, men en del använder kork och bygel. Ingen av förslutningarna bevisar eller utesluter metoden.",
+        ],
+      },
+    },
+    {
+      locales: ["sv"],
+      heading: {
+        en: "",
         sv: "Skillnad mot champagne och cava",
       },
       body: {
-        en: [
-          "Champagne is an appellation in Champagne, France. It is made by the traditional method: a first fermentation to a still wine, then a second fermentation in the bottle started with sugar and yeast (liqueur de tirage). After ageing on the lees the bottle is disgorged, and a dosage is usually added.",
-          "Cava is a Spanish appellation for sparkling wine. Its rules require the same family of method, a second fermentation in the bottle, not the ancestral method. Cava also has rules for geography and grapes.",
-          "Pet nat is one fermentation that starts in tank and finishes in the bottle. No liqueur de tirage is added to start a second fermentation. The method can be used outside Champagne and outside the Cava regions.",
-        ],
+        en: [],
         sv: [
-          "Champagne är en ursprungsbeteckning i Champagne i Frankrike. Den görs med traditionell metod: en första jäsning till ett stilla vin, sedan en andra jäsning i flaskan som startas med socker och jäst (liqueur de tirage). Efter lagring på jästfällningen degorgeras flaskan, och oftast tillsätts en dosage.",
-          "Cava är en spansk ursprungsbeteckning för mousserande vin. Reglerna kräver samma familj av metod, en andra jäsning i flaskan, inte ancestral-metoden. Cava har också regler för geografi och druvor.",
-          "Pet nat är en jäsning som börjar i tank och avslutas i flaskan. Ingen liqueur de tirage tillsätts för att starta en andra jäsning. Metoden kan användas utanför Champagne och utanför Cava-områdena.",
+          "Champagne är en ursprungsbeteckning i norra Frankrike och görs med traditionell metod. Basvinet jäses torrt, och sedan startas en andra jäsning i flaskan med tillsatt socker och jäst. Efter minst nio månader på jästfällningen degorgeras flaskan, och oftast tillsätts en dosage.",
+          "Pet nat har bara en jäsning och inget tillsatt socker eller jäst för att skapa bubblorna. Trycket är oftast lägre: champagne har ungefär 6 atmosfärers tryck, pet nat ofta runt 3. Därför är bubblorna i pet nat mjukare.",
+          "Cava är spanskt mousserande vin och görs med samma traditionella metod som champagne, inte med ancestral-metoden.",
         ],
       },
     },
     {
       locales: ["sv"],
       heading: {
-        en: "How to serve it",
+        en: "",
+        sv: "Skillnad mot prosecco",
+      },
+      body: {
+        en: [],
+        sv: [
+          "Det mesta prosecco görs med tankmetoden, även kallad Charmat- eller Martinotti-metoden. Den andra jäsningen sker i en stor trycktank, och vinet filtreras och buteljeras under tryck. Pet nat avslutar sin enda jäsning i den flaska det säljs i. Prosecco är klart och jämnt, pet nat är ofta grumligt och varierar mellan flaskor.",
+        ],
+      },
+    },
+    {
+      locales: ["sv"],
+      heading: {
+        en: "",
+        sv: "Var pet nat kommer ifrån",
+      },
+      body: {
+        en: [],
+        sv: [
+          "Metoden är gammal. I Limoux i Languedoc i södra Frankrike lämnade benediktinmunkar i klostret Saint-Hilaire anteckningar från 1531 om ett mousserande vitt vin. De räknas som den äldsta skriftliga uppgiften om mousserande vin. Limoux har fortfarande en egen ursprungsbeteckning för stilen, Blanquette Méthode Ancestrale, som bara görs på druvan Mauzac och inte degorgeras.",
+          "Den moderna pet naten kommer från Loiredalen. I början av 1990-talet hittade Christian Chaussard i Vouvray en flaska där restsockret hade börjat jäsa igen. Han började experimentera med metoden och anses ha myntat namnet pétillant naturel. Under 1990-talet började fler naturvinsproducenter i Loire, bland dem Thierry Puzelat och Domaine Mosse, göra egna. Runt 2010 hade stilen spridit sig över Frankrike.",
+        ],
+      },
+    },
+    {
+      locales: ["sv"],
+      heading: {
+        en: "",
+        sv: "Stilar",
+      },
+      body: {
+        en: [],
+        sv: [
+          "Pet nat kan göras på nästan vilken druva som helst och i alla färger.",
+          "**Vit pet nat** är vanligast, ofta på Chenin Blanc i Loire, men också på Riesling, Muscat eller Chasselas.",
+          "**Rosé och röd pet nat** görs oftast på Gamay, Pinot Noir eller lokala blå druvor. Bugey Cerdon, en liten appellation i östra Frankrike, gör rosa, halvtorrt mousserande vin på Gamay och Poulsard med ancestral-metoden, på runt 8 % alkohol.",
+          "**Orange pet nat** görs på gröna druvor som jäst med skalen före buteljering. Det ger färg, struktur och lite tannin. Läs mer i [Vad är orange vin?](/guider/vad-ar-orange-vin)",
+          "De flesta pet nat jäser ut till torrt eller nästan torrt, men inte alla. En del viner på ancestral-metoden, som Bugey Cerdon och Blanquette Méthode Ancestrale, behåller sötma med flit.",
+        ],
+      },
+    },
+    {
+      locales: ["sv"],
+      heading: {
+        en: "",
+        sv: "Hur smakar pet nat?",
+      },
+      body: {
+        en: [],
+        sv: [
+          "Friskt, fruktigt och lätt jästigt, med mjukare bubblor än champagne och oftast något lägre alkohol. Eftersom vinet ofta är ofiltrerat kan det påminna lite om cider eller surdeg, och fällningen ger textur. Grumlighet är normalt och inte ett fel.",
+        ],
+      },
+    },
+    {
+      locales: ["sv"],
+      heading: {
+        en: "",
         sv: "Så serverar du",
       },
       body: {
-        en: [
-          "Serve it cold, around 6 to 10 °C. Open a crown cap as you would a bottle cap, and point the bottle away from people: there is pressure in the bottle, and sediment can move.",
-          "If you want less sediment in the glass, stand the bottle upright so the lees can settle, then pour slowly. Cloudiness is often yeast left from the bottle fermentation, not a fault. A wine glass works. A flute is not required.",
-        ],
+        en: [],
         sv: [
-          "Servera kallt, runt 6 till 10 °C. Öppna en kronkork som en kapsyl, och rikta flaskan bort från folk: det är tryck i flaskan, och fällningen kan röra sig.",
-          "Om du vill ha mindre fällning i glaset ställer du flaskan upprätt så att jästfällningen kan sjunka, och häller sedan långsamt. Grumlighet är ofta jäst som ligger kvar efter flaskjäsningen, inte ett fel. Ett vinglas fungerar. En flöjt krävs inte.",
+          "Servera kallt, runt 6 till 10 °C. En kall flaska är lugnare och skummar mindre.",
+          "Öppna kronkorken långsamt med en kapsylöppnare, över diskhon eller ett glas, och rikta flaskan bort från folk. Om vinet börjar skumma, lägg tillbaka kapsylen löst en stund så att trycket lägger sig.",
+          "Vill du ha ett klarare glas, ställ flaskan upprätt en stund så att fällningen sjunker, och häll sedan långsamt. Vill du ha mer textur, vänd flaskan försiktigt före öppning så att fällningen blandas i. Ett vanligt vinglas fungerar bättre än en flöjt.",
         ],
       },
     },
     {
       locales: ["sv"],
       heading: {
-        en: "What to look for",
+        en: "",
         sv: "Vad du ska titta efter",
       },
       body: {
-        en: [
-          "On the label or the product text, look for pétillant naturel, pet nat, méthode ancestrale or ancestral method. A crown cap is common, but it is not a guarantee, and a cork does not rule the method out.",
-          "Read the producer, not only the style name. Pet nat does not say how the grapes were farmed or what was added in the cellar. Many bottles ferment out and are dry. Some ancestral-method wines are deliberately left with residual sugar. Bugey Cerdon is one appellation that uses the ancestral method and is usually off-dry.",
-          "At Systembolaget these bottles sit with the other sparkling wines. The ranked list is [Best pet nat at Systembolaget 2026](/guides/best-pet-nat-systembolaget). A wider sparkling list is [Best sparkling natural wines at Systembolaget](/guides/best-sparkling-natural-wines-systembolaget).",
-        ],
+        en: [],
         sv: [
           "På etiketten eller i produkttexten kan det stå pétillant naturel, pet nat, méthode ancestrale eller ancestral-metod. Kronkork är vanligt, men det är ingen garanti, och kork utesluter inte metoden.",
-          "Läs producenten, inte bara stilnamnet. Pet nat säger inte hur druvorna odlats eller vad som tillsatts i källaren. Många flaskor jäser ut och är torra. En del viner på ancestral-metoden behåller restsocker med flit. Bugey Cerdon är ett exempel på en appellation som använder ancestral-metoden och som vanligtvis har restsocker.",
-          "På Systembolaget ligger flaskorna bland övriga mousserande viner. Rankningen finns i [pet nat på Systembolaget](/guider/basta-pet-nat-systembolaget). En bredare mousserande lista är [Bästa mousserande naturviner på Systembolaget](/guider/basta-mousserande-naturviner-systembolaget).",
+          "Läs producenten, inte bara stilnamnet. Pet nat säger inte hur druvorna odlats eller vad som tillsatts i källaren.",
+          "På Systembolaget ligger flaskorna bland övriga mousserande viner. Vår rankning finns i [pet nat på Systembolaget](/guider/basta-pet-nat-systembolaget). En bredare lista är [Bästa mousserande naturviner på Systembolaget](/guider/basta-mousserande-naturviner-systembolaget).",
         ],
       },
     },
@@ -276,35 +328,50 @@ export const whatIsPetNatArticle: GuideArticleContent = {
   faqs: [
     {
       locales: ["sv"],
-      question: {
-        en: "Is pet nat always natural wine?",
-        sv: "Är pet nat alltid naturvin?",
-      },
+      question: { en: "", sv: "Vad är pet nat?" },
       answer: {
-        en: "No. Pet nat describes how the bubbles are made. Natural wine describes farming and cellar work. A bottle can be both, but one does not follow from the other. Read more in [What is natural wine?](/guides/what-is-natural-wine).",
-        sv: "Nej. Pet nat beskriver hur bubblorna blir till. Naturvin beskriver odling och källararbete. En flaska kan vara båda, men det ena följer inte av det andra. Läs mer i [Vad är naturvin?](/guider/vad-ar-naturvin).",
+        en: "",
+        sv: "Pet nat, förkortning av pétillant naturel, är mousserande vin som buteljeras innan den första jäsningen är klar, så att bubblorna bildas i flaskan. Det görs med méthode ancestrale, det äldsta sättet att göra mousserande vin.",
       },
     },
     {
       locales: ["sv"],
-      question: {
-        en: "Is pet nat always dry?",
-        sv: "Är pet nat alltid torrt?",
-      },
+      question: { en: "", sv: "Är pet nat samma sak som champagne?" },
       answer: {
-        en: "No. Many bottles ferment out and are dry, but some ancestral-method wines are deliberately left with residual sugar. Bugey Cerdon is one example of an appellation that uses the method and is usually off-dry.",
+        en: "",
+        sv: "Nej. Champagne får sina bubblor från en andra jäsning som startas med tillsatt socker och jäst, och degorgeras före försäljning. Pet nat har en jäsning som avslutas i flaskan, har oftast lägre tryck och är ofta grumligt.",
+      },
+    },
+    {
+      locales: ["sv"],
+      question: { en: "", sv: "Är pet nat alltid naturvin?" },
+      answer: {
+        en: "",
+        sv: "Nej. Pet nat beskriver hur bubblorna blir till. Naturvin beskriver odling och källararbete. En flaska kan vara båda, men det ena följer inte av det andra. Läs mer i [Vad är naturvin?](/guider/vad-ar-naturvin)",
+      },
+    },
+    {
+      locales: ["sv"],
+      question: { en: "", sv: "Är pet nat alltid torrt?" },
+      answer: {
+        en: "",
         sv: "Nej. Många flaskor jäser ut och är torra, men en del viner på ancestral-metoden behåller restsocker med flit. Bugey Cerdon är ett exempel på en appellation som använder metoden och som vanligtvis har restsocker.",
       },
     },
     {
       locales: ["sv"],
-      question: {
-        en: "Why is the wine cloudy?",
-        sv: "Varför är vinet grumligt?",
-      },
+      question: { en: "", sv: "Varför är vinet grumligt?" },
       answer: {
-        en: "Often because the bottle was not disgorged. The yeast sediment from the bottle fermentation is still there. The cloudiness is then not a fault.",
-        sv: "Ofta för att flaskan inte degorgerats. Jästfällningen från flaskjäsningen ligger kvar. Grumligheten är då inte ett fel.",
+        en: "",
+        sv: "Ofta för att flaskan inte degorgerats. Jästfällningen från flaskjäsningen ligger kvar. Den är ofarlig och en del av stilen.",
+      },
+    },
+    {
+      locales: ["sv"],
+      question: { en: "", sv: "Hur öppnar man en pet nat?" },
+      answer: {
+        en: "",
+        sv: "Kyl flaskan ordentligt och öppna kronkorken långsamt med en kapsylöppnare, över diskhon och riktad bort från folk. Om det skummar, lägg tillbaka kapsylen löst tills trycket har lagt sig.",
       },
     },
     {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 import {
   ArticleGuideShell,
@@ -31,6 +32,7 @@ import { shouldShowGuideShopCta } from "@/lib/guides/shop-links";
 import {
   articleParagraphs,
   articlePath,
+  articleUpdatedOn,
   articleVisibleForLocale,
   isGuideArticlePublished,
   type GuideArticleContent,
@@ -126,6 +128,7 @@ function shellBlocks(
 export async function renderArticleGuidePage(
   content: GuideArticleContent,
   locale: AppLocale,
+  slots?: { afterSections?: ReactNode },
 ) {
   const { seoBaseUrl } = await getGuideSeoOwnership();
   const copy = guideCopy(locale);
@@ -197,6 +200,7 @@ export async function renderArticleGuidePage(
       ? guideAuthorPersonId(content.author.name, seoBaseUrl)
       : null;
 
+  const updatedOn = articleUpdatedOn(content, locale);
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -213,7 +217,7 @@ export async function renderArticleGuidePage(
     ...(authorPersonId
       ? { author: guideArticleAuthorRef(authorPersonId) }
       : {}),
-    ...(content.updated ? { dateModified: content.updated } : {}),
+    ...(updatedOn ? { dateModified: updatedOn } : {}),
   };
 
   const faqs = articleVisibleForLocale(content.faqs ?? [], locale).map(
@@ -312,7 +316,14 @@ export async function renderArticleGuidePage(
             blocks: shellBlocks(section, locale),
           }),
         )}
-        afterSections={afterBody}
+        afterSections={
+          slots?.afterSections || afterBody ? (
+            <>
+              {slots?.afterSections}
+              {afterBody}
+            </>
+          ) : undefined
+        }
         faqs={faqs}
         faqHeading={locale === "sv" ? "Vanliga frågor" : "Frequently asked questions"}
         furtherReadingHeading={content.furtherReadingHeading[locale]}

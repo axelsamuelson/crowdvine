@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Footer } from "@/components/layout/footer";
 
 const RICH_TEXT =
-  /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s]+)/g;
+  /\*\*([^*]+)\*\*|\*([^*]+)\*|\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s]+)/g;
 
 const EXTERNAL_REL = "nofollow noopener noreferrer";
 const LINK_CLASS = "underline underline-offset-4 hover:text-foreground";
@@ -27,13 +27,16 @@ export function renderArticleRichText(
       );
     }
     const bold = match[1];
-    const label = match[2];
-    const markdownHref = match[3];
-    const bareUrl = match[4];
+    const italic = match[2];
+    const label = match[3];
+    const markdownHref = match[4];
+    const bareUrl = match[5];
     if (bold) {
       nodes.push(
         <strong key={`${keyPrefix}-b-${match.index}`}>{bold}</strong>,
       );
+    } else if (italic) {
+      nodes.push(<em key={`${keyPrefix}-i-${match.index}`}>{italic}</em>);
     } else if (label && markdownHref) {
       const external = /^https?:\/\//.test(markdownHref);
       if (external) {
@@ -356,7 +359,9 @@ export function ArticleGuideShell({
 
           {lede ? (
             <p className="mt-4 text-xl leading-relaxed text-muted-foreground">
-              {lede.includes("](") ? renderArticleRichText(lede, "lede") : lede}
+              {lede.includes("](") || lede.includes("*")
+                ? renderArticleRichText(lede, "lede")
+                : lede}
             </p>
           ) : null}
 

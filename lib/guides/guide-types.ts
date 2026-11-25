@@ -136,8 +136,11 @@ export type GuideArticleContent = {
   /**
    * Sitemap `<lastmod>` and Article `dateModified` (YYYY-MM-DD).
    * Set only when the page copy actually changes.
+   * Shared by both locales unless `updatedByLocale` overrides one of them.
    */
   updated?: string;
+  /** Locale-specific `dateModified` / sitemap lastmod. Falls back to `updated`. */
+  updatedByLocale?: Partial<Record<AppLocale, string>>;
   /**
    * Cave Pur Jus on the Sweden online-buying guide.
    * Read in that content file when the section list and Sources are built.
@@ -202,6 +205,13 @@ export function isGuideArticlePublished(content: {
   published?: boolean;
 }): boolean {
   return content.published !== false;
+}
+
+export function articleUpdatedOn(
+  content: Pick<GuideArticleContent, "updated" | "updatedByLocale">,
+  locale: AppLocale,
+): string | undefined {
+  return content.updatedByLocale?.[locale] ?? content.updated;
 }
 
 export function articlePath(
