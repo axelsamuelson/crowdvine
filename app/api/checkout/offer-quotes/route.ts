@@ -32,7 +32,7 @@ import {
 } from "@/lib/checkout/offer-quote";
 import { isDualOfferCheckoutSurfaceAllowed } from "@/lib/checkout/dual-offer-surface-gate";
 import { previewVisibleMethods } from "@/lib/checkout/offer-payment-methods";
-import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
+import { computeReservationChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
 
 export const dynamic = "force-dynamic";
 
@@ -188,11 +188,6 @@ export async function POST(request: Request) {
           rateChannel:
             charge.rateChannel === "direct_box" ? "direct_box" : "pact",
         });
-        const palletCreatedAt =
-          palletRow &&
-          typeof (palletRow as { created_at?: unknown }).created_at === "string"
-            ? (palletRow as { created_at: string }).created_at
-            : null;
         shared = buildOfferQuote({
           offer: "shared_pallet",
           money,
@@ -204,8 +199,8 @@ export async function POST(request: Request) {
           unavailable_reason: charge.shippingPending
             ? "shipping_pending"
             : null,
-          charge_deadline_at:
-            computeSharedPalletChargeDeadlineIso(palletCreatedAt),
+          // Shown before purchase: 28 days from now, not from pallet created_at.
+          charge_deadline_at: computeReservationChargeDeadlineIso(new Date()),
         });
       } else {
         shared = buildUnavailableOfferQuote({

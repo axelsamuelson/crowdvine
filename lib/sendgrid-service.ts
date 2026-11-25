@@ -93,8 +93,8 @@ export interface OrderConfirmationData {
     country: string;
   };
   /**
-   * Shared-pallet charge/close deadline (ISO). When set, confirmation copy
-   * shows “senast {datum}” / “by {datum} at the latest”.
+   * Shared-pallet deadline (ISO), counted from the purchase.
+   * Copy says the card is charged only when the pallet fills.
    */
   chargeDeadlineAt?: string | null;
   /** Pre-formatted locale label for the deadline (preferred for email body). */
@@ -119,9 +119,9 @@ export async function buildOrderConfirmationHtml(
   const deadlineHtml = deadlineLabel
     ? `<div class="order-info" style="margin-top: 16px; background: #f8f9fa;">
                 <h2 style="margin-top: 0;">Payment timing</h2>
-                <p style="margin: 0;"><strong>Charged by ${deadlineLabel} at the latest</strong></p>
+                <p style="margin: 0;"><strong>Charged only when the pallet fills</strong></p>
                 <p style="margin: 8px 0 0; color: #555; font-size: 14px;">
-                  We save your card and charge when the shared pallet fills, or by this date at the latest (senast ${deadlineLabel}). You can cancel free of charge until then.
+                  We save your card and charge only when the shared pallet fills. If it is not full by ${deadlineLabel}, nothing is charged. You can cancel free of charge until the pallet closes.
                 </p>
               </div>`
     : "";
@@ -344,8 +344,8 @@ export function buildOrderConfirmationText(data: OrderConfirmationData): string 
   const deadlineBlock = deadlineLabel
     ? `
 Payment timing:
-Charged by ${deadlineLabel} at the latest (senast ${deadlineLabel}).
-We save your card and charge when the shared pallet fills, or by this date. You can cancel free of charge until then.
+Charged only when the pallet fills
+We save your card and charge only when the shared pallet fills. If it is not full by ${deadlineLabel}, nothing is charged. You can cancel free of charge until the pallet closes.
 `
     : "";
   const deliveryBlock = `

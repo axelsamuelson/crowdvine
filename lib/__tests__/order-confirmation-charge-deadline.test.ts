@@ -25,8 +25,8 @@ const base: OrderConfirmationData = {
   },
 };
 
-describe("order confirmation charge deadline (senast)", () => {
-  it("includes senast label in text when chargeDeadlineLabel is set", () => {
+describe("order confirmation charge deadline (fill only)", () => {
+  it("says nothing is charged unless the pallet fills", () => {
     const created = "2026-05-06T12:00:00.000Z";
     const iso = computeSharedPalletChargeDeadlineIso(created)!;
     const label = formatSharedPalletChargeDeadline(iso, "sv")!;
@@ -35,9 +35,11 @@ describe("order confirmation charge deadline (senast)", () => {
       chargeDeadlineAt: iso,
       chargeDeadlineLabel: label,
     });
-    expect(text).toMatch(/senast/i);
+    expect(text).toMatch(/Charged only when the pallet fills/);
+    expect(text).toMatch(/nothing is charged/i);
     expect(text).toContain(label);
     expect(text).toMatch(/Payment timing/i);
+    expect(text).not.toMatch(/at the latest/i);
   });
 
   it("omits payment-timing block when no deadline", () => {

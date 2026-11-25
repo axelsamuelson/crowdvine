@@ -1,23 +1,23 @@
 /**
- * Shared-pallet open window / charge deadline (customer-facing data contract).
+ * Shared-pallet charge deadline (customer-facing data contract).
  *
- * Product rule: pallet may stay open at most 4 weeks from open/creation.
- * Charge happens when the pallet fills OR the last date is reached — whichever
- * first. There is no stored closes_at today; open anchor is pallets.created_at.
+ * The customer is charged only when the pallet reaches min_bottles_to_complete.
+ * A date never triggers a charge. If the pallet is not full by the deadline,
+ * nothing is charged.
  *
- * Close-time flow (customer wait / cancel / switch-to-direct) is a follow-up;
- * this module only computes the displayed “senast {datum}”.
+ * The deadline is counted from the purchase (reservation created_at + 28 days),
+ * not from the pallet's created_at. There is no stored closes_at.
  */
 
-/** Max open window after pallet creation (inclusive calendar contract: 28 days). */
+/** Max window after the purchase (inclusive calendar contract: 28 days). */
 export const SHARED_PALLET_MAX_OPEN_DAYS = 28;
 
 export const SHARED_PALLET_MAX_OPEN_MS =
   SHARED_PALLET_MAX_OPEN_DAYS * 24 * 60 * 60 * 1000;
 
 /**
- * Charge / close deadline = created_at + 4 weeks.
- * Returns null when created_at is missing/invalid (fail closed for copy).
+ * Anchor + 28 days. Returns null when the anchor is missing or invalid.
+ * Prefer `computeReservationChargeDeadlineIso` for a customer purchase.
  */
 export function computeSharedPalletChargeDeadlineIso(
   createdAt: string | Date | null | undefined,
@@ -27,6 +27,16 @@ export function computeSharedPalletChargeDeadlineIso(
     createdAt instanceof Date ? createdAt.getTime() : Date.parse(String(createdAt));
   if (!Number.isFinite(openMs)) return null;
   return new Date(openMs + SHARED_PALLET_MAX_OPEN_MS).toISOString();
+}
+
+/**
+ * Per-customer charge deadline: reservation created_at + 28 days.
+ * Does not charge anything; callers must still require a full pallet.
+ */
+export function computeReservationChargeDeadlineIso(
+  reservationCreatedAt: string | Date | null | undefined,
+): string | null {
+  return computeSharedPalletChargeDeadlineIso(reservationCreatedAt);
 }
 
 /** Format deadline for checkout CTA (Swedish / English locale). */

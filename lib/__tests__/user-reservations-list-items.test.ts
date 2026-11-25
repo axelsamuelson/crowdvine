@@ -11,7 +11,7 @@ describe("GET /api/user/reservations list items", () => {
     expect(src).toMatch(/from\("order_reservation_items"\)/);
     expect(src).toMatch(/confirmationDisplayTotalSek/);
     expect(src).toMatch(/resolveWineImageSrc/);
-    expect(src).toMatch(/computeSharedPalletChargeDeadlineIso/);
+    expect(src).toMatch(/computeReservationChargeDeadlineIso/);
     expect(src).toMatch(/charge_deadline_at/);
     // Nested select of optional producer decision columns 42703'd on Preview.
     expect(src).not.toMatch(/producer_decision_status,/);

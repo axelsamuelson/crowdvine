@@ -1,21 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
   SHARED_PALLET_MAX_OPEN_DAYS,
+  computeReservationChargeDeadlineIso,
   computeSharedPalletChargeDeadlineIso,
   formatSharedPalletChargeDeadline,
 } from "@/lib/checkout/shared-pallet-deadline";
 
-describe("shared pallet charge deadline (created_at + 4 weeks)", () => {
-  it("locks max open window at 28 days from created_at", () => {
+describe("shared pallet charge deadline (purchase + 28 days)", () => {
+  it("locks max open window at 28 days from the purchase", () => {
     expect(SHARED_PALLET_MAX_OPEN_DAYS).toBe(28);
     const open = "2026-11-01T12:00:00.000Z";
-    const deadline = computeSharedPalletChargeDeadlineIso(open);
+    const deadline = computeReservationChargeDeadlineIso(open);
     expect(deadline).toBe("2026-11-29T12:00:00.000Z");
+    expect(computeSharedPalletChargeDeadlineIso(open)).toBe(deadline);
   });
 
   it("returns null on invalid created_at", () => {
+    expect(computeReservationChargeDeadlineIso(null)).toBeNull();
+    expect(computeReservationChargeDeadlineIso("not-a-date")).toBeNull();
     expect(computeSharedPalletChargeDeadlineIso(null)).toBeNull();
-    expect(computeSharedPalletChargeDeadlineIso("not-a-date")).toBeNull();
   });
 
   it("formats Swedish date for CTA copy", () => {
