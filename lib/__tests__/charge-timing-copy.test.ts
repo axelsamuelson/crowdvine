@@ -184,10 +184,10 @@ describe("checkout charge-timing wiring", () => {
     expect(en.checkout.chargedOnConfirm).toMatch(/charged now|confirm/i);
     expect(sv.checkout.chargedOnConfirm).toMatch(/debiteras nu|bekräftar/i);
     expect(en.checkout.noChargeUntilPalletCloses).toMatch(
-      /not charged now|pallet closes/i,
+      /nothing is charged now|pallet is full/i,
     );
     expect(sv.checkout.noChargeUntilPalletCloses).toBe(
-      "Inget debiteras nu. Du betalar först när pallen stänger.",
+      "Inget debiteras nu. Du betalar först när pallen är full.",
     );
     expect(sv.checkout.noChargeUntilPalletCloses).not.toMatch(/\bdras\b/i);
     expect(sv.checkout.sellingEntity).toBe(
@@ -207,8 +207,8 @@ describe("checkout charge-timing wiring", () => {
       /pallen stänger|debiter|godkänn betalning/i,
     );
     // SI CTA may keep deferred timing (known setup_intent only)
-    expect(en.checkout.placeReservationWithPayment).toMatch(/pallet closes/i);
-    expect(sv.checkout.placeReservationWithPayment).toMatch(/pallen stänger/i);
+    expect(en.checkout.placeReservationWithPayment).toMatch(/pallet is full/i);
+    expect(sv.checkout.placeReservationWithPayment).toMatch(/pallen är full/i);
     // Neutral Stripe reload copy (AC2) — short, no mode promise
     expect(en.checkout.loadingPayment).toMatch(/loading payment/i);
     expect(sv.checkout.loadingPayment).toMatch(/Laddar betalning/i);

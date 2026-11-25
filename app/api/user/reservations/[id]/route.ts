@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
+import { computeReservationChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
 import { isPalletBasedReservation } from "@/lib/commerce/is-pallet-based-reservation";
 import {
   confirmationChargedLineTotalsSek,
@@ -48,6 +48,7 @@ export async function GET(
         id,
         status,
         created_at,
+        charge_deadline_at,
         pallet_id,
         pickup_zone_id,
         delivery_zone_id,
@@ -408,16 +409,16 @@ export async function GET(
     });
 
     // Detect shared pallet via pallet_id (fulfillment_channel may be null on older rows).
-    const palletCreatedAt =
-      reservation.pallet &&
-      typeof (reservation.pallet as { created_at?: unknown }).created_at ===
-        "string"
-        ? (reservation.pallet as { created_at: string }).created_at
+    const storedChargeDeadline =
+      typeof (reservation as { charge_deadline_at?: unknown })
+        .charge_deadline_at === "string"
+        ? (reservation as { charge_deadline_at: string }).charge_deadline_at
         : null;
     const chargeDeadlineAt = isPalletBasedReservation({
       pallet_id: reservation.pallet_id,
     })
-      ? computeSharedPalletChargeDeadlineIso(palletCreatedAt)
+      ? storedChargeDeadline ??
+        computeReservationChargeDeadlineIso(reservation.created_at)
       : null;
 
     // Migration 277 not selected — shared_pallet default for confirmation.
@@ -449,7 +450,7 @@ export async function GET(
       pallet_name: isCustomerFacingLabel(palletNameRaw) ? palletNameRaw : null,
       pallet_cost_cents: reservation.pallet?.cost_cents || 0,
       pallet_capacity: reservation.pallet?.bottle_capacity || 0,
-      /** Shared-pallet charge/close deadline (created_at + 28d). Null for direct. */
+      /** Purchase charge deadline (stored, else created_at + 28d). Null for direct. */
       charge_deadline_at: chargeDeadlineAt,
       // Never send "Unknown …" stubs; omit pickup for home-delivery (null zone).
       pickup_zone: isCustomerFacingLabel(pickupZoneName)

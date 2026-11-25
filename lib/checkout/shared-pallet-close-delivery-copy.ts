@@ -9,17 +9,17 @@
 
 /** Swedish — full copy for confirmation page + email. */
 export const SHARED_PALLET_CLOSE_DELIVERY_COPY_SV =
-  "Pallen stänger när den är full, senast {datum}. Leverans sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige.";
+  "Pallen stänger när den är full. Är den inte full senast {datum} dras ingenting. Leverans sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige.";
 
 /** English — full copy for confirmation page + email. */
 export const SHARED_PALLET_CLOSE_DELIVERY_COPY_EN =
-  "The pallet closes when full, by {datum} at the latest. Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden.";
+  "The pallet closes when full. If it is not full by {datum}, nothing is charged. Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden.";
 
 /** Checkout-only close line (design lead — two short lines). */
 export const CHECKOUT_PALLET_CLOSE_LINE_SV =
-  "Pallen stänger när den är full, senast {datum}.";
+  "Pallen stänger när den är full. Är den inte full senast {datum} dras ingenting.";
 export const CHECKOUT_PALLET_CLOSE_LINE_EN =
-  "The pallet closes when full, by {datum} at the latest.";
+  "The pallet closes when full. If it is not full by {datum}, nothing is charged.";
 
 /** Checkout-only delivery line (no window / delivery-day sentence). */
 export const CHECKOUT_PALLET_DELIVERY_LINE_SV =
@@ -50,11 +50,11 @@ function omitMissingDatum(
 ): string {
   if (locale === "en") {
     return template
-      .replace(/, by \{datum\} at the latest/i, "")
+      .replace(/\s*If it is not full by \{datum\}, nothing is charged\./i, "")
       .replace(/\{datum\}/g, "");
   }
   return template
-    .replace(/, senast \{datum\}/i, "")
+    .replace(/\s*Är den inte full senast \{datum\} dras ingenting\./i, "")
     .replace(/\{datum\}/g, "");
 }
 

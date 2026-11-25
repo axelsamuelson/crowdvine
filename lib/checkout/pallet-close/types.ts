@@ -21,6 +21,8 @@ export const EXTENSION_DAYS = 28;
 
 export type PalletCloseReservationSnapshot = {
   id: string;
+  /** Purchase time. Deadline fallback is this + 28 days, not pallet created_at. */
+  created_at?: string | null;
   pallet_id: string | null;
   payment_status: string | null;
   payment_method_id: string | null;

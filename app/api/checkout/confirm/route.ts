@@ -50,6 +50,11 @@ import {
 } from "@/lib/age-limits";
 import { resolvePaymentMethodDetailsFromId } from "@/lib/stripe/resolve-payment-method-details";
 import { resolveAndChargeCheckoutShipping } from "@/lib/checkout/resolve-checkout-shipping";
+import {
+  computeReservationChargeDeadlineIso,
+  formatSharedPalletChargeDeadline,
+} from "@/lib/checkout/shared-pallet-deadline";
+import { isPalletBasedReservation } from "@/lib/commerce/is-pallet-based-reservation";
 import { getContributionAssumptions } from "@/lib/contribution-assumptions";
 import { fetchExchangeRateToSekStrict } from "@/lib/exchange-rate-strict";
 import {
@@ -1728,6 +1733,12 @@ export async function POST(request: Request) {
         }
       : { status: "pending_producer_approval" as const };
 
+    // Per purchase, not per pallet. Same ISO is stored on the row and emailed.
+    const reservationChargeDeadlineAt =
+      intentType === "setup_intent"
+        ? computeReservationChargeDeadlineIso(new Date())
+        : null;
+
     if (b2cProducerCheckout) {
       const voucherPoolOre = Math.round(Number(voucherDiscountCents) || 0);
       const pactPoolOre = Math.round(pactPointsSekOff * 100);
@@ -1842,6 +1853,9 @@ export async function POST(request: Request) {
           pickup_zone_id: zones.pickupZoneId,
           delivery_zone_id: finalDeliveryZoneId,
           pallet_id: groupPalletId,
+          ...(reservationChargeDeadlineAt && groupPalletId
+            ? { charge_deadline_at: reservationChargeDeadlineAt }
+            : {}),
           shipping_region_id: groupShippingRegionId,
           producer_id: group.producerId,
           checkout_group_id: checkoutGroupId,
@@ -2055,6 +2069,9 @@ export async function POST(request: Request) {
         pickup_zone_id: zones.pickupZoneId,
         delivery_zone_id: finalDeliveryZoneId,
         pallet_id: palletId,
+        ...(reservationChargeDeadlineAt && palletId
+          ? { charge_deadline_at: reservationChargeDeadlineAt }
+          : {}),
         shipping_region_id: reservationShippingRegionId,
         producer_id: producerIdForReservation,
         market_drop_id: serverMarketDropIdSingle,
@@ -3112,45 +3129,22 @@ export async function POST(request: Request) {
           "@/lib/email/claim-email-send"
         );
 
-        // Shared-pallet senast {datum} for confirmation email (compute; no migration).
+        // Same purchase deadline written on the reservation (now + 28 days).
         let chargeDeadlineAt: string | null = null;
         let chargeDeadlineLabel: string | null = null;
-        try {
-          const { computeSharedPalletChargeDeadlineIso, formatSharedPalletChargeDeadline } =
-            await import("@/lib/checkout/shared-pallet-deadline");
-          const { isPalletBasedReservation } = await import(
-            "@/lib/commerce/is-pallet-based-reservation"
-          );
-          const emailPalletId =
-            typeof palletId === "string" && palletId.trim()
-              ? palletId.trim()
-              : "";
-          if (
-            emailPalletId &&
-            isPalletBasedReservation({ pallet_id: emailPalletId })
-          ) {
-            const { data: palletForDeadline } = await sbAdmin
-              .from("pallets")
-              .select("created_at")
-              .eq("id", emailPalletId)
-              .maybeSingle();
-            const created =
-              palletForDeadline &&
-              typeof (palletForDeadline as { created_at?: unknown })
-                .created_at === "string"
-                ? (palletForDeadline as { created_at: string }).created_at
-                : null;
-            chargeDeadlineAt =
-              computeSharedPalletChargeDeadlineIso(created);
-            chargeDeadlineLabel = formatSharedPalletChargeDeadline(
-              chargeDeadlineAt,
-              "sv",
-            );
-          }
-        } catch (deadlineErr) {
-          console.warn(
-            "[checkout/confirm] charge deadline for email skipped:",
-            deadlineErr,
+        const emailPalletId =
+          typeof palletId === "string" && palletId.trim()
+            ? palletId.trim()
+            : "";
+        if (
+          reservationChargeDeadlineAt &&
+          emailPalletId &&
+          isPalletBasedReservation({ pallet_id: emailPalletId })
+        ) {
+          chargeDeadlineAt = reservationChargeDeadlineAt;
+          chargeDeadlineLabel = formatSharedPalletChargeDeadline(
+            chargeDeadlineAt,
+            "sv",
           );
         }
 

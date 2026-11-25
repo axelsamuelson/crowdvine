@@ -4,7 +4,7 @@
  */
 
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
+import { computeReservationChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
 import { isPalletCloseFlowEnabled } from "@/lib/checkout/pallet-close/flags";
 import { isSharedPalletFullForClose } from "@/lib/checkout/pallet-close/pallet-full";
 import {
@@ -65,24 +65,19 @@ function shouldSendEmail(): boolean {
 // production; PostgREST rejects unknown columns. Without the column, treat
 // channel as null / shared_pallet; isPalletBasedReservation uses pallet_id.
 export const PALLET_CLOSE_SNAPSHOT_SELECT =
-  "id, pallet_id, payment_status, payment_method_id, setup_intent_id, payment_intent_id, status, cancelled_at, charge_deadline_at, pallet_close_state, pallet_close_choice, pallet_close_choice_sent_at, pallet_close_choice_reply_by, pallet_close_extension_count, offsession_charge_failed_at, offsession_pay_by, payment_method_detached_at, pallet_close_charge_idempotency_key, payment_mode, user_id";
+  "id, created_at, pallet_id, payment_status, payment_method_id, setup_intent_id, payment_intent_id, status, cancelled_at, charge_deadline_at, pallet_close_state, pallet_close_choice, pallet_close_choice_sent_at, pallet_close_choice_reply_by, pallet_close_extension_count, offsession_charge_failed_at, offsession_pay_by, payment_method_detached_at, pallet_close_charge_idempotency_key, payment_mode, user_id";
 
 const SNAPSHOT_SELECT = PALLET_CLOSE_SNAPSHOT_SELECT;
 
-async function resolveDeadlineIso(
+function resolveDeadlineIso(
   row: PalletCloseReservationSnapshot & {
     pallet_id: string | null;
+    created_at?: string | null;
   },
-): Promise<string | null> {
+): string | null {
   if (row.charge_deadline_at) return row.charge_deadline_at;
-  if (!row.pallet_id) return null;
-  const sb = getSupabaseAdmin();
-  const { data: pallet } = await sb
-    .from("pallets")
-    .select("created_at")
-    .eq("id", row.pallet_id)
-    .maybeSingle();
-  return computeSharedPalletChargeDeadlineIso(pallet?.created_at ?? null);
+  // Fallback is the purchase, not the pallet's created_at.
+  return computeReservationChargeDeadlineIso(row.created_at ?? null);
 }
 
 async function processChargePath(opts: {

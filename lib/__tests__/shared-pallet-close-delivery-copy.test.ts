@@ -21,10 +21,10 @@ import { formatSharedPalletChargeDeadline } from "@/lib/checkout/shared-pallet-d
 describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
   it("keeps one SV and one EN constant as the single source", () => {
     expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_SV).toBe(
-      "Pallen stänger när den är full, senast {datum}. Leverans sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige.",
+      "Pallen stänger när den är full. Är den inte full senast {datum} dras ingenting. Leverans sker normalt inom 2–3 veckor efter att pallen stängt och alltid senast 30 dagar efter. När pallen har skickats får du ett beräknat leveransfönster, och leveransdagen när vinet nått Sverige.",
     );
     expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_EN).toBe(
-      "The pallet closes when full, by {datum} at the latest. Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden.",
+      "The pallet closes when full. If it is not full by {datum}, nothing is charged. Delivery normally takes 2–3 weeks after the pallet closes and always within 30 days. Once the pallet has shipped you'll get an estimated delivery window, and the delivery day once the wine has reached Sweden.",
     );
     expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_SV).not.toMatch(/Budbee/i);
     expect(SHARED_PALLET_CLOSE_DELIVERY_COPY_EN).not.toMatch(/Budbee/i);
@@ -36,10 +36,10 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
 
   it("formats with datum and omits date clause when missing", () => {
     expect(formatSharedPalletCloseDeliveryCopy("sv", "7 dec")).toContain(
-      "senast 7 dec",
+      "Är den inte full senast 7 dec dras ingenting",
     );
     expect(formatSharedPalletCloseDeliveryCopy("en", "7 Dec")).toContain(
-      "by 7 Dec at the latest",
+      "If it is not full by 7 Dec, nothing is charged",
     );
     // Close-date clause omitted; post-close "senast 30 dagar" / "within 30 days" stay.
     expect(formatSharedPalletCloseDeliveryCopy("sv", null)).toBe(
@@ -127,18 +127,18 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
   it("checkout uses two short lines without debit or delivery-day sentence", () => {
     const sv = formatCheckoutPalletDeliveryLines("sv", "7 dec");
     expect(sv.closeLine).toBe(
-      "Pallen stänger när den är full, senast 7 dec.",
+      "Pallen stänger när den är full. Är den inte full senast 7 dec dras ingenting.",
     );
     expect(sv.deliveryLine).toBe(CHECKOUT_PALLET_DELIVERY_LINE_SV);
-    expect(sv.closeLine + sv.deliveryLine).not.toMatch(/debiter|kort/i);
+    expect(sv.deliveryLine).not.toMatch(/debiter|kort/i);
     expect(sv.deliveryLine).not.toMatch(/leveransfönster|leveransdagen/i);
 
     const en = formatCheckoutPalletDeliveryLines("en", "7 Dec");
     expect(en.closeLine).toBe(
-      "The pallet closes when full, by 7 Dec at the latest.",
+      "The pallet closes when full. If it is not full by 7 Dec, nothing is charged.",
     );
     expect(en.deliveryLine).toBe(CHECKOUT_PALLET_DELIVERY_LINE_EN);
-    expect(en.closeLine + en.deliveryLine).not.toMatch(/charge|card/i);
+    expect(en.deliveryLine).not.toMatch(/charge|card/i);
     expect(en.deliveryLine).not.toMatch(/delivery window|delivery day/i);
 
     expect(CHECKOUT_PALLET_CLOSE_LINE_SV).toContain("{datum}");
@@ -153,7 +153,7 @@ describe("shared pallet close/delivery copy (owner — no Budbee)", () => {
     expect(en).toMatch(/5\s+December\s+2026/i);
     const notice = formatCheckoutPalletDeliveryLines("sv", sv);
     expect(notice.closeLine).toBe(
-      `Pallen stänger när den är full, senast ${sv}.`,
+      `Pallen stänger när den är full. Är den inte full senast ${sv} dras ingenting.`,
     );
     expect(notice.deliveryLine).toBe(
       "Leverans normalt 2–3 veckor därefter, alltid inom 30 dagar.",

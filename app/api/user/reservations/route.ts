@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { resolveWineImageSrc } from "@/lib/cart/wine-image-url";
-import { computeSharedPalletChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
+import { computeReservationChargeDeadlineIso } from "@/lib/checkout/shared-pallet-deadline";
 import {
   confirmationDisplayTotalSek,
   shortReservationReference,
@@ -247,8 +247,8 @@ export async function GET() {
       });
     }
 
-    // Direct pallet rows (by reservation.pallet_id) for capacity + charge deadline
-    // (same created_at + 28d source as checkout / confirmation).
+    // Direct pallet rows (by reservation.pallet_id) for capacity.
+    // Charge deadline comes from the reservation, not the pallet.
     type PalletMeta = {
       id: string;
       name?: string | null;
@@ -297,15 +297,12 @@ export async function GET() {
         let palletCapacity = null;
         let palletIsComplete = false;
         let palletStatus = null;
-        let palletCreatedAt: string | null = null;
 
         if (palletId && palletById.has(palletId)) {
           const direct = palletById.get(palletId)!;
           palletName = direct.name || palletName;
           palletCapacity = direct.bottle_capacity ?? null;
           palletStatus = direct.status ?? null;
-          palletCreatedAt =
-            typeof direct.created_at === "string" ? direct.created_at : null;
           const st = String(direct.status || "").toLowerCase();
           palletIsComplete =
             st === "complete" ||
@@ -329,9 +326,6 @@ export async function GET() {
             if (palletCapacity == null) {
               palletCapacity = pallet.bottle_capacity;
             }
-            if (!palletCreatedAt && typeof pallet.created_at === "string") {
-              palletCreatedAt = pallet.created_at;
-            }
             const st = String(pallet.status || "").toLowerCase();
             palletIsComplete =
               st === "complete" ||
@@ -343,13 +337,6 @@ export async function GET() {
               st === "delivered";
             palletStatus = pallet.status;
           }
-        }
-
-        // If zone match set palletId but meta came only from zone map, fill created_at.
-        if (palletId && !palletCreatedAt && palletById.has(palletId)) {
-          const direct = palletById.get(palletId)!;
-          palletCreatedAt =
-            typeof direct.created_at === "string" ? direct.created_at : null;
         }
 
         // Get delivery address instead of zone names
@@ -478,8 +465,14 @@ export async function GET() {
             ? resRow.charge_blocked_reason
             : null;
 
+        const storedChargeDeadline =
+          typeof (reservation as { charge_deadline_at?: unknown })
+            .charge_deadline_at === "string"
+            ? (reservation as { charge_deadline_at: string }).charge_deadline_at
+            : null;
         const chargeDeadlineAt = isSharedPallet
-          ? computeSharedPalletChargeDeadlineIso(palletCreatedAt)
+          ? storedChargeDeadline ??
+            computeReservationChargeDeadlineIso(reservation.created_at)
           : null;
 
         return {
@@ -496,7 +489,7 @@ export async function GET() {
               : palletCapacity,
           pallet_is_complete: palletIsComplete,
           pallet_status: palletStatus,
-          /** Same created_at+28d source as checkout confirmation. */
+          /** Stored purchase deadline, else reservation created_at + 28 days. */
           charge_deadline_at: chargeDeadlineAt,
           delivery_address: deliveryAddress,
           total_cost_cents: totalCostCents,

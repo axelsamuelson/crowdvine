@@ -41,7 +41,7 @@ describe("dual-offer binding CTA (distance-selling)", () => {
       showDirectOffer: false,
     });
     expect(sv.finalCtaLabel.replace(/\u00a0/g, " ")).toBe(
-      "Köp – betala 1 283 kr när pallen stänger",
+      "Köp – betala 1 283 kr när pallen är full",
     );
     expect(sv.legalLine).toMatch(/Köpet är bindande/);
     expect(sv.totalInclLine.replace(/\u00a0/g, " ")).toMatch(/1 283 kr/);
@@ -53,7 +53,7 @@ describe("dual-offer binding CTA (distance-selling)", () => {
       showDirectOffer: false,
     });
     expect(en.finalCtaLabel.replace(/\u00a0/g, " ")).toBe(
-      "Buy – pay 1 283 SEK when the pallet closes",
+      "Buy – pay 1 283 SEK when the pallet is full",
     );
     expect(en.legalLine).toMatch(/The purchase is binding/);
   });

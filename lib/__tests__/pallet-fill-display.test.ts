@@ -162,7 +162,7 @@ describe("checkout pallet fill + legal copy", () => {
       datum: "7 dec",
     });
     expect(sv).toBe(
-      "Köpet är bindande. Vi sparar ditt kort och debiterar 1 283 kr först när pallen stänger, senast 7 dec. Fylls inte pallen väljer du själv om du vill vänta eller avboka utan kostnad.",
+      "Köpet är bindande. Vi sparar ditt kort och debiterar 1 283 kr först när pallen är full. Fylls den inte senast 7 dec dras ingenting. Fylls inte pallen väljer du själv om du vill vänta eller avboka utan kostnad.",
     );
     expect(sv).not.toMatch(/eller byta/);
 
@@ -177,7 +177,7 @@ describe("checkout pallet fill + legal copy", () => {
       datum: "7 Dec",
     });
     expect(en).toBe(
-      "The purchase is binding. We save your card and charge 1 283 SEK only when the pallet closes, by 7 Dec at the latest. If the pallet doesn't fill, you choose whether to wait or cancel free of charge.",
+      "The purchase is binding. We save your card and charge 1 283 SEK only when the pallet is full. If it is not full by 7 Dec, nothing is charged. If the pallet doesn't fill, you choose whether to wait or cancel free of charge.",
     );
     expect(en).not.toMatch(/or switch/);
 

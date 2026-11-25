@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin-auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { autoChargeDeferredReservationsForPallet } from "@/lib/reservation-auto-charge";
+import { isSharedPalletFullForClose } from "@/lib/checkout/pallet-close/pallet-full";
 
 const ALLOW_PRE_SHIPPING_STATUSES = new Set(["open", "consolidating"]);
 
@@ -76,6 +77,21 @@ export async function POST(
             "Confirm the pickup producer/location on the pallet before ordering shipping",
         },
         { status: 400 },
+      );
+    }
+
+    const fullness = await isSharedPalletFullForClose(palletId);
+    if (!fullness.full) {
+      console.warn(
+        `[order-shipping] pallet ${palletId} not full bottlesFilled=${fullness.bottlesFilled} minToShip=${fullness.minToShip}`,
+      );
+      return NextResponse.json(
+        {
+          error: "Pallet not full",
+          bottlesFilled: fullness.bottlesFilled,
+          minToShip: fullness.minToShip,
+        },
+        { status: 409 },
       );
     }
 
