@@ -19,7 +19,7 @@ export function useTranslations() {
   const ctx = useShoppingContextOptional();
   const pathLocale = localeFromShopPath(pathname);
 
-  const baseContext = ctx?.context ?? fallbackShoppingContext();
+  const baseContext = ctx?.context ?? fallbackShoppingContext("sv");
   const context = useMemo(() => {
     if (!pathLocale || pathLocale === baseContext.locale) return baseContext;
     return applyLocalePolicyToContext({ ...baseContext, locale: pathLocale });

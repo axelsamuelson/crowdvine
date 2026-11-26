@@ -56,7 +56,23 @@ async function loadUserPreferredLocale(
   }
 }
 
-function resolveAppLocale(params: {
+function isSwedenZone(
+  zone: Pick<ResolvedActiveGeoZone, "countryCode">,
+): boolean {
+  return (zone.countryCode ?? "").trim().toUpperCase() === "SE";
+}
+
+/**
+ * Locale for the shopping context.
+ *
+ * Swedish shoppers (Sweden zone) stay on Swedish for locale-less routes
+ * (`/checkout`, `/profile`). `markets.locale` is `en` for EU, and
+ * Accept-Language / a cookie written by visiting `/wine` must not flip
+ * those pages to English. An English URL still wins. A saved
+ * `profiles.preferred_locale` wins for signed-in users. Guests can pin
+ * English with the locale cookie (the language switcher).
+ */
+export function resolveAppLocale(params: {
   uiLocalizationEnabled: boolean;
   marketLocale: string;
   cookieLocale?: string | null;
@@ -64,26 +80,35 @@ function resolveAppLocale(params: {
   userPreferred?: AppLocale | null;
   activeZone: ResolvedActiveGeoZone;
   pathLocale?: AppLocale | null;
+  /** Signed-in profile. Guests have no preferred_locale row. */
+  hasUser?: boolean;
 }): AppLocale {
   // Dirtywine (localization off): fixed Swedish UI — not DEFAULT_APP_LOCALE (en).
   if (!params.uiLocalizationEnabled) {
     return FIXED_LOCALE_WHEN_LOCALIZATION_DISABLED;
   }
-  // Explicit browser choice (language switcher) wins over stored profile default.
   const fromCookie = parseLocaleCookie(params.cookieLocale);
-  const fromPreferred = params.userPreferred;
+  const fromPreferred = params.userPreferred ?? null;
   const fromAccept = localeFromAcceptLanguage(params.acceptLanguage);
+  const clamp = (locale: AppLocale) =>
+    clampAppLocaleForZone(
+      locale,
+      params.activeZone,
+      params.uiLocalizationEnabled,
+    );
+
+  if (params.pathLocale) return clamp(params.pathLocale);
+  if (fromPreferred) return clamp(fromPreferred);
+
+  if (isSwedenZone(params.activeZone)) {
+    if (params.hasUser) return clamp("sv");
+    if (fromCookie) return clamp(fromCookie);
+    return clamp("sv");
+  }
+
   const picked =
-    params.pathLocale ??
-    fromCookie ??
-    fromPreferred ??
-    fromAccept ??
-    appLocaleFromMarketLocale(params.marketLocale);
-  return clampAppLocaleForZone(
-    picked,
-    params.activeZone,
-    params.uiLocalizationEnabled,
-  );
+    fromCookie ?? fromAccept ?? appLocaleFromMarketLocale(params.marketLocale);
+  return clamp(picked);
 }
 
 export async function resolveShoppingContext(
@@ -116,6 +141,7 @@ export async function resolveShoppingContext(
     userPreferred,
     activeZone,
     pathLocale: input.pathLocale ?? null,
+    hasUser: Boolean(input.userId),
   });
 
   const currencyCode = resolveDisplayCurrencyCode({

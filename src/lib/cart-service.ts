@@ -16,6 +16,7 @@ import { getOrSetCartId, clearCartId } from "./cookies";
 import { convertSekForDisplay } from "@/lib/shopping-context/currency-convert";
 import { resolveDisplayCurrency } from "@/lib/shopping-context/display-currency";
 import { getShoppingContextFromRequest } from "@/lib/shopping-context/server";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import { bindCartOwnerAndTouch } from "@/lib/cart/reconcile-on-auth";
 import { getCurrentUser as getSessionUser } from "@/lib/supabase-server";
 import { isB2BHost } from "@/lib/b2b-site";
@@ -75,7 +76,6 @@ export class CartService {
   private static async ensureCart() {
     console.log("🔧 ensureCart called");
     const cartId = await getOrSetCartId();
-    console.log("🔧 Cart ID from cookies:", cartId);
 
     const sb = await supabaseServer();
     console.log("🔧 Supabase client obtained in ensureCart");
@@ -173,9 +173,6 @@ export class CartService {
           convertSekForDisplay(sek, displayCurrency, sekToDisplayRate),
         );
 
-      const cartId = await getOrSetCartId();
-      console.log("🔧 Cart ID from cookies:", cartId);
-
       const sb = await supabaseServer();
       console.log("🔧 Supabase client obtained in getCart");
 
@@ -183,6 +180,10 @@ export class CartService {
         options?.cartDbId && options.cartDbId.length > 0
           ? options.cartDbId
           : await this.ensureCart();
+      // Cookie historically stored carts.session_id while this log printed
+      // carts.id. Rewrite both to the row id so the next request matches.
+      const alignedCookie = await alignCartCookieToDbId(ensureCartId);
+      console.log("🔧 Cart ID from cookies:", alignedCookie);
       console.log("🔧 Ensure cart ID:", ensureCartId);
 
       console.log("🔧 Fetching cart items...");

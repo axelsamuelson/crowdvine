@@ -965,6 +965,7 @@ export const ProductCard = memo(
                 <div className="flex min-w-0 items-baseline justify-between gap-2">
                   <Link
                     href={productHref}
+                    prefetch={false}
                     className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -1015,6 +1016,7 @@ export const ProductCard = memo(
                 <div className="flex min-w-0 items-baseline justify-between gap-2">
                   <Link
                     href={productHref}
+                    prefetch={false}
                     className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -1063,10 +1065,11 @@ export const ProductCard = memo(
           {shopCaseWineCta ? (
             <>
               <div className="flex min-w-0 items-baseline justify-between gap-2">
-                <Link
-                  href={productHref}
-                  className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
-                >
+                  <Link
+                    href={productHref}
+                    prefetch={false}
+                    className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
+                  >
                   {product.title}
                 </Link>
                 <MemberPrice
@@ -1116,10 +1119,11 @@ export const ProductCard = memo(
           ) : showCartActions ? (
             <>
               <div className="flex min-w-0 items-baseline justify-between gap-2">
-                <Link
-                  href={productHref}
-                  className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
-                >
+                  <Link
+                    href={productHref}
+                    prefetch={false}
+                    className="min-w-0 truncate text-[15px] font-medium leading-none text-foreground pointer-events-auto"
+                  >
                   {product.title}
                 </Link>
                 <MemberPrice

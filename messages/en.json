@@ -169,6 +169,7 @@
     "homeDeliveryGuideLink": "How home delivery works",
     "total": "Total",
     "validating": "Validating…",
+    "addTimeout": "Couldn't add this to your cart. Try again.",
     "addMoreBottles": "Add {needed} more bottles to proceed to checkout",
     "addMoreBottlesShortCta": "Add {needed} more bottles",
     "addMoreBottlesOutlineCta": "{needed, plural, one {+ Add 1 more bottle} other {+ Add # more bottles}}",

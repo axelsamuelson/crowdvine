@@ -21,6 +21,27 @@ export type UserReservationsApiPayload = {
   summaryGroups: ReservationSummaryGroup[];
 };
 
+/**
+ * Hide abandoned checkouts: cancelled and nothing was reserved.
+ * Example short ref 598235A0 — status cancelled, zero line items.
+ */
+export function isCancelledEmptyReservation(row: {
+  status?: unknown;
+  items?: unknown;
+  bottleCount?: unknown;
+  bottle_count?: unknown;
+}): boolean {
+  const status = String(row.status ?? "")
+    .trim()
+    .toLowerCase();
+  if (status !== "cancelled" && status !== "canceled") return false;
+  const items = Array.isArray(row.items) ? row.items : null;
+  if (items && items.length > 0) return false;
+  if (items && items.length === 0) return true;
+  const bottles = Number(row.bottleCount ?? row.bottle_count);
+  return Number.isFinite(bottles) && bottles <= 0;
+}
+
 export function normalizeUserReservationsResponse(
   data: unknown,
 ): UserReservationsApiPayload {

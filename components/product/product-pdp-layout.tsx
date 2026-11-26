@@ -253,7 +253,10 @@ export function ProductPdpLayout({
                     {product.wineEnrichment?.style_scale != null &&
                     product.wineEnrichment.style_scale >= 1 &&
                     product.wineEnrichment.style_scale <= 5 ? (
-                      <WineStyleScale value={product.wineEnrichment.style_scale} />
+                      <WineStyleScale
+                        value={product.wineEnrichment.style_scale}
+                        locale={locale}
+                      />
                     ) : null}
                   </div>
 
