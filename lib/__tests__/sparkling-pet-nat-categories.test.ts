@@ -31,6 +31,7 @@ import {
   getActiveStyleFromPathname,
   getCategoryUrlForStyle,
   resolveStylePillLinksForPaths,
+  swedishSparklingStyleAnchor,
   SHOP_STYLE_FILTER_VALUES,
   styleFilterCategorySlug,
   styleFilterLabel,
@@ -116,7 +117,7 @@ describe("sparkling and pet nat categories", () => {
     expect(petNatSv).toMatchObject({
       canonical: "/vin/pet-nat",
       hreflang: "pet-nat",
-      title: "Pet nat | PACT Wines",
+      title: "Pet nat: köp pet nat online",
       h1: "Pet nat",
       metaDescription:
         "Pet nat är mousserande vin på méthode ancestrale, där jäsningen avslutas i flaskan. Pétillant naturel, utan en andra jäsning.",
@@ -124,7 +125,7 @@ describe("sparkling and pet nat categories", () => {
       descriptionLink: { href: "/guider/vad-ar-pet-nat", label: "Vad är pet nat?" },
     });
     expect(petNatSv?.description).toBe(
-      "Pet nat, pétillant naturel, är mousserande vin som buteljeras innan den första jäsningen är klar, så att bubblorna bildas i flaskan. Bubblorna är mjukare än i champagne, och vinet är ofta lätt grumligt av jästfällningen som ligger kvar. Pet nat görs vit, rosé, röd och orange, och de flesta är torra. Vi köper direkt från producenterna och levererar i hela Sverige, på delad pall eller direkt hem. Vill du veta mer om hur det görs, läs [Vad är pet nat?](/guider/vad-ar-pet-nat)",
+      "Pet nat, pétillant naturel, är mousserande vin som buteljeras innan den första jäsningen är klar, så att bubblorna bildas i flaskan. Bubblorna är mjukare än i champagne, och vinet är ofta lätt grumligt av jästfällningen som ligger kvar. Pet nat görs vit, rosé, röd och orange, och de flesta är torra. Vi levererar i hela Sverige, på delad pall eller direkt hem. Vill du veta mer om hur det görs, läs [Vad är pet nat?](/guider/vad-ar-pet-nat)",
     );
     expect(petNatSv?.description).not.toMatch(/[—–]/);
     expect(petNatEn).toMatchObject({
@@ -340,5 +341,17 @@ describe("sparkling and pet nat categories", () => {
     expect(
       categoryPillShortLabel(getWineCategoryEn("sparkling-wine")!),
     ).toBe("Sparkling");
+  });
+
+  it("points Swedish pet nat and sparkling product links at the right shop", () => {
+    expect(swedishSparklingStyleAnchor(["pet_nat", "sparkling"])).toEqual({
+      href: "/vin/pet-nat",
+      label: "Se alla pet nat →",
+    });
+    expect(swedishSparklingStyleAnchor(["sparkling"])).toEqual({
+      href: "/vin/mousserande-vin",
+      label: "Se alla mousserande viner →",
+    });
+    expect(swedishSparklingStyleAnchor(["red"])).toBeNull();
   });
 });

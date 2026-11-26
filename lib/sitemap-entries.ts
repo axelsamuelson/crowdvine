@@ -1,7 +1,11 @@
 import type { MetadataRoute } from "next";
 import { unstable_cache } from "next/cache";
 
-import { catalogHasProducts, fetchProductsData } from "@/lib/crowdvine/products-data";
+import {
+  catalogHasProducts,
+  catalogLiveCount,
+  fetchProductsData,
+} from "@/lib/crowdvine/products-data";
 import {
   NATURAL_VS_ORGANIC_PATH,
   NATURAL_VS_ORGANIC_UPDATED,
@@ -26,6 +30,7 @@ import {
   type WineCategory,
 } from "@/lib/wine-categories";
 import {
+  isColorFarmingComboCategory,
   isWineRegionShopCategory,
   LEGACY_SHOP_REDIRECT_SLUGS,
 } from "@/lib/wine-shop-filter-categories";
@@ -36,7 +41,11 @@ import {
   fetchProducerShopSlugs,
 } from "@/lib/sitemap-urls";
 import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
-import { indexableWineRegionPaths } from "@/lib/wine-regions";
+import {
+  indexableWineRegionPaths,
+  WINE_COMBO_INDEX_MIN_LIVE,
+  WINE_COMBO_LIVE_COUNT_CAP,
+} from "@/lib/wine-regions";
 
 export type SitemapSiteProfile = "pact" | "dirtywine";
 
@@ -212,6 +221,8 @@ export async function buildSitemapEntries(
       ...Array.from(LEGACY_SHOP_REDIRECT_SLUGS).sort(),
       ...WINE_CATEGORIES_SV.map((c) => c.slug),
       ...WINE_CATEGORIES_EN.map((c) => c.slug),
+      String(WINE_COMBO_INDEX_MIN_LIVE),
+      String(WINE_COMBO_LIVE_COUNT_CAP),
     ],
     { revalidate: 3600 },
   )();
@@ -311,7 +322,7 @@ async function buildSitemapEntriesUncached(
   const vinCategories: MetadataRoute.Sitemap = (
     await Promise.all(
       vinCategoryCandidates.map(async (c) => {
-        const hasProducts = await catalogHasProducts({
+        const filters = {
           filterColor: c.filter.color,
           filterTags: c.filter.tags,
           filterIsNatural: c.filter.isNatural,
@@ -321,7 +332,17 @@ async function buildSitemapEntriesUncached(
           filterRegion: c.filter.region,
           filterWineRegion: c.filter.wineRegion,
           isB2BSite: isDirtyWine,
-        });
+        };
+        if (isColorFarmingComboCategory(c)) {
+          const liveCount = await catalogLiveCount(
+            filters,
+            WINE_COMBO_LIVE_COUNT_CAP,
+          );
+          return liveCount >= WINE_COMBO_INDEX_MIN_LIVE
+            ? pairedCategoryEntry(c, baseUrl, 0.8)
+            : null;
+        }
+        const hasProducts = await catalogHasProducts(filters);
         return hasProducts ? pairedCategoryEntry(c, baseUrl, 0.8) : null;
       }),
     )

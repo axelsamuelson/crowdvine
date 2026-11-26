@@ -18,7 +18,7 @@ export default async function VadArPetNatGuidePage() {
     tag: "pet_nat",
     heading: "Pet nat att köpa hos PACT",
     intro:
-      "Pet nat som vi köper direkt från producenterna, med leverans i hela Sverige på delad pall eller direkt hem.",
+      "Pet nat från små producenter, med leverans i hela Sverige på delad pall eller direkt hem.",
     link: { href: "/vin/pet-nat", label: "Se alla pet nat →" },
     locale: "sv",
   });

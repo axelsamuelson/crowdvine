@@ -7,6 +7,7 @@ import ProductList from "../components/product-list";
 import { ProductListShell } from "../components/product-list-shell";
 import {
   catalogHasProducts,
+  catalogLiveCount,
   fetchProductsData,
 } from "@/lib/crowdvine/products-data";
 import {
@@ -32,7 +33,11 @@ import { DIRTY_WINE_CONFIG } from "@/lib/site-config";
 import { getSiteConfig } from "@/lib/site-config-server";
 import { categoryPageTitle } from "@/lib/seo/category-page-title";
 import { shopCategoryCanonicalUrl } from "@/lib/wine-category-canonical";
-import { localizeGeneratedCategoryCopy } from "@/lib/wine-shop-filter-categories";
+import {
+  isColorFarmingComboCategory,
+  isWineRegionShopCategory,
+  localizeGeneratedCategoryCopy,
+} from "@/lib/wine-shop-filter-categories";
 import {
   categoryPageRobots,
   emptyListingRobots,
@@ -59,8 +64,11 @@ import {
   WINE_CATEGORIES_SV,
   wineCategoryCatalogFilters,
 } from "@/lib/wine-categories";
-import { isWineRegionShopCategory } from "@/lib/wine-shop-filter-categories";
-import { wineRegionLabel } from "@/lib/wine-regions";
+import {
+  WINE_COMBO_INDEX_MIN_LIVE,
+  WINE_COMBO_LIVE_COUNT_CAP,
+  wineRegionLabel,
+} from "@/lib/wine-regions";
 import { getMoreStylesPillLinks } from "@/lib/shop/style-category-links-server";
 import { ProducerBoxesPage } from "@/components/producer-boxes/producer-boxes-page";
 import { buildProducerBoxesMetadata } from "@/lib/producer-boxes/metadata";
@@ -96,12 +104,18 @@ export async function generateMetadata(props: {
       isWineRegionShopCategory(category) && category.filter.wineRegion
         ? await isWineRegionBelowIndexMinimum(category.filter.wineRegion)
         : false;
+    const catalogFilters = {
+      ...wineCategoryCatalogFilters(category.filter),
+      isB2BSite,
+    };
+    const comboLiveCount = isColorFarmingComboCategory(category)
+      ? await catalogLiveCount(catalogFilters, WINE_COMBO_LIVE_COUNT_CAP)
+      : null;
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),
-      catalogHasProducts({
-        ...wineCategoryCatalogFilters(category.filter),
-        isB2BSite,
-      }),
+      comboLiveCount == null
+        ? catalogHasProducts(catalogFilters)
+        : Promise.resolve(comboLiveCount > 0),
     ]);
     const pageUrl = `${PACT_PUBLIC_ORIGIN}/vin/${slug}`;
     const canonicalUrl = shopCategoryCanonicalUrl(slug, "sv", PACT_PUBLIC_ORIGIN);
@@ -120,6 +134,9 @@ export async function generateMetadata(props: {
         emptyListing: !hasProducts,
         thinDynamicGrape: isThinDynamicGrapeCategory(category),
         regionBelowIndexMinimum,
+        comboBelowIndexMinimum:
+          comboLiveCount != null &&
+          comboLiveCount < WINE_COMBO_INDEX_MIN_LIVE,
       }),
       alternates: {
         canonical: canonicalUrl,
@@ -247,6 +264,20 @@ export default async function VinCollectionPage(props: {
       numberOfItems: rawProducts.length,
     };
 
+    const itemListJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: category.h1,
+      url: canonical,
+      numberOfItems: mappedProducts.length,
+      itemListElement: mappedProducts.map((product, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: product.title,
+        url: `${PACT_PUBLIC_ORIGIN}/produkt/${product.handle}`,
+      })),
+    };
+
     const breadcrumbJsonLd = {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
@@ -301,6 +332,12 @@ export default async function VinCollectionPage(props: {
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(breadcrumbJsonLd),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(itemListJsonLd),
           }}
         />
         {faqJsonLd ? (

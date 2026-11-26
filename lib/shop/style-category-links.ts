@@ -90,6 +90,25 @@ export function styleFilterCategorySlug(
     : STYLE_FILTER_SLUG_EN[value];
 }
 
+/**
+ * Swedish PDP style anchor. Pet nat and other sparkling wines were both
+ * labelled with the colour name "Mousserande".
+ */
+export function swedishSparklingStyleAnchor(
+  tags: readonly string[] | null | undefined,
+): { href: string; label: string } | null {
+  if (!tags?.length) return null;
+  if (tags.includes("pet_nat")) {
+    const href = getCategoryUrlForStyle("pet_nat", "sv");
+    return href ? { href, label: "Se alla pet nat →" } : null;
+  }
+  if (tags.includes("sparkling")) {
+    const href = getCategoryUrlForStyle("sparkling", "sv");
+    return href ? { href, label: "Se alla mousserande viner →" } : null;
+  }
+  return null;
+}
+
 export function getCategoryUrlForStyle(
   value: ShopStyleFilterValue,
   locale: AppLocale,

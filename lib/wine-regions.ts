@@ -9,6 +9,21 @@ import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
 /** Min live wines (wine ∧ producer) for sitemap + indexable region pages. */
 export const WINE_REGION_INDEX_MIN_LIVE = 3;
 
+/**
+ * Min live wines for a colour + farming combo page (e.g. rött biodynamiskt)
+ * to be indexed and listed in the sitemap. Single colour, single farming,
+ * tag and grape pages are not subject to this floor.
+ */
+export const WINE_COMBO_INDEX_MIN_LIVE = 6;
+
+/**
+ * How many rows to read when counting a combo page.
+ * Organic verification runs after the SQL limit inside fetchProductsData,
+ * so a cap of {@link WINE_COMBO_INDEX_MIN_LIVE} under-counts. 200 matches
+ * the shop grid's default read.
+ */
+export const WINE_COMBO_LIVE_COUNT_CAP = 200;
+
 export const WINE_REGIONS = [
   {
     slug: "languedoc",
@@ -265,7 +280,7 @@ export function wineRegionPageH1(
 /** Document title (absolute) — Margaux copy. */
 export function wineRegionPageTitle(region: WineRegion, locale: AppLocale): string {
   if (locale === "sv") {
-    return `Naturvin från ${region.labelSv} – producenter och stil | PACT`;
+    return `Naturvin från ${region.labelSv}. Producenter och stil | PACT`;
   }
   return `${region.labelEn} Natural Wine – Producers & Styles | PACT`;
 }
@@ -276,7 +291,7 @@ export function wineRegionPageMetaDescription(
   locale: AppLocale,
 ): string {
   if (locale === "sv") {
-    return `Naturvin från ${region.labelSv} – producenter och stil hos PACT. Hemleverans i Sverige.`;
+    return `Naturvin från ${region.labelSv}. Producenter och stil hos PACT. Hemleverans i Sverige.`;
   }
   return `${region.labelEn} natural wine – producers and styles at PACT.`;
 }

@@ -53,11 +53,12 @@ describe("conversion funnel copy (sv)", () => {
     expect(translate("sv", "cart.whyPopoverBody")).not.toMatch(/grossist/i);
   });
 
-  it("uses Margaux PLP intro without Stockholm / Budbee", () => {
+  it("uses the shop intro and names home delivery in Stockholm and the rest of Sweden", () => {
     const intro = getShopRootNaturalWineContent("sv").intro;
     expect(intro).toContain("naturvin online från små producenter i hela Frankrike");
     expect(intro).toContain("levereras inom Sverige");
-    expect(intro).not.toMatch(/Stockholm|Budbee/i);
+    expect(intro).toContain("Hemleverans i Stockholm och i resten av Sverige.");
+    expect(intro).not.toMatch(/Budbee/i);
     expect(getShopRootNaturalWineContent("sv").h1).toBe("Naturvin");
     expect(getShopRootNaturalWineContent("sv").longDescription).toMatch(
       /skickas den hem till dig\.?$/,

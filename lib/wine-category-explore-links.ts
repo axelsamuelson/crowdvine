@@ -55,19 +55,20 @@ const FARMING_HUB_COLOR_SLUGS: Record<string, readonly string[]> = {
 };
 
 const RED_GRAPE_SLUGS = new Set([
-  "carignan",
+  "carignan-naturvin",
+  "carignan-natural-wine",
   "grenache",
   "syrah",
   "cinsault",
 ]);
 
 const COLOR_HUB_GRAPE_SLUGS: Record<string, readonly string[]> = {
-  naturvin: ["carignan", "grenache", "cinsault"],
-  "rott-naturvin": ["carignan", "grenache", "syrah"],
+  naturvin: ["carignan-naturvin", "grenache", "cinsault"],
+  "rott-naturvin": ["carignan-naturvin", "grenache", "syrah"],
   "vitt-naturvin": ["grenache-blanc"],
   "orange-naturvin": ["grenache-blanc"],
-  "natural-wine": ["carignan", "grenache", "cinsault"],
-  "red-natural-wine": ["carignan", "grenache", "syrah"],
+  "natural-wine": ["carignan-natural-wine", "grenache", "cinsault"],
+  "red-natural-wine": ["carignan-natural-wine", "grenache", "syrah"],
   "white-natural-wine": ["grenache-blanc"],
   "orange-natural-wine": ["grenache-blanc"],
 };

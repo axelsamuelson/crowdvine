@@ -1362,3 +1362,21 @@ export async function catalogHasProducts(filters?: {
   });
   return rows.length > 0;
 }
+
+/**
+ * How many live catalog wines match, capped at `limit`.
+ * A result equal to `limit` means "at least that many". Placeholder CI builds
+ * skip the query and return 0, same as {@link catalogHasProducts}.
+ */
+export async function catalogLiveCount(
+  filters: Parameters<typeof catalogHasProducts>[0],
+  limit: number,
+): Promise<number> {
+  if (supabaseBuildUsesPlaceholder()) return 0;
+  const rows = await fetchProductsData({
+    ...filters,
+    limit,
+    isB2BSite: filters?.isB2BSite ?? false,
+  });
+  return rows.length;
+}

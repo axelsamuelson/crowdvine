@@ -37,9 +37,10 @@ export function ShopLoadingFallback() {
   const category = getCategoryFromPathname(pathname);
 
   if (isProducerBoxesPath(pathname) || products.length === 0) {
+    // loading.tsx is streamed into the document before the page resolves.
+    // A toolbar with products=[] becomes "0 resultat" next to the real count.
     return (
       <div>
-        <ResultsControls collections={[]} products={[]} />
         <ProductGrid>
           {Array.from({ length: 12 }).map((_, index) => (
             <ProductCardSkeleton key={index} />
