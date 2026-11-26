@@ -34,12 +34,10 @@ function isNavCurrent(pathname: string | null, href: string, homeHref: string) {
 }
 
 export function MobileMenu({
-  collections,
   popularCollections,
   isDirtywineSite,
 }: {
-  collections: any[];
-  popularCollections: any[];
+  popularCollections: { handle: string; title: string }[];
   isDirtywineSite: boolean;
 }) {
   const { t } = useTranslations();

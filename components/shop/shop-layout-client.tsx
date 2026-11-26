@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { CompleteOrderRailDynamic } from "@/components/layout/header/complete-order-rail-dynamic";
 import { DesktopFilters } from "@/app/vin/components/shop-filters";
 import { MobileFilters } from "@/app/vin/components/mobile-filters";
-import type { Collection } from "@/lib/shopify/types";
+import type { ShopProducerLink } from "@/lib/shop/shop-producer-link";
 import type { PriceSourceForFilter } from "@/app/vin/components/competitor-filter";
 import { ProductsProvider } from "@/components/shop/products-provider";
 import { isShopFullBleedPath } from "@/lib/stockholm-delivery-landing/config";
@@ -22,7 +22,7 @@ export function ShopLayoutClient({
   linkableRegionSlugs,
 }: {
   children: ReactNode;
-  collections: Collection[];
+  collections: ShopProducerLink[];
   priceSources: PriceSourceForFilter[];
   initialFilterCount?: number;
   /**

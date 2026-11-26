@@ -1,7 +1,7 @@
 "use client";
 
 import { producerDisplayName } from "@/lib/producer-display-name";
-import { Collection } from "@/lib/shopify/types";
+import type { ShopProducerLink } from "@/lib/shop/shop-producer-link";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -18,7 +18,7 @@ import {
   shopFilterSheetListClassName,
 } from "./shop-filter-option";
 
-function collectionLabel(collection: Collection): string {
+function collectionLabel(collection: ShopProducerLink): string {
   return producerDisplayName({
     name: collection.title,
     display_name: collection.displayName,
@@ -26,7 +26,7 @@ function collectionLabel(collection: Collection): string {
 }
 
 interface CategoryFilterProps {
-  collections: Collection[];
+  collections: ShopProducerLink[];
   className?: string;
   mode?: "sidebar" | "drawer" | "overlay";
   onSeeAll?: () => void;

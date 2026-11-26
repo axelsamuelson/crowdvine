@@ -21,7 +21,7 @@ export function generateMetadata(): Metadata {
   const titleBase = "Natural Wine: Buy Natural Wine Online";
   const title = `${titleBase} | ${config.siteName}`;
   const description =
-    "Browse natural wines. Organic and biodynamic. Home delivery in Sweden.";
+    "Buy natural wine online from small producers: red, white, orange, rosé and pet nat. Home delivery in Sweden.";
 
   return {
     title: { absolute: title },

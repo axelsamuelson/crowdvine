@@ -3,7 +3,7 @@
 import React, { Suspense, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Collection } from "@/lib/shopify/types";
+import type { ShopProducerLink } from "@/lib/shop/shop-producer-link";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CategoryFilter } from "./category-filter";
@@ -56,7 +56,7 @@ export function DesktopFilters({
   navigableShopPaths,
   linkableRegionSlugs,
 }: {
-  collections: Collection[];
+  collections: ShopProducerLink[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
   ssrPathname: string;

@@ -10,8 +10,8 @@ import { CartModalDynamic } from "./cart-modal-dynamic";
 import { ProfileIcon } from "./profile-icon";
 import { PortalToggle } from "./portal-toggle";
 import { NavItem } from "@/lib/types";
-import { Collection } from "@/lib/shopify/types";
 import { CompleteOrderRailDynamic } from "./complete-order-rail-dynamic";
+import type { HeaderProducerLink } from "@/lib/shop/shop-producer-link";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
 import { useAdminStatus } from "@/lib/hooks/use-admin-status";
@@ -20,14 +20,12 @@ import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 interface HeaderProps {
-  collections: Collection[];
-  popularCollections: Collection[];
+  popularCollections: HeaderProducerLink[];
   isDirtywineSite: boolean;
   initialLogos?: SiteLogos;
 }
 
 export function Header({
-  collections,
   popularCollections,
   isDirtywineSite,
   initialLogos,
@@ -77,7 +75,6 @@ export function Header({
       */}
       <div className="relative z-[60] block flex-none md:hidden">
         <MobileMenuDynamic
-          collections={collections}
           popularCollections={popularCollections}
           isDirtywineSite={isDirtywineSite}
         />

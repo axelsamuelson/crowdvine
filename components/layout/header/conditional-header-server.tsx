@@ -1,22 +1,23 @@
 import { pickPopularProducerCollections } from "@/lib/analytics/producer-ctr";
+import { toHeaderProducerLinks } from "@/lib/shop/shop-producer-link";
 import { ConditionalHeader } from "./conditional-header";
-import type { Collection } from "@/lib/shopify/types";
 
 /**
  * Server wrapper that only loads cacheable collection popularity.
- * Dirtywine / pathname hiding is resolved client-side so this stays ISR-safe.
+ * The client receives the producers the menu renders (name + handle), not the
+ * full producer records. Dirtywine / pathname hiding stays client-side so
+ * this remains ISR-safe.
  */
 export async function ConditionalHeaderServer({
   collections,
 }: {
-  collections: Collection[];
+  collections: Array<{ id: string; handle: string; title: string }>;
 }) {
   const popularCollections = await pickPopularProducerCollections(collections);
 
   return (
     <ConditionalHeader
-      collections={collections}
-      popularCollections={popularCollections}
+      popularCollections={toHeaderProducerLinks(popularCollections)}
     />
   );
 }

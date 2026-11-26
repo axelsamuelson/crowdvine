@@ -3,12 +3,13 @@ import { ProductListLcpPreload } from "@/app/vin/components/product-list-lcp-pre
 import { ProductListStaticGrid } from "@/app/vin/components/product-list-static-grid";
 import { ResultsCountBridge } from "@/app/vin/components/results-count-bridge";
 import type { AppLocale } from "@/lib/i18n/locale";
-import type { Collection, Product } from "@/lib/shopify/types";
+import type { ShopProducerLink } from "@/lib/shop/shop-producer-link";
+import type { Product } from "@/lib/shopify/types";
 
 type ProductListShellProps = {
   products: Product[];
   locale: AppLocale;
-  collections?: Collection[];
+  collections?: ShopProducerLink[];
   selectedProducers?: string[];
   collectionHandle?: string;
   wineSourceSlugs?: Record<string, string[]>;

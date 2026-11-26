@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Collection } from "@/lib/shopify/types";
+import type { ShopProducerLink } from "@/lib/shop/shop-producer-link";
 import {
   Drawer,
   DrawerContent,
@@ -66,7 +66,7 @@ import { filterProductsByGrapes } from "@/lib/shop/filter-products-by-grape";
 import { extractGrapesFromProducts } from "../hooks/use-available-grapes";
 
 interface MobileFiltersProps {
-  collections: Collection[];
+  collections: ShopProducerLink[];
   priceSources?: PriceSourceForFilter[];
   className?: string;
   /** SSR product count from server parent — null when ISR shell cannot know it. */

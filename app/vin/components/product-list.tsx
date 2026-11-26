@@ -23,6 +23,7 @@ import {
 } from "@/lib/external-prices/cached-source-slugs";
 import { getCachedShopCollections } from "@/lib/shop/cached-layout-data";
 import { getCachedShopProducts } from "@/lib/shop/cached-shop-products";
+import { toShopProducerLinks } from "@/lib/shop/shop-producer-link";
 
 function sortProductsByStock(products: Product[], inStockFirst: boolean): Product[] {
   return [...products].sort((a, b) => {
@@ -235,7 +236,7 @@ export default async function ProductList({
     <ProductListShell
       products={products}
       locale={locale}
-      collections={collections}
+      collections={toShopProducerLinks(collections)}
       selectedProducers={producers}
       collectionHandle={collection}
       wineSourceSlugs={wineSourceSlugs}
