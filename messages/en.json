@@ -275,7 +275,7 @@
     "elevationMasl": "{value} m a.s.l.",
     "farming": {
       "organic_certified": "Organic",
-      "biodynamic_certified": "Biodynamic (according to the producer)",
+      "biodynamic_certified": "Biodynamic",
       "natural": "Natural wine",
       "sustainable": "Sustainable",
       "conventional": "Conventional"

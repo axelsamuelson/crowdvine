@@ -76,8 +76,8 @@ const ORGANIC_CERTIFIED_LABEL: Record<AppLocale, string> = {
 };
 
 const ORGANIC_CLAIMED_LABEL: Record<AppLocale, string> = {
-  sv: "Ekologiskt (enligt producenten)",
-  en: "Organic (according to the producer)",
+  sv: "Ekologiskt",
+  en: "Organic",
 };
 
 const ORGANIC_CONVERSION_LABEL: Record<AppLocale, string> = {
@@ -86,19 +86,19 @@ const ORGANIC_CONVERSION_LABEL: Record<AppLocale, string> = {
 };
 
 const BIODYNAMIC_CLAIMED_LABEL: Record<AppLocale, string> = {
-  sv: "Biodynamiskt (enligt producenten)",
-  en: "Biodynamic (according to the producer)",
+  sv: "Biodynamiskt",
+  en: "Biodynamic",
 };
 
 /** Unverified biodynamic producers that also farm organically (e.g. Mas Des Mesures). */
 const ORGANIC_AND_BIODYNAMIC_CLAIMED_LABEL: Record<AppLocale, string> = {
-  sv: "Ekologisk och biodynamisk odling (enligt producenten)",
-  en: "Organic and biodynamic farming (according to the producer)",
+  sv: "Ekologisk och biodynamisk odling",
+  en: "Organic and biodynamic farming",
 };
 
 const ORGANIC_LAPSED_FARMING_LABEL: Record<AppLocale, string> = {
-  sv: "Ekologisk odling (enligt producenten), certifieringen har upphört",
-  en: "Organic farming (according to the producer); certification has lapsed",
+  sv: "Ekologisk odling, certifieringen har upphört",
+  en: "Organic farming; certification has lapsed",
 };
 
 export type ProducerCertificationLabel = {

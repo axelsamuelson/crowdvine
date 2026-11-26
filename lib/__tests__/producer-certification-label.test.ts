@@ -28,26 +28,26 @@ describe("producerCertificationRegistryUrl", () => {
 });
 
 describe("formatProducerCertificationLabels", () => {
-  it("uses according-to-producer wording without a verified registry URL", () => {
+  it("uses farming labels without a producer qualifier when unverified", () => {
     expect(
       formatProducerCertificationLabels("biodynamic_certified", "en"),
     ).toEqual([
       {
-        text: "Organic and biodynamic farming (according to the producer)",
+        text: "Organic and biodynamic farming",
       },
     ]);
     expect(
       formatProducerCertificationLabels("biodynamic_certified", "sv"),
     ).toEqual([
       {
-        text: "Ekologisk och biodynamisk odling (enligt producenten)",
+        text: "Ekologisk och biodynamisk odling",
       },
     ]);
     expect(formatProducerCertificationLabels("organic_certified", "en")).toEqual([
-      { text: "Organic (according to the producer)" },
+      { text: "Organic" },
     ]);
     expect(formatProducerCertificationLabels("organic_certified", "sv")).toEqual([
-      { text: "Ekologiskt (enligt producenten)" },
+      { text: "Ekologiskt" },
     ]);
   });
 
@@ -64,19 +64,19 @@ describe("formatProducerCertificationLabels", () => {
       }),
     ).toEqual([]);
     expect(formatProducerLapsedOrganicFarming("en")).toBe(
-      "Organic farming (according to the producer); certification has lapsed",
+      "Organic farming; certification has lapsed",
     );
     expect(formatProducerLapsedOrganicFarming("sv")).toBe(
-      "Ekologisk odling (enligt producenten), certifieringen har upphört",
+      "Ekologisk odling, certifieringen har upphört",
     );
   });
 
   it("exposes Mas Des Mesures-style organic + biodynamic farming copy", () => {
     expect(formatProducerOrganicAndBiodynamicFarming("en")).toBe(
-      "Organic and biodynamic farming (according to the producer)",
+      "Organic and biodynamic farming",
     );
     expect(formatProducerOrganicAndBiodynamicFarming("sv")).toBe(
-      "Ekologisk och biodynamisk odling (enligt producenten)",
+      "Ekologisk och biodynamisk odling",
     );
   });
 
@@ -102,7 +102,7 @@ describe("formatProducerCertificationLabels", () => {
       }),
     ).toEqual([
       { text: "Organic Certified", href: url },
-      { text: "Biodynamic (according to the producer)" },
+      { text: "Biodynamic" },
     ]);
     expect(
       formatProducerCertificationLabels("biodynamic_certified", "sv", {
@@ -110,7 +110,7 @@ describe("formatProducerCertificationLabels", () => {
       }),
     ).toEqual([
       { text: "Ekologiskt certifierad", href: url },
-      { text: "Biodynamiskt (enligt producenten)" },
+      { text: "Biodynamiskt" },
     ]);
   });
 
@@ -147,14 +147,14 @@ describe("formatProducerCertificationLabels", () => {
 
   it("joins compact labels for hero/editorial", () => {
     expect(formatProducerCertification("organic_certified", "en")).toBe(
-      "Organic (according to the producer)",
+      "Organic",
     );
     expect(
       formatProducerCertification("biodynamic_certified", "en", {
         certificationVerifiedUrl: "https://example.com/organic",
       }),
     ).toBe(
-      "Organic Certified · Biodynamic (according to the producer)",
+      "Organic Certified · Biodynamic",
     );
   });
 });
