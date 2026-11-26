@@ -153,7 +153,8 @@ export type GetZoneStatusOptions = {
 
 /**
  * Resolve pallet fill / destination status for a product handle.
- * Shared by `/api/pallet/zone-status` and SSR product/list surfaces.
+ * Used by `/api/pallet/zone-status`. Do not call this from the PDP page:
+ * it runs determineZones, which showed up on GET /product and /produkt.
  */
 export async function getPalletZoneStatusForHandle(
   productHandle: string | null | undefined,

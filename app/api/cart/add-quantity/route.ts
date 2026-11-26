@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import { reconcileSessionCartForUser } from "@/lib/cart/reconcile-on-auth";
 import { CartService } from "@/src/lib/cart-service";
 import { isB2BHost } from "@/lib/b2b-site";
@@ -273,6 +274,9 @@ export async function POST(request: Request) {
     const { bindCartOwnerAndTouch } = await import(
       "@/lib/cart/reconcile-on-auth"
     );
+    // Guest adds skip reconcile. Align once here so cv_cart_id becomes carts.id.
+    // Logged-in adds already aligned inside reconcile; a matching cookie no-ops.
+    if (dbCartId) await alignCartCookieToDbId(dbCartId);
     const touchPromise = bindCartOwnerAndTouch(dbCartId, userId);
     // Same pricing as checkout/quote: member + early-bird via getCart().
     // Never skip early-bird here — drawer must match charged wine totals.

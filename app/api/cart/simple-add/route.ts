@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import { CartService } from "@/src/lib/cart-service";
 import { isB2BHost } from "@/lib/b2b-site";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
@@ -181,6 +182,7 @@ export async function POST(request: Request) {
     );
     console.log("🔧 Item added/updated successfully");
 
+    await alignCartCookieToDbId(dbCartId);
     const touchPromise = bindCartOwnerAndTouch(dbCartId, userId);
     // Same pricing as checkout/quote: member + early-bird via getCart().
     // Never skip early-bird here — that made the drawer show list totals

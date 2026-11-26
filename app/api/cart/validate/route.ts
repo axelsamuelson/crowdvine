@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { isB2BHost } from "@/lib/b2b-site";
 import type { CartMinimumChannel } from "@/lib/cart/cart-minimum";
 import { validateSixBottleRule } from "@/lib/checkout-validation";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import { CartService } from "@/src/lib/cart-service";
 
 // Simple in-memory cache for validation results
@@ -44,6 +45,7 @@ export async function GET() {
   try {
     const channel = await resolveChannel();
     const cart = await CartService.getCart();
+    if (cart?.id) await alignCartCookieToDbId(cart.id);
 
     if (!cart || cart.lines.length === 0) {
       return NextResponse.json({

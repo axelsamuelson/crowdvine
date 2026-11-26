@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import { CartService } from "@/src/lib/cart-service";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -125,6 +126,8 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    await alignCartCookieToDbId(cart.id);
 
     return NextResponse.json({ success: true, cart });
   } catch (e) {

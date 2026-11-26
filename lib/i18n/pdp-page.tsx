@@ -23,7 +23,6 @@ import {
 } from "@/lib/i18n/localized-routes";
 import { translate } from "@/lib/i18n/messages";
 import { producerDisplayName } from "@/lib/producer-display-name";
-import { getCachedPalletZoneStatusForHandle } from "@/lib/pallet/get-zone-status";
 import {
   DEFAULT_OG_IMAGE_URL,
   defaultOpenGraphImages,
@@ -158,15 +157,6 @@ async function loadCompetitorOffers(
   }
 }
 
-async function loadAnonymousPalletStatus(product: Product) {
-  if (product.productType !== "wine") return null;
-  return getCachedPalletZoneStatusForHandle(
-    product.handle,
-    PDP_ISR_HOST,
-    true,
-  ).catch(() => null);
-}
-
 export async function renderProductPdpPage(options: {
   handle: string;
   locale: AppLocale;
@@ -197,10 +187,9 @@ export async function renderProductPdpPage(options: {
         )
       : Promise.resolve(null);
 
-  const [competitorOffers, initialPalletStatus] = await Promise.all([
-    loadCompetitorOffers(product),
-    loadAnonymousPalletStatus(product),
-  ]);
+  // Pallet fill is loaded by PalletZoneStatusProvider from /api/pallet/zone-status
+  // so this page render stays a static shell.
+  const competitorOffers = await loadCompetitorOffers(product);
 
   const productJsonLd = buildProductPdpJsonLd({
     title: product.title,
@@ -296,7 +285,6 @@ export async function renderProductPdpPage(options: {
         product={product}
         locale={locale}
         competitorOffers={competitorOffers}
-        initialPalletStatus={initialPalletStatus}
         belowFold={
           <PdpRecommendationsAsync
             product={product}

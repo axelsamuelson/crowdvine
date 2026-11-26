@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import { CartService } from "@/src/lib/cart-service";
 
 export async function GET() {
   try {
     const cart = await CartService.getCart();
+    if (cart?.id) await alignCartCookieToDbId(cart.id);
     return NextResponse.json(cart);
   } catch (error) {
     console.error("GET /api/crowdvine/cart error:", error);
@@ -40,6 +42,7 @@ export async function POST(request: Request) {
     }
 
     const cart = await CartService.getCart();
+    if (cart?.id) await alignCartCookieToDbId(cart.id);
     return NextResponse.json(cart);
   } catch (error) {
     console.error("POST /api/crowdvine/cart error:", error);
