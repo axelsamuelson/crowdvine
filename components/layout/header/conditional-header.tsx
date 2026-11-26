@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "./index";
 import { CheckoutMinimalHeader } from "./checkout-minimal-header";
-import { Collection } from "@/lib/shopify/types";
 import { isDirtywineHost } from "@/lib/b2b-site";
+import type { HeaderProducerLink } from "@/lib/shop/shop-producer-link";
 
 interface ConditionalHeaderProps {
-  collections: Collection[];
-  popularCollections: Collection[];
+  popularCollections: HeaderProducerLink[];
 }
 
 function shouldHideHeader(
@@ -42,7 +41,6 @@ function shouldHideHeader(
 }
 
 export function ConditionalHeader({
-  collections,
   popularCollections,
 }: ConditionalHeaderProps) {
   const pathname = usePathname();
@@ -81,7 +79,6 @@ export function ConditionalHeader({
 
   return (
     <Header
-      collections={collections}
       popularCollections={popularCollections}
       isDirtywineSite={isDirtywineSite}
     />

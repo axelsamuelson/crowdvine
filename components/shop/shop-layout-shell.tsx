@@ -3,6 +3,7 @@ import {
   getCachedPriceSources,
   getCachedShopCollections,
 } from "@/lib/shop/cached-layout-data";
+import { toShopProducerLinks } from "@/lib/shop/shop-producer-link";
 import { getCachedNavigableShopFilterPaths } from "@/lib/shop/shop-filter-category-availability";
 import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
 import { getLinkableWineRegions } from "@/lib/wine-regions";
@@ -53,7 +54,7 @@ export async function ShopLayoutShell({
   return (
     <PageLayoutServer>
       <ShopLayoutClient
-        collections={collections}
+        collections={toShopProducerLinks(collections)}
         priceSources={priceSources}
         initialFilterCount={0}
         initialResultsCount={null}

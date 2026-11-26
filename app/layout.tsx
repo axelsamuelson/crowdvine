@@ -20,6 +20,8 @@ import { isWelcomeModalEnabled } from "@/lib/onboarding/welcome-modal-flag";
 import { cn } from "../lib/utils";
 import V0SetupLoader from "@/components/v0-setup-loader";
 import { RootAnalyticsDeferred } from "@/components/analytics/root-analytics-deferred";
+import { HtmlLangSync } from "@/components/i18n/html-lang-sync";
+import { resolveHtmlLang } from "@/lib/i18n/html-lang-server";
 
 const isV0 = process.env["VERCEL_URL"]?.includes("vusercontent.net") ?? false;
 
@@ -103,14 +105,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Root Layout — request-free shell for public ISR.
+ * Root Layout — public ISR shell.
+ * `lang` comes from the page route during static generation so force-static
+ * pages stay static. Dynamic requests use the middleware locale header.
  */
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [collections, fewLeftThreshold] = await Promise.all([
+  const [collections, fewLeftThreshold, htmlLang] = await Promise.all([
     getCachedShopCollections().catch((error) => {
       console.warn("Failed to fetch collections in root layout:", error);
       return [] as Awaited<ReturnType<typeof getCachedShopCollections>>;
@@ -119,12 +123,13 @@ export default async function RootLayout({
       console.warn("Failed to resolve wine few-left threshold:", error);
       return 5;
     }),
+    resolveHtmlLang(),
   ]);
 
   const shoppingContext = fallbackShoppingContext("sv");
 
   return (
-    <html lang="sv" suppressHydrationWarning>
+    <html lang={htmlLang} suppressHydrationWarning>
       <body
         className={cn(
           geistSans.variable,
@@ -158,6 +163,7 @@ export default async function RootLayout({
                           data-vaul-drawer-wrapper="true"
                         >
                           <VaulDrawerAttributeSync />
+                          <HtmlLangSync />
                           <ConditionalHeaderServer collections={collections} />
                           {children}
                         </div>

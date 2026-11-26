@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { Collection } from "@/lib/shopify/types";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { cn } from "@/lib/utils";
 
 interface ShopLinksProps {
-  collections: Collection[];
+  collections: Array<{ handle: string; title: string }>;
   locale?: AppLocale;
   align?: "left" | "right";
   label?: string;

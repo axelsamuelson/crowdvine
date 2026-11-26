@@ -7,7 +7,8 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { Product, Collection } from "@/lib/shopify/types";
+import { Product } from "@/lib/shopify/types";
+import type { ShopProducerLink } from "@/lib/shop/shop-producer-link";
 import ResultsControls from "./results-controls";
 import { useProducts } from "@/components/shop/products-provider";
 import {
@@ -36,7 +37,7 @@ import { filterProductsByRegions } from "@/lib/shop/filter-products-by-region";
 import { filterProductsBySource } from "@/lib/shop/filter-products-by-source";
 interface ProductListContentProps {
   products: Product[];
-  collections: Collection[];
+  collections: ShopProducerLink[];
   selectedProducers?: string[];
   collectionHandle?: string;
   /** Map wine id -> price source slugs that have an offer for that wine. Used for competitor filter. */

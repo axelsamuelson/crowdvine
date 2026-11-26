@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { Collection } from "@/lib/shopify/types";
+import type { HeaderProducerLink } from "@/lib/shop/shop-producer-link";
 
 const MobileMenu = dynamic(
   () =>
@@ -21,17 +21,14 @@ const MobileMenu = dynamic(
 );
 
 export function MobileMenuDynamic({
-  collections,
   popularCollections,
   isDirtywineSite,
 }: {
-  collections: Collection[];
-  popularCollections: Collection[];
+  popularCollections: HeaderProducerLink[];
   isDirtywineSite: boolean;
 }) {
   return (
     <MobileMenu
-      collections={collections}
       popularCollections={popularCollections}
       isDirtywineSite={isDirtywineSite}
     />
