@@ -75,7 +75,6 @@ export class CartService {
   private static async ensureCart() {
     console.log("🔧 ensureCart called");
     const cartId = await getOrSetCartId();
-    console.log("🔧 Cart ID from cookies:", cartId);
 
     const sb = await supabaseServer();
     console.log("🔧 Supabase client obtained in ensureCart");
@@ -173,9 +172,6 @@ export class CartService {
           convertSekForDisplay(sek, displayCurrency, sekToDisplayRate),
         );
 
-      const cartId = await getOrSetCartId();
-      console.log("🔧 Cart ID from cookies:", cartId);
-
       const sb = await supabaseServer();
       console.log("🔧 Supabase client obtained in getCart");
 
@@ -183,6 +179,9 @@ export class CartService {
         options?.cartDbId && options.cartDbId.length > 0
           ? options.cartDbId
           : await this.ensureCart();
+      // Cookie alignment runs in cart route handlers, not here. getCart is
+      // also reached from RSC, where cookies().set throws and a session_id
+      // write would have to be reverted.
       console.log("🔧 Ensure cart ID:", ensureCartId);
 
       console.log("🔧 Fetching cart items...");

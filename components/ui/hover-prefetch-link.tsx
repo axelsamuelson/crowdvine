@@ -6,51 +6,51 @@ import {
   useCallback,
   useRef,
   type ComponentProps,
-  type FocusEvent,
   type MouseEvent,
 } from "react";
+
+import { scheduleHoverPrefetch } from "@/lib/navigation/hover-prefetch";
 
 type HoverPrefetchLinkProps = ComponentProps<typeof Link>;
 
 /**
- * Next.js App Router Link that does not prefetch on viewport entry.
- * Prefetches on hover / focus so PLP grids do not stampede PDP routes.
+ * Product-grid link. `prefetch={false}` disables Next's viewport observer.
+ * A prefetch starts only after the pointer rests for 150ms, one at a time.
  */
 export function HoverPrefetchLink({
   href,
   onMouseEnter,
-  onFocus,
+  onMouseLeave,
   prefetch = false,
   ...rest
 }: HoverPrefetchLinkProps) {
   const router = useRouter();
-  const didPrefetch = useRef(false);
+  const pending = useRef<{ cancel: () => void } | null>(null);
 
-  const prefetchOnce = useCallback(() => {
-    if (didPrefetch.current) return;
-    if (typeof href !== "string" || !href) return;
-    didPrefetch.current = true;
-    try {
-      void router.prefetch(href);
-    } catch {
-      // ignore prefetch failures (offline / aborted navigations)
-    }
-  }, [href, router]);
+  const cancelPending = useCallback(() => {
+    pending.current?.cancel();
+    pending.current = null;
+  }, []);
 
   const handleMouseEnter = useCallback(
     (e: MouseEvent<HTMLAnchorElement>) => {
-      prefetchOnce();
       onMouseEnter?.(e);
+      if (typeof href !== "string" || !href) return;
+      cancelPending();
+      pending.current = scheduleHoverPrefetch({
+        href,
+        prefetch: (target) => router.prefetch(target),
+      });
     },
-    [onMouseEnter, prefetchOnce],
+    [cancelPending, href, onMouseEnter, router],
   );
 
-  const handleFocus = useCallback(
-    (e: FocusEvent<HTMLAnchorElement>) => {
-      prefetchOnce();
-      onFocus?.(e);
+  const handleMouseLeave = useCallback(
+    (e: MouseEvent<HTMLAnchorElement>) => {
+      cancelPending();
+      onMouseLeave?.(e);
     },
-    [onFocus, prefetchOnce],
+    [cancelPending, onMouseLeave],
   );
 
   return (
@@ -58,7 +58,7 @@ export function HoverPrefetchLink({
       href={href}
       prefetch={prefetch}
       onMouseEnter={handleMouseEnter}
-      onFocus={handleFocus}
+      onMouseLeave={handleMouseLeave}
       {...rest}
     />
   );

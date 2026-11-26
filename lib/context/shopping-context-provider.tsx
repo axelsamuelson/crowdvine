@@ -114,12 +114,17 @@ export function ShoppingContextProvider({
 
       setLocaleCookie(locale);
 
-      void fetch("/api/user/preferred-locale", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locale }),
-        keepalive: true,
-      }).catch(() => {});
+      // Persist before refresh so a Sweden default cannot undo the switcher.
+      try {
+        await fetch("/api/user/preferred-locale", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ locale }),
+          keepalive: true,
+        });
+      } catch {
+        /* guest or offline — cookie still pins the choice for this browser */
+      }
 
       const localizedPath = getLocalizedPath(pathname, locale);
       if (localizedPath && localizedPath !== pathname) {
@@ -218,7 +223,8 @@ export function useShoppingContext(): ShoppingContextValue {
   const ctx = useContext(ShoppingContextReact);
   if (ctx) return ctx;
   // Client pages can SSR before the provider client boundary is active (Next.js 16).
-  return createFallbackShoppingContextValue();
+  // Swedish is the storefront default; English is an explicit path or preference.
+  return createFallbackShoppingContextValue(fallbackShoppingContext("sv"));
 }
 
 /** Safe when provider is absent (e.g. admin-only subtrees). */

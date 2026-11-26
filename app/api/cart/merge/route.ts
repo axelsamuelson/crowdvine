@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { CartService } from "@/src/lib/cart-service";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import {
   bindCartOwnerAndTouch,
   reconcileSessionCartForUser,
@@ -42,7 +43,9 @@ export async function GET() {
       sessionId,
     });
 
-    if (result.sessionId && result.sessionId !== sessionId) {
+    if (result.cartId) {
+      await alignCartCookieToDbId(result.cartId);
+    } else if (result.sessionId && result.sessionId !== sessionId) {
       setCartCookie(cookieStore, result.sessionId);
     }
 
@@ -93,7 +96,9 @@ export async function POST(request: Request) {
         userId: user.id,
         sessionId,
       });
-      if (result.sessionId && result.sessionId !== sessionId) {
+      if (result.cartId) {
+        await alignCartCookieToDbId(result.cartId);
+      } else if (result.sessionId && result.sessionId !== sessionId) {
         setCartCookie(cookieStore, result.sessionId);
       }
       const cart = await CartService.getCart();
@@ -126,6 +131,7 @@ export async function POST(request: Request) {
     if (!sessionCart || !userCart) {
       if (sessionCart) {
         await bindCartOwnerAndTouch(sessionCart.id, user.id);
+        await alignCartCookieToDbId(sessionCart.id);
       }
       const cart = await CartService.getCart();
       return NextResponse.json({
@@ -149,10 +155,10 @@ export async function POST(request: Request) {
         .from("carts")
         .update({ updated_at: now })
         .eq("id", userCart.id);
-      if (userCart.session_id) {
-        setCartCookie(cookieStore, userCart.session_id);
-      }
     }
+    await alignCartCookieToDbId(
+      strategy === "keep_user" ? userCart.id : sessionCart.id,
+    );
 
     const cart = await CartService.getCart();
     return NextResponse.json({ ok: true, merged: true, cart });

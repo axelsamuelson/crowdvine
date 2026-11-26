@@ -29,6 +29,7 @@ import {
 } from "@/lib/b2b/flags";
 import { B2B_INQUIRY_PATH } from "@/lib/b2b/inquiry-login";
 import { homeDeliveryGuidePath } from "@/lib/guides/home-delivery-guide";
+import { CART_ADD_ERROR_EVENT } from "@/lib/cart/optimistic-case-cart";
 import { shouldAutoOpenCartOnQuantityChange } from "@/lib/cart/should-auto-open-cart";
 import { resolvePackingSourceId } from "@/lib/cart/packing-source";
 import {
@@ -394,6 +395,7 @@ export default function CartModal({
   const isDirtywineSite = useB2BModeServerHint();
   const { cart, isPending, cartReady } = useCart();
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [addError, setAddError] = useState<string | null>(null);
   const [validations, setValidations] = useState<ProducerValidation[]>([]);
   const [requiredQuantity, setRequiredQuantity] = useState<number | undefined>();
   const [neededTotal, setNeededTotal] = useState<number | undefined>();
@@ -586,8 +588,20 @@ export default function CartModal({
   // Explicit open from PDP Reservera (fires with optimistic cart-refresh).
   useEffect(() => {
     const onOpenRequest = () => setIsOpen(true);
+    const onAddError = (event: Event) => {
+      const message = (event as CustomEvent<{ message?: string }>).detail
+        ?.message;
+      if (typeof message === "string" && message.trim()) {
+        setAddError(message.trim());
+        setIsOpen(true);
+      }
+    };
     window.addEventListener("cart-open-request", onOpenRequest);
-    return () => window.removeEventListener("cart-open-request", onOpenRequest);
+    window.addEventListener(CART_ADD_ERROR_EVENT, onAddError);
+    return () => {
+      window.removeEventListener("cart-open-request", onOpenRequest);
+      window.removeEventListener(CART_ADD_ERROR_EVENT, onAddError);
+    };
   }, []);
 
   useEffect(() => {
@@ -614,7 +628,10 @@ export default function CartModal({
   }, [isOpen]);
 
   const openCart = () => setIsOpen(true);
-  const closeCart = () => setIsOpen(false);
+  const closeCart = () => {
+    setIsOpen(false);
+    setAddError(null);
+  };
 
   // Check if there are validation errors
   const hasValidationErrors = validations.some((v) => !v.isValid);
@@ -781,6 +798,14 @@ export default function CartModal({
                         </Button>
                       </CartContainer>
 
+                      {addError ? (
+                        <p
+                          role="alert"
+                          className="mx-4 mb-3 text-sm text-red-700"
+                        >
+                          {addError}
+                        </p>
+                      ) : null}
                       {renderCartContent()}
                     </div>
                   </motion.div>

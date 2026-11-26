@@ -39,7 +39,11 @@ import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_WINE_IMAGE_PATH } from "@/lib/constants";
 import { producerDisplayName } from "@/lib/producer-display-name";
-import { normalizeUserReservationsResponse } from "@/lib/reservations/user-reservations-api";
+import {
+  isCancelledEmptyReservation,
+  normalizeUserReservationsResponse,
+} from "@/lib/reservations/user-reservations-api";
+import { resolveMinBottlesToShip } from "@/lib/pallet-ship-progress";
 import { useShoppingContext } from "@/lib/context/shopping-context-provider";
 import { localizedPathsForLocale } from "@/lib/i18n/localized-paths";
 import { useDisplayMoney } from "@/lib/hooks/use-display-money";
@@ -1111,7 +1115,10 @@ export default function ReservationsPage() {
       const data = await response.json();
       console.log("[Reservations] Data received:", data);
 
-      const { reservations: list } = normalizeUserReservationsResponse(data);
+      const { reservations: rawList } = normalizeUserReservationsResponse(data);
+      const list = rawList.filter(
+        (row) => !isCancelledEmptyReservation(row as Reservation),
+      );
       if (list.length > 0) {
         console.log("[Reservations] Processing", list.length, "reservations");
         setReservations(list as Reservation[]);
@@ -1153,7 +1160,7 @@ export default function ReservationsPage() {
               (palletJson?.pallets || []).forEach((p: any) => {
                 palletInfoById.set(p.id, {
                   currentBottles: Number(p.current_bottles) || 0,
-                  capacity: Number(p.bottle_capacity) || 0,
+                  capacity: resolveMinBottlesToShip(p.min_bottles_to_complete),
                   isComplete: Boolean(p.is_complete),
                   status: typeof p.status === "string" ? p.status : null,
                 });

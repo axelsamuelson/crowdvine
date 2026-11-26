@@ -7,7 +7,11 @@ import {
   confirmationDisplayTotalSek,
   shortReservationReference,
 } from "@/lib/reservations/confirmation-display-total";
-import { buildReservationSummaryGroups } from "@/lib/reservations/user-reservations-api";
+import {
+  buildReservationSummaryGroups,
+  isCancelledEmptyReservation,
+} from "@/lib/reservations/user-reservations-api";
+import { resolveMinBottlesToShip } from "@/lib/pallet-ship-progress";
 
 export async function GET() {
   try {
@@ -182,7 +186,7 @@ export async function GET() {
       const { data: pallets, error: palletsError } = await supabase
         .from("pallets")
         .select(
-          "id, name, bottle_capacity, status, created_at, pickup_zone_id, delivery_zone_id",
+          "id, name, bottle_capacity, min_bottles_to_complete, status, created_at, pickup_zone_id, delivery_zone_id",
         )
         .in("pickup_zone_id", allDerivedPickupZoneIds)
         .in("delivery_zone_id", deliveryZoneIds);
@@ -253,6 +257,7 @@ export async function GET() {
       id: string;
       name?: string | null;
       bottle_capacity?: number | null;
+      min_bottles_to_complete?: number | null;
       status?: string | null;
       created_at?: string | null;
     };
@@ -271,7 +276,7 @@ export async function GET() {
     if (directPalletIds.length > 0) {
       const { data: byIdRows, error: byIdErr } = await supabase
         .from("pallets")
-        .select("id, name, bottle_capacity, status, created_at")
+        .select("id, name, bottle_capacity, min_bottles_to_complete, status, created_at")
         .in("id", directPalletIds);
       if (byIdErr) {
         console.error(
@@ -301,7 +306,7 @@ export async function GET() {
         if (palletId && palletById.has(palletId)) {
           const direct = palletById.get(palletId)!;
           palletName = direct.name || palletName;
-          palletCapacity = direct.bottle_capacity ?? null;
+          palletCapacity = resolveMinBottlesToShip(direct.min_bottles_to_complete);
           palletStatus = direct.status ?? null;
           const st = String(direct.status || "").toLowerCase();
           palletIsComplete =
@@ -324,7 +329,10 @@ export async function GET() {
             palletName = pallet.name;
             if (!palletId) palletId = pallet.id;
             if (palletCapacity == null) {
-              palletCapacity = pallet.bottle_capacity;
+              palletCapacity = resolveMinBottlesToShip(
+                (pallet as { min_bottles_to_complete?: number | null })
+                  .min_bottles_to_complete,
+              );
             }
             const st = String(pallet.status || "").toLowerCase();
             palletIsComplete =
@@ -542,7 +550,16 @@ export async function GET() {
       }),
     );
 
-    const slim = transformedReservations.map((r) => ({
+    const visibleReservations = transformedReservations.filter(
+      (r) =>
+        !isCancelledEmptyReservation({
+          status: r.status,
+          items: r.items,
+          bottleCount: r.bottleCount,
+        }),
+    );
+
+    const slim = visibleReservations.map((r) => ({
       id: String(r.id),
       created_at: String(r.created_at),
       status: String(r.status),
@@ -565,7 +582,7 @@ export async function GET() {
     const summaryGroups = buildReservationSummaryGroups(slim);
 
     return NextResponse.json({
-      reservations: transformedReservations,
+      reservations: visibleReservations,
       summaryGroups,
     });
   } catch (error) {

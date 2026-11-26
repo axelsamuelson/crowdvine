@@ -106,3 +106,81 @@ export function requestCartOpen(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent("cart-open-request"));
 }
+
+export const CART_ADD_ERROR_EVENT = "cart-add-error";
+
+/** Surface a failed add inside the open cart drawer (timeout must not be silent). */
+export function reportCartAddError(message: string): void {
+  if (typeof window === "undefined") return;
+  const text = message.trim();
+  if (!text) return;
+  window.dispatchEvent(
+    new CustomEvent(CART_ADD_ERROR_EVENT, { detail: { message: text } }),
+  );
+}
+
+export type OptimisticAddResult = {
+  ok: boolean;
+  cart?: Cart;
+  timedOut?: boolean;
+  httpStatus?: number;
+};
+
+function isAbortError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const name = "name" in error ? String(error.name) : "";
+  return name === "AbortError" || name === "TimeoutError";
+}
+
+/**
+ * Open the cart with a local snapshot, then run add-quantity in the background.
+ * `requestCartOpen` runs before `fetchAdd` is awaited.
+ */
+export function beginOptimisticCaseAdd(args: {
+  previous: Cart | undefined;
+  product: Product;
+  variant: ProductVariant;
+  quantity: number;
+  fetchAdd: () => Promise<Response>;
+  onCart: (cart: Cart) => void;
+  timeoutMessage: string;
+}): Promise<OptimisticAddResult> {
+  const optimistic = buildOptimisticCaseCart(
+    args.previous,
+    args.product,
+    args.variant,
+    args.quantity,
+  );
+  args.onCart(optimistic);
+  requestCartOpen();
+
+  return (async (): Promise<OptimisticAddResult> => {
+    try {
+      const response = await args.fetchAdd();
+      if (!response.ok) {
+        if ((args.previous?.totalQuantity ?? 0) > 0 && args.previous) {
+          args.onCart(args.previous);
+        }
+        return {
+          ok: false,
+          httpStatus: response.status,
+          cart: args.previous,
+        };
+      }
+      const result = (await response.json()) as { cart?: Cart };
+      const cart = result.cart ?? optimistic;
+      if (result.cart) args.onCart(result.cart);
+      return { ok: true, cart };
+    } catch (error) {
+      const timedOut = isAbortError(error);
+      if (timedOut) {
+        reportCartAddError(args.timeoutMessage);
+        return { ok: false, timedOut: true, cart: optimistic };
+      }
+      if ((args.previous?.totalQuantity ?? 0) > 0 && args.previous) {
+        args.onCart(args.previous);
+      }
+      return { ok: false, timedOut: false, cart: args.previous };
+    }
+  })();
+}

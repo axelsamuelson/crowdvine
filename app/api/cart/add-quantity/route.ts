@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
+import { reconcileSessionCartForUser } from "@/lib/cart/reconcile-on-auth";
 import { CartService } from "@/src/lib/cart-service";
 import { isB2BHost } from "@/lib/b2b-site";
 import { B2B_PRODUCER_ORDERS_ENABLED } from "@/lib/b2b/flags";
@@ -91,14 +93,35 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
     const userId = authUser?.id ?? null;
 
-    const { data: existingCart } = await supabase
-      .from("carts")
-      .select("id, user_id")
-      .eq("session_id", cartId)
-      .maybeSingle();
+    let dbCartId: string | undefined;
+    if (userId) {
+      try {
+        const reconciled = await reconcileSessionCartForUser({
+          userId,
+          sessionId: cartId ?? null,
+        });
+        if (reconciled.cartId) dbCartId = reconciled.cartId;
+      } catch (reconcileError) {
+        console.warn(
+          "🛒 [ADD-QUANTITY] reconcile:",
+          reconcileError instanceof Error
+            ? reconcileError.message
+            : reconcileError,
+        );
+      }
+    }
 
-    let dbCartId;
-    if (!existingCart) {
+    const { data: existingCart } = dbCartId
+      ? { data: null }
+      : await supabase
+          .from("carts")
+          .select("id, user_id")
+          .eq("session_id", cartId)
+          .maybeSingle();
+
+    if (dbCartId) {
+      console.log("🛒 [ADD-QUANTITY] Using reconciled user cart:", dbCartId);
+    } else if (!existingCart) {
       const insertPayload: {
         session_id: string;
         user_id?: string;
@@ -251,6 +274,9 @@ export async function POST(request: Request) {
     const { bindCartOwnerAndTouch } = await import(
       "@/lib/cart/reconcile-on-auth"
     );
+    // Guest adds skip reconcile. Align once here so cv_cart_id becomes carts.id.
+    // Logged-in adds already aligned inside reconcile; a matching cookie no-ops.
+    if (dbCartId) await alignCartCookieToDbId(dbCartId);
     const touchPromise = bindCartOwnerAndTouch(dbCartId, userId);
     // Same pricing as checkout/quote: member + early-bird via getCart().
     // Never skip early-bird here — drawer must match charged wine totals.

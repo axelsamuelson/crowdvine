@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import { CartService } from "@/src/lib/cart-service";
 
 export async function PUT(request: Request) {
@@ -21,6 +22,7 @@ export async function PUT(request: Request) {
     }
 
     const cart = await CartService.getCart();
+    if (cart?.id) await alignCartCookieToDbId(cart.id);
     return NextResponse.json(cart);
   } catch (error) {
     console.error("PUT /api/crowdvine/cart/lines/update error:", error);

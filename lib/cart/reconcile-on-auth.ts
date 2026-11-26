@@ -1,3 +1,4 @@
+import { alignCartCookieToDbId } from "@/lib/cart/align-cart-cookie";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type CartRow = {
@@ -93,9 +94,10 @@ export async function reconcileSessionCartForUser(opts: {
       .from("carts")
       .update({ updated_at: now })
       .eq("id", keep.id);
+    const alignedSessionId = await alignCartCookieToDbId(keep.id);
     return {
       cartId: keep.id,
-      sessionId: keep.session_id,
+      sessionId: alignedSessionId || keep.session_id,
       mergedFromCartIds,
     };
   }
@@ -154,9 +156,11 @@ export async function reconcileSessionCartForUser(opts: {
     .update({ user_id: userId, updated_at: new Date().toISOString() })
     .eq("id", sessionCart.id);
 
+  const alignedSessionId = await alignCartCookieToDbId(sessionCart.id);
+
   return {
     cartId: sessionCart.id,
-    sessionId: sessionCart.session_id ?? sessionId,
+    sessionId: alignedSessionId || sessionCart.session_id || sessionId,
     mergedFromCartIds,
   };
 }
