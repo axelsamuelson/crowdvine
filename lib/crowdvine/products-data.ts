@@ -1350,9 +1350,14 @@ export async function catalogHasProducts(filters?: {
   isB2BSite?: boolean;
 }): Promise<boolean> {
   if (supabaseBuildUsesPlaceholder()) return false;
+  // Organic matching runs in JS after the SQL limit. limit 1 often returns
+  // one unverified row, so the organic category looks empty even when the
+  // shop page (default limit 200) lists verified wines. The filter href
+  // and sitemap use this check.
+  const organicPool = filters?.filterFarming?.includes("organic_certified");
   const rows = await fetchProductsData({
     ...filters,
-    limit: 1,
+    limit: organicPool ? 200 : 1,
     isB2BSite: filters?.isB2BSite ?? false,
   });
   return rows.length > 0;
