@@ -209,7 +209,7 @@ export const bestOrangeNaturalWinesSystembolagetSvArticle: GuideArticleContent =
     },
     lede: {
       en: "Looking for the best orange wine at Systembolaget? Here is our selection of skin-contact bottles — from Friuli, Alsace, Japan, Sicily, Austria and Georgia.",
-      sv: "Letar du efter bästa orange vin på Systembolaget? Här är vårt urval av orange viner med äkta skalkontakt – från Friuli, Alsace, Japan, Sicilien, Österrike och Georgien. Listan är oberoende. PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
+      sv: "Letar du efter bästa [orange vin](/vin/orange-naturvin) på Systembolaget? Här är vårt urval av orange viner med äkta skalkontakt – från Friuli, Alsace, Japan, Sicilien, Österrike och Georgien. Listan är oberoende. PACT säljer inte på Systembolaget och tjänar ingenting på vad du väljer.",
     },
     breadcrumbShort: {
       en: "Best orange natural wines at Systembolaget",

@@ -61,7 +61,7 @@ export const whatIsNaturalWineArticle: GuideArticleContent = {
         ],
         sv: [
           "Det finns ingen gemensam lagdefinition av naturvin i Sverige eller i EU. Begreppet används av producenter som delar ett arbetssätt, men inte ett regelverk.",
-          "Frankrike har sedan 2020 en märkning, Vin Méthode Nature, via Syndicat de défense des vins naturels. Den kräver certifierat ekologiska druvor (Agriculture Biologique eller Nature & Progrès), handskörd, jäst från vingården och inga tillsatser utöver en möjlig liten svaveljustering på det färdiga vinet. Märkningen är frivillig och täcker inte allt som kallas naturvin.",
+          "Frankrike har sedan 2020 en märkning, Vin Méthode Nature, via Syndicat de défense des vins naturels. Den kräver certifierat ekologiska druvor (Agriculture Biologique eller Nature & Progrès), handskörd, jäst från vingården och inga tillsatser utöver en möjlig liten svaveljustering på det färdiga vinet. Märkningen är frivillig och täcker inte allt som kallas [naturvin](/vin).",
           "I praktiken betyder naturvin att ingreppen är få från jord till flaska. Producenten skördar och pressar, och låter sedan druva och plats styra jäsningen. Transparens om odling och källare väger tyngre än ordet på etiketten, eftersom vem som helst kan använda ordet.",
         ],
       },

@@ -1,6 +1,7 @@
 import { HomeSidebar } from "@/components/layout/sidebar/home-sidebar";
 import { Footer } from "@/components/layout/footer";
 import { LatestProductCard } from "@/components/products/latest-product-card";
+import { HomeExploreNaturvin } from "@/components/home/home-explore-naturvin";
 import { HomeHero } from "@/components/home/home-hero";
 import {
   HomeTasteQuizCollapsible,
@@ -171,6 +172,7 @@ export async function renderHomePage(locale: AppLocale) {
                   showLatestDrop
                   priority
                 />
+                {locale === "sv" ? <HomeExploreNaturvin /> : null}
 
                 {restProducts.map((product: Product, index: number) => (
                   <LatestProductCard
@@ -182,6 +184,9 @@ export async function renderHomePage(locale: AppLocale) {
                 ))}
               </>
             )}
+            {featuredProducts.length === 0 && locale === "sv" ? (
+              <HomeExploreNaturvin />
+            ) : null}
           </div>
         </div>
       </main>
