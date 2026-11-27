@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical: urls.sv,
       languages: {
         en: urls.en,
-        sv: urls.sv,
+        "sv-SE": urls.sv,
         "x-default": urls.xDefault,
       },
     },

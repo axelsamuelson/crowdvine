@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -73,6 +74,8 @@ function buildFailureReason(
 }
 
 export async function POST(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
   try {
     const user = await getCurrentUser();
     if (!user) {

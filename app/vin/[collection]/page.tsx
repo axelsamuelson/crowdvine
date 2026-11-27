@@ -124,7 +124,7 @@ export async function generateMetadata(props: {
       alternates: {
         canonical: canonicalUrl,
         languages: {
-          sv: pageUrl,
+          "sv-SE": pageUrl,
           en: `${PACT_PUBLIC_ORIGIN}/wine/${category.hreflang ?? ""}`,
           "x-default": `${PACT_PUBLIC_ORIGIN}/wine/${category.hreflang ?? ""}`,
         },
@@ -174,7 +174,7 @@ export async function generateMetadata(props: {
     alternates: {
       canonical: shopUrl,
       languages: {
-        sv: shopUrl,
+        "sv-SE": shopUrl,
         en: `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`,
         "x-default": `${PACT_PUBLIC_ORIGIN}${producerShopPagePath(collection.title, "en")}`,
       },

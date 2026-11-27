@@ -8,20 +8,21 @@ import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone
 import type { ResolvedMarket } from "@/lib/market/resolve-market";
 import type { ShoppingContext } from "@/lib/shopping-context/types";
 
+/** Unknown country. Never Sweden, and never allowed to check out. */
 const FALLBACK_ZONE: ResolvedActiveGeoZone = {
   geoZoneId: null,
-  marketCode: "EU",
-  countryCode: "SE",
+  marketCode: "UN",
+  countryCode: "XX",
   regionCode: null,
   city: null,
-  displayName: "Sweden",
+  displayName: "Unknown",
   zoneType: "country",
-  eligibilityStatus: "normal_checkout",
+  eligibilityStatus: "interest_only",
   currencyCode: "SEK",
   source: "default",
-  canStartCampaign: true,
+  canStartCampaign: false,
   canReserveConditionally: false,
-  canCheckoutNormally: true,
+  canCheckoutNormally: false,
 };
 
 const FALLBACK_MARKET: ResolvedMarket = {
@@ -37,7 +38,7 @@ const FALLBACK_MARKET: ResolvedMarket = {
   ageMinimum: 20,
   termsVersion: null,
   countryRole: "checkout_eligible",
-  isCheckoutEligible: true,
+  isCheckoutEligible: false,
   isConditionalReservationEligible: false,
   isBrowseOnly: false,
 };

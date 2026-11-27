@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import { validatePostalCode } from "@/lib/instabee/home-delivery";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+  const shipBlock = shipToCheckoutResponse(
+    request,
+    searchParams.get("countryCode"),
+  );
+  if (shipBlock) return shipBlock;
   const postalCode = searchParams.get("postalCode");
   const countryCode = searchParams.get("countryCode") ?? "SE";
 

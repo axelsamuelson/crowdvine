@@ -77,6 +77,7 @@ export function productOfferCommerceFields(options?: {
           "@type": "DefinedRegion" as const,
           addressCountry: "SE",
         },
+        eligibleRegion: "SE",
       }
     : {
         "@type": "OfferShippingDetails" as const,
@@ -84,6 +85,7 @@ export function productOfferCommerceFields(options?: {
           "@type": "DefinedRegion" as const,
           addressCountry: "SE",
         },
+        eligibleRegion: "SE",
       };
 
   return {

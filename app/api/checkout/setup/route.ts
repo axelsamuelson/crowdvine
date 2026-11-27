@@ -6,8 +6,11 @@
  */
 
 import { NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
   console.warn(
     "[DEPRECATED] /api/checkout/setup called. Use the Payment Element flow (Fas 2.2) instead.",
   );

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import { determineZones } from "@/lib/zone-matching";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getCurrentUser } from "@/lib/auth";
@@ -8,6 +9,8 @@ import { resolveMarketDropForPallet } from "@/lib/market/resolve-market-drop";
 import { resolveActiveGeoZoneForUser } from "@/lib/market/resolve-active-geo-zone";
 
 export async function POST(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
   try {
     const body = await request.json();
     const { cartItems, deliveryAddress } = body;

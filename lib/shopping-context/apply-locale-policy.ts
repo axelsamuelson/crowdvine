@@ -9,17 +9,17 @@ import {
 } from "@/lib/shopping-context/currency-policy";
 import type { ShoppingContext } from "@/lib/shopping-context/types";
 
-/** Enforce zone locale + display currency rules (e.g. US → en + USD) on a snapshot. */
+/**
+ * Server HTML stays on the locale already chosen from the URL or cookie,
+ * and on SEK. Ship-to never rewrites the language.
+ */
 export function applyLocalePolicyToContext(ctx: ShoppingContext): ShoppingContext {
-  const availableLocales = availableAppLocalesForZone(
-    ctx.activeZone,
-    ctx.uiLocalizationEnabled,
-  );
-  const locale = clampAppLocaleForZone(
-    ctx.locale,
-    ctx.activeZone,
-    ctx.uiLocalizationEnabled,
-  );
+  const availableLocales = ctx.uiLocalizationEnabled
+    ? (["sv", "en"] as const)
+    : availableAppLocalesForZone(ctx.activeZone, false);
+  const locale = ctx.uiLocalizationEnabled
+    ? ctx.locale
+    : clampAppLocaleForZone(ctx.locale, ctx.activeZone, false);
   const currencyCode = resolveDisplayCurrencyCode({
     zoneCurrencyCode: ctx.activeZone.currencyCode,
     marketCurrencyCode: ctx.market.currencyCode,

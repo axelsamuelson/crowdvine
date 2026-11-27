@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import { CartService } from "@/src/lib/cart-service";
 import { supabaseServer, getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -194,6 +195,9 @@ function splitDiscountPoolOreByCheckoutWeights(
 }
 
 export async function POST(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
+
   let voucherApplied = false;
   let voucherDiscountCents = 0;
   let pactPointsRedeemed = 0;

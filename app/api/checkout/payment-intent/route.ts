@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  evaluateShipToCheckout,
+  readRequestShipTo,
+  shipToCheckoutResponse,
+} from "@/lib/checkout/ship-to-gate";
 import { cookies } from "next/headers";
 import { LOCALE_COOKIE } from "@/lib/i18n/locale";
 import { getCurrentUser } from "@/lib/supabase-server";
@@ -158,6 +163,9 @@ function evaluateAgeOnlyGate(
 }
 
 export async function POST(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
+
   const PALLET_THRESHOLD = 300;
 
   try {
@@ -630,6 +638,24 @@ export async function POST(request: Request) {
     const city = delivery!.city;
     const postal = delivery!.postal;
     const countryCode = delivery!.countryCode;
+
+    const addressGate = evaluateShipToCheckout({
+      shipTo: readRequestShipTo(request),
+      addressCountry: countryCode,
+    });
+    if (addressGate) {
+      return NextResponse.json(
+        {
+          error:
+            addressGate.code === "ship_to_address_mismatch"
+              ? "Delivery country must match Ship to."
+              : "We don't deliver to this country yet.",
+          code: addressGate.code,
+          country: addressGate.country,
+        },
+        { status: addressGate.status },
+      );
+    }
 
     const marketMode = getCountryMarketMode(countryCode);
     if (marketMode === "unsupported") {

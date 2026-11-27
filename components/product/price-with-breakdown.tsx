@@ -12,6 +12,7 @@ import {
 import { useMembership } from "@/lib/context/membership-context";
 import { useMembershipDiscountPercent } from "@/lib/hooks/use-membership-discount-percent";
 import { formatPrice } from "@/lib/shopify/utils";
+import { ApproxShipToPrice } from "./approx-ship-to-price";
 import { Product } from "@/lib/shopify/types";
 
 interface PriceWithBreakdownProps {
@@ -35,6 +36,9 @@ export function PriceWithBreakdown({ product }: PriceWithBreakdownProps) {
         className="text-lg font-semibold lg:text-xl 2xl:text-2xl"
         showBadge={true}
         priceExclVatOverride={(product as any).b2bPriceExclVat}
+      />
+      <ApproxShipToPrice
+        sek={Number(product.priceRange.minVariantPrice.amount)}
       />
     );
   }

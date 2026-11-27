@@ -42,7 +42,7 @@ export async function buildHomeMetadata(locale: AppLocale): Promise<Metadata> {
     alternates: {
       canonical,
       languages: {
-        sv: svHome,
+        "sv-SE": svHome,
         en: enHome,
         "x-default": enHome,
       },

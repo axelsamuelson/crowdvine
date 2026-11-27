@@ -70,7 +70,7 @@ describe("buildProducerPublicMetadata", () => {
       "https://pactwines.com/producenter/chateau-del-ranq",
     );
     expect(meta.alternates?.languages).toEqual({
-      sv: "https://pactwines.com/producenter/chateau-del-ranq",
+      "sv-SE": "https://pactwines.com/producenter/chateau-del-ranq",
       en: "https://pactwines.com/producers/chateau-del-ranq",
       "x-default": "https://pactwines.com/producers/chateau-del-ranq",
     });

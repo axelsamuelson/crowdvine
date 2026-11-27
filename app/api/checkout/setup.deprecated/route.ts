@@ -5,11 +5,14 @@
  */
 
 import { NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
   console.warn(
     "[DEPRECATED] /api/checkout/setup called. This route will be removed; use Payment Element flow instead.",
   );

@@ -193,7 +193,7 @@ export async function buildWineRegionPageMetadata(
     alternates: {
       canonical,
       languages: {
-        sv: urls.sv,
+        "sv-SE": urls.sv,
         en: urls.en,
         "x-default": urls.xDefault,
       },

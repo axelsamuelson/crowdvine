@@ -748,44 +748,9 @@ describe("WIRED shared-pallet SI fresh-retrieve + US terms (B)", () => {
       }),
     );
     expect(res.status).toBe(409);
-    expect((await res.json()).code).toBe("prior_intent_not_handoffable");
-    expect(setupIntentsCreate).toHaveBeenCalledTimes(1);
-    const [params, opts] = setupIntentsCreate.mock.calls[0];
-    expect(params.metadata.terms_version).toBe(US_CONDITIONAL_TERMS_VERSION);
-    const key = opts?.idempotencyKey as string;
-    const expectedCtx: SharedPalletIntentContext = {
-      sessionUserId: USER_ID,
-      cartId: CART_ID,
-      palletId: PALLET_ID,
-      expectedAmountOre: Number(params.metadata.expected_amount_ore),
-      currency: "sek",
-      stripeCustomerId: CUSTOMER_ID,
-      pactPointsRedeem: 0,
-      promoDiscountSek: 0,
-      voucherDiscountSek: 0,
-      ageVerifiedDob: "1990-01-01",
-      ageVerificationMethod: "self_declared_dob",
-      purchaseTermsVersion: null,
-      usConditional: true,
-      usRegion: "CA",
-      usConditionalTermsVersion: US_CONDITIONAL_TERMS_VERSION,
-      checkoutGeneration: 0,
-    };
-    expect(key).toBe(
-      buildSharedPalletStripeIdempotencyKey({
-        intentKind: "setup_intent",
-        context: expectedCtx,
-      }),
-    );
-    expect(key).not.toBe(
-      buildSharedPalletStripeIdempotencyKey({
-        intentKind: "setup_intent",
-        context: {
-          ...expectedCtx,
-          usConditionalTermsVersion: `${US_CONDITIONAL_TERMS_VERSION}_NEXT`,
-        },
-      }),
-    );
+    expect((await res.json()).code).toBe("ship_to_not_live");
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
   });
 
   it("US SI stable: retrieve RPM returns fresh secret", async () => {
@@ -818,9 +783,10 @@ describe("WIRED shared-pallet SI fresh-retrieve + US terms (B)", () => {
         }),
       }),
     );
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(409);
     const json = await res.json();
-    expect(json.paymentMode).toBe("setup_intent");
-    expect(json.clientSecret).toBe("seti_fresh");
+    expect(json.code).toBe("ship_to_not_live");
+    expect(setupIntentsCreate).not.toHaveBeenCalled();
+    expect(paymentIntentsCreate).not.toHaveBeenCalled();
   });
 });

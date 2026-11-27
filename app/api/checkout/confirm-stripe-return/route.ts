@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import type Stripe from "stripe";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -47,6 +48,8 @@ function retryableMessage(): string {
 }
 
 export async function POST(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
   try {
     if (!stripe) {
       return NextResponse.json({ success: false, error: "Stripe not configured" }, { status: 503 });

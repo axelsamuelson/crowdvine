@@ -19,7 +19,12 @@ import {
 } from "@/lib/seo/noindex-robots";
 import { producerBoxesSitemapPaths } from "@/lib/producer-boxes/config";
 import { STOCKHOLM_DELIVERY_SITEMAP_SLUGS } from "@/lib/stockholm-delivery-landing/dirtywine-redirect";
-import { WINE_CATEGORIES_EN, WINE_CATEGORIES_SV } from "@/lib/wine-categories";
+import {
+  getHreflangPath,
+  WINE_CATEGORIES_EN,
+  WINE_CATEGORIES_SV,
+  type WineCategory,
+} from "@/lib/wine-categories";
 import {
   isWineRegionShopCategory,
   LEGACY_SHOP_REDIRECT_SLUGS,
@@ -37,17 +42,42 @@ export type SitemapSiteProfile = "pact" | "dirtywine";
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 
+function languageAlternates(svUrl: string, enUrl: string) {
+  return {
+    languages: {
+      "sv-SE": svUrl,
+      en: enUrl,
+      "x-default": enUrl,
+    },
+  };
+}
+
 function weeklyEntry(
   url: string,
   priority: number,
   lastModified = new Date(),
+  alternates?: SitemapEntry["alternates"],
 ): SitemapEntry {
   return {
     url,
     lastModified,
     changeFrequency: "weekly",
     priority,
+    ...(alternates ? { alternates } : {}),
   };
+}
+
+function pairedCategoryEntry(
+  category: WineCategory,
+  baseUrl: string,
+  priority: number,
+): SitemapEntry {
+  const self = `${baseUrl}${category.locale === "sv" ? "/vin" : "/wine"}/${category.slug}`;
+  const otherPath = getHreflangPath(category);
+  const other = otherPath.startsWith("http") ? otherPath : `${baseUrl}${otherPath}`;
+  const svUrl = category.locale === "sv" ? self : other;
+  const enUrl = category.locale === "en" ? self : other;
+  return weeklyEntry(self, priority, new Date(), languageAlternates(svUrl, enUrl));
 }
 
 function yearlyEntry(
@@ -123,17 +153,12 @@ function staticPagesForProfile(
           const day = articleUpdatedOn(guide, locale);
           return day ? new Date(`${day}T00:00:00.000Z`) : new Date();
         };
+        const en = `${baseUrl}${articlePath(guide, "en")}`;
+        const sv = `${baseUrl}${articlePath(guide, "sv")}`;
+        const alternates = languageAlternates(sv, en);
         return [
-          weeklyEntry(
-            `${baseUrl}${articlePath(guide, "en")}`,
-            0.75,
-            lastModifiedFor("en"),
-          ),
-          weeklyEntry(
-            `${baseUrl}${articlePath(guide, "sv")}`,
-            0.75,
-            lastModifiedFor("sv"),
-          ),
+          weeklyEntry(en, 0.75, lastModifiedFor("en"), alternates),
+          weeklyEntry(sv, 0.75, lastModifiedFor("sv"), alternates),
         ];
       }),
       // English-only label comparison guide (no Swedish route yet).
@@ -228,9 +253,16 @@ async function buildSitemapEntriesUncached(
       changeFrequency: "weekly" as const,
       priority: 0.8,
     };
+    const en = `${baseUrl}/product/${w.handle}`;
+    const sv = `${baseUrl}/produkt/${w.handle}`;
+    const languages = {
+      "sv-SE": sv,
+      en,
+      "x-default": en,
+    };
     return [
-      { url: `${baseUrl}/product/${w.handle}`, ...entry },
-      { url: `${baseUrl}/produkt/${w.handle}`, ...entry },
+      { url: en, ...entry, alternates: { languages } },
+      { url: sv, ...entry, alternates: { languages } },
     ];
   });
 
@@ -290,7 +322,7 @@ async function buildSitemapEntriesUncached(
           filterWineRegion: c.filter.wineRegion,
           isB2BSite: isDirtyWine,
         });
-        return hasProducts ? weeklyEntry(`${baseUrl}/vin/${c.slug}`, 0.8) : null;
+        return hasProducts ? pairedCategoryEntry(c, baseUrl, 0.8) : null;
       }),
     )
   ).filter((e): e is NonNullable<typeof e> => e != null);
@@ -309,7 +341,7 @@ async function buildSitemapEntriesUncached(
           filterWineRegion: c.filter.wineRegion,
           isB2BSite: isDirtyWine,
         });
-        return hasProducts ? weeklyEntry(`${baseUrl}/wine/${c.slug}`, 0.7) : null;
+        return hasProducts ? pairedCategoryEntry(c, baseUrl, 0.7) : null;
       }),
     )
   ).filter((e): e is NonNullable<typeof e> => e != null);
@@ -320,20 +352,30 @@ async function buildSitemapEntriesUncached(
     visibleProducerSlugs ? visibleProducerSlugs.has(slug) : true,
   );
   const producerShopPages: MetadataRoute.Sitemap = producerShopSlugs.flatMap(
-    (slug) => [
-      weeklyEntry(`${baseUrl}/vin/${slug}`, 0.75),
-      weeklyEntry(`${baseUrl}/wine/${slug}`, 0.75),
-    ],
+    (slug) => {
+      const sv = `${baseUrl}/vin/${slug}`;
+      const en = `${baseUrl}/wine/${slug}`;
+      const alternates = languageAlternates(sv, en);
+      return [
+        weeklyEntry(sv, 0.75, new Date(), alternates),
+        weeklyEntry(en, 0.75, new Date(), alternates),
+      ];
+    },
   );
 
   // Region shop pages: sitemap only when ≥3 live wines (wine ∧ producer).
   const regionCounts = await getLiveWineRegionCountsMap();
   const regionPages: MetadataRoute.Sitemap = indexableWineRegionPaths(
     regionCounts,
-  ).flatMap(({ sv, en }) => [
-    weeklyEntry(`${baseUrl}${sv}`, 0.75),
-    weeklyEntry(`${baseUrl}${en}`, 0.75),
-  ]);
+  ).flatMap(({ sv, en }) => {
+    const svUrl = `${baseUrl}${sv}`;
+    const enUrl = `${baseUrl}${en}`;
+    const alternates = languageAlternates(svUrl, enUrl);
+    return [
+      weeklyEntry(svUrl, 0.75, new Date(), alternates),
+      weeklyEntry(enUrl, 0.75, new Date(), alternates),
+    ];
+  });
 
   return dedupeSitemapEntries([
     ...staticPages,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Globe } from "lucide-react";
 import {
   Popover,
@@ -9,8 +10,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useTranslations } from "@/lib/hooks/use-translations";
-import { locationLabelFromZone } from "@/lib/market/location-label";
-import type { ResolvedActiveGeoZone } from "@/lib/market/resolve-active-geo-zone";
+import {
+  countryLabel,
+  SEEDED_COUNTRIES,
+} from "@/lib/market/country-registry";
+import { alternateLanguagePath } from "@/lib/i18n/localized-paths";
+import {
+  readGeoCountryCookie,
+  readShipToCookie,
+} from "@/lib/market/ship-to-client";
 import { cn } from "@/lib/utils";
 
 export const WINE_ZONE_SETTINGS_PATH = "/settings/zone";
@@ -20,12 +28,6 @@ export type ShoppingContextMenuVariant = "header" | "footer";
 export interface HeaderShoppingContextProps {
   className?: string;
   variant?: ShoppingContextMenuVariant;
-}
-
-function isSwedenWineZone(
-  zone: Pick<ResolvedActiveGeoZone, "countryCode">,
-): boolean {
-  return zone.countryCode?.trim().toUpperCase() === "SE";
 }
 
 function ZoneTriggerLabel({
@@ -78,7 +80,9 @@ function SwedenZonePopover({
 }) {
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
-  const { context: shopping, setLocale, t } = useTranslations();
+  const { context: shopping, t } = useTranslations();
+  const router = useRouter();
+  const pathname = usePathname();
   const appLocale = shopping.locale;
   const localeOptions = shopping.availableLocales;
   const activeLanguageLabel =
@@ -131,6 +135,28 @@ function SwedenZonePopover({
         className="w-[min(100vw-1.5rem,15rem)] rounded-2xl border-0 bg-popover p-4 shadow-xl ring-1 ring-border/40"
       >
         <div className="space-y-3">
+          <div>
+            <p className="mb-2 text-xs text-muted-foreground">Ship to</p>
+            <div className="flex flex-wrap gap-1">
+              {SEEDED_COUNTRIES.map((country) => (
+                <button
+                  key={country.countryCode}
+                  type="button"
+                  className="rounded-full border border-border px-2 py-0.5 text-xs"
+                  onClick={() => {
+                    setOpen(false);
+                    void fetch("/api/ship-to", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ countryCode: country.countryCode }),
+                    }).then(() => window.location.reload());
+                  }}
+                >
+                  {countryLabel(country.countryCode, appLocale === "en" ? "en" : "sv")}
+                </button>
+              ))}
+            </div>
+          </div>
           {localeOptions.length > 1 ? (
             <div>
               <p className="mb-2 text-xs text-muted-foreground">
@@ -152,7 +178,7 @@ function SwedenZonePopover({
                       type="button"
                       onClick={() => {
                         setOpen(false);
-                        void setLocale(loc).catch(() => {});
+                        router.push(alternateLanguagePath(pathname || "/", loc));
                       }}
                       className={cn(
                         "transition-colors",
@@ -184,65 +210,46 @@ function SwedenZonePopover({
   );
 }
 
-function ZoneNavLink({
-  isFooter,
-  label,
-  className,
-  showCurrency,
-  currency,
-}: {
-  isFooter: boolean;
-  label: string;
-  className?: string;
-  showCurrency?: boolean;
-  currency?: string;
-}) {
-  const { t } = useTranslations();
-
-  return (
-    <Link
-      href={WINE_ZONE_SETTINGS_PATH}
-      prefetch={false}
-      className={cn(
-        "inline-flex shrink-0 items-center gap-2 transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        isFooter
-          ? "text-sm text-background/70 hover:text-background focus-visible:ring-background/40"
-          : "hidden md:inline-flex h-8 rounded-full border border-border/80 bg-background/80 px-3 text-xs font-normal text-foreground hover:bg-muted/50 md:text-sm focus-visible:ring-foreground/20",
-        className,
-      )}
-      aria-label={t("shopping.changeZone")}
-    >
-      <ZoneTriggerLabel
-        label={label}
-        isFooter={isFooter}
-        showCurrency={showCurrency}
-        currency={currency}
-      />
-    </Link>
-  );
-}
-
 export function HeaderShoppingContext({
   className,
   variant = "header",
 }: HeaderShoppingContextProps) {
   const isFooter = variant === "footer";
-  const { context: shopping, t } = useTranslations();
+  const { context: shopping } = useTranslations();
   const uiLocale = shopping.locale === "sv" ? "sv" : "en";
-  const zone = shopping.activeZone;
-  const displayFull = zone.displayName?.trim() || "";
-  const ccRaw = zone.countryCode?.trim().toUpperCase() ?? "";
-  const label = locationLabelFromZone(
-    displayFull,
-    ccRaw,
-    uiLocale,
-    t("shopping.selectRegion"),
-  );
-  const sweden = isSwedenWineZone(zone);
+  const [ship, setShip] = useState<string | null>(null);
+  const [geo, setGeo] = useState<string | null>(null);
 
-  if (sweden) {
-    return (
+  useEffect(() => {
+    setShip(readShipToCookie());
+    setGeo(readGeoCountryCookie());
+  }, []);
+
+  const code = ship ?? geo ?? "SE";
+  const label = `Ship to ${countryLabel(code, uiLocale)}`;
+  const suggest = !ship && Boolean(geo) && geo !== "SE";
+
+  function choose(countryCode: string) {
+    void fetch("/api/ship-to", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ countryCode }),
+    }).then(() => window.location.reload());
+  }
+
+  return (
+    <div className="inline-flex items-center gap-2">
+      {suggest && geo ? (
+        <div className="hidden items-center gap-1 text-xs md:flex">
+          <span>Ship to {countryLabel(geo, uiLocale)}?</span>
+          <button type="button" className="underline" onClick={() => choose(geo)}>
+            {countryLabel(geo, uiLocale)}
+          </button>
+          <button type="button" className="underline" onClick={() => choose("SE")}>
+            {countryLabel("SE", uiLocale)}
+          </button>
+        </div>
+      ) : null}
       <SwedenZonePopover
         isFooter={isFooter}
         label={label}
@@ -250,17 +257,7 @@ export function HeaderShoppingContext({
         showCurrency={!isFooter}
         currency={shopping.currencyCode}
       />
-    );
-  }
-
-  return (
-    <ZoneNavLink
-      isFooter={isFooter}
-      label={label}
-      className={className}
-      showCurrency={!isFooter}
-      currency={shopping.currencyCode}
-    />
+    </div>
   );
 }
 
@@ -275,15 +272,15 @@ export function HeaderShoppingContextMobile({
   className,
   onNavigate,
 }: HeaderShoppingContextProps & { onNavigate?: () => void }) {
-  const { context: shopping, t } = useTranslations();
+  const { context: shopping } = useTranslations();
   const uiLocale = shopping.locale === "sv" ? "sv" : "en";
-  const zone = shopping.activeZone;
-  const label = locationLabelFromZone(
-    zone.displayName?.trim() || "",
-    zone.countryCode?.trim().toUpperCase() ?? "",
-    uiLocale,
-    t("shopping.selectRegion"),
-  );
+  const [ship, setShip] = useState<string | null>(null);
+  const [geo, setGeo] = useState<string | null>(null);
+  useEffect(() => {
+    setShip(readShipToCookie());
+    setGeo(readGeoCountryCookie());
+  }, []);
+  const label = `Ship to ${countryLabel(ship ?? geo ?? "SE", uiLocale)}`;
 
   return (
     <Link

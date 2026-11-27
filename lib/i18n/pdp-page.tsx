@@ -92,7 +92,7 @@ export async function buildProductPdpMetadata(
     alternates: {
       canonical,
       languages: {
-        sv: urls.sv,
+        "sv-SE": urls.sv,
         en: urls.en,
         "x-default": urls.xDefault,
       },
@@ -207,7 +207,7 @@ export async function renderProductPdpPage(options: {
     directDeliveryAvailable,
     sku: product.handle || product.id,
     ean: null,
-    priceCurrency: product.currencyCode,
+    priceCurrency: "SEK",
     price: product.priceRange.minVariantPrice.amount,
     sellerName: config.name,
     wineEnrichment: product.wineEnrichment,

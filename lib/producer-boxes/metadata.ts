@@ -44,7 +44,7 @@ export function buildProducerBoxesMetadata(locale: AppLocale): Metadata {
     alternates: {
       canonical,
       languages: {
-        sv: `${PACT_CONFIG.baseUrl}${PRODUCER_BOXES_PATH.sv}`,
+        "sv-SE": `${PACT_CONFIG.baseUrl}${PRODUCER_BOXES_PATH.sv}`,
         en: `${PACT_CONFIG.baseUrl}${PRODUCER_BOXES_PATH.en}`,
         "x-default": `${PACT_CONFIG.baseUrl}${PRODUCER_BOXES_PATH.en}`,
       },

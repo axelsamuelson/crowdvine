@@ -18,11 +18,22 @@ function lineTotal(quantity: number, unitAmount: string): string {
   return (Number(unitAmount) * quantity).toString();
 }
 
+const CART_CURRENCY = "SEK";
+
+function asSekLine(line: CartItem): CartItem {
+  return {
+    ...line,
+    cost: {
+      totalAmount: {
+        amount: line.cost.totalAmount.amount,
+        currencyCode: CART_CURRENCY,
+      },
+    },
+  };
+}
+
 function retotal(lines: CartItem[]): Pick<Cart, "totalQuantity" | "cost"> {
-  const currencyCode =
-    lines[0]?.cost.totalAmount.currencyCode ??
-    lines[0]?.merchandise.product.priceRange.minVariantPrice.currencyCode ??
-    "SEK";
+  const currencyCode = CART_CURRENCY;
   const totalAmount = lines.reduce(
     (sum, line) => sum + Number(line.cost.totalAmount.amount),
     0,
@@ -47,17 +58,15 @@ export function buildOptimisticCaseCart(
   variant: ProductVariant,
   addQuantity: number,
 ): Cart {
-  const currencyCode =
-    variant.price.currencyCode ||
-    product.priceRange.minVariantPrice.currencyCode ||
-    "SEK";
+  const currencyCode = CART_CURRENCY;
   const base = previous ?? emptyCart(currencyCode);
   const wineId = variant.id.replace(/-default$/, "");
   const unitAmount = variant.price.amount || product.priceRange.minVariantPrice.amount;
 
   const existing = base.lines.find((line) => line.merchandise.id === wineId);
+  const sekLines = base.lines.map(asSekLine);
   const lines: CartItem[] = existing
-    ? base.lines.map((line) => {
+    ? sekLines.map((line) => {
         if (line.merchandise.id !== wineId) return line;
         const quantity = line.quantity + addQuantity;
         return {
@@ -89,7 +98,7 @@ export function buildOptimisticCaseCart(
             product,
           },
         },
-        ...base.lines,
+        ...sekLines,
       ];
 
   return {
