@@ -1367,16 +1367,22 @@ export async function catalogHasProducts(filters?: {
  * How many live catalog wines match, capped at `limit`.
  * A result equal to `limit` means "at least that many". Placeholder CI builds
  * skip the query and return 0, same as {@link catalogHasProducts}.
+ *
+ * Organic categories read the same 200-row pool as {@link catalogHasProducts}
+ * before the count is capped. Verification runs after the SQL limit, so a
+ * cap of the combo index floor would otherwise under-count.
  */
 export async function catalogLiveCount(
   filters: Parameters<typeof catalogHasProducts>[0],
   limit: number,
 ): Promise<number> {
   if (supabaseBuildUsesPlaceholder()) return 0;
+  const organicPool = filters?.filterFarming?.includes("organic_certified");
+  const readLimit = organicPool ? Math.max(limit, 200) : limit;
   const rows = await fetchProductsData({
     ...filters,
-    limit,
+    limit: readLimit,
     isB2BSite: filters?.isB2BSite ?? false,
   });
-  return rows.length;
+  return Math.min(rows.length, limit);
 }

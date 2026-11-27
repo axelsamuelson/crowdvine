@@ -44,7 +44,6 @@ import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
 import {
   indexableWineRegionPaths,
   WINE_COMBO_INDEX_MIN_LIVE,
-  WINE_COMBO_LIVE_COUNT_CAP,
 } from "@/lib/wine-regions";
 
 export type SitemapSiteProfile = "pact" | "dirtywine";
@@ -222,7 +221,6 @@ export async function buildSitemapEntries(
       ...WINE_CATEGORIES_SV.map((c) => c.slug),
       ...WINE_CATEGORIES_EN.map((c) => c.slug),
       String(WINE_COMBO_INDEX_MIN_LIVE),
-      String(WINE_COMBO_LIVE_COUNT_CAP),
     ],
     { revalidate: 3600 },
   )();
@@ -336,7 +334,7 @@ async function buildSitemapEntriesUncached(
         if (isColorFarmingComboCategory(c)) {
           const liveCount = await catalogLiveCount(
             filters,
-            WINE_COMBO_LIVE_COUNT_CAP,
+            WINE_COMBO_INDEX_MIN_LIVE,
           );
           return liveCount >= WINE_COMBO_INDEX_MIN_LIVE
             ? pairedCategoryEntry(c, baseUrl, 0.8)

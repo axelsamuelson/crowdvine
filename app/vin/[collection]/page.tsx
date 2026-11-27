@@ -66,7 +66,6 @@ import {
 } from "@/lib/wine-categories";
 import {
   WINE_COMBO_INDEX_MIN_LIVE,
-  WINE_COMBO_LIVE_COUNT_CAP,
   wineRegionLabel,
 } from "@/lib/wine-regions";
 import { getMoreStylesPillLinks } from "@/lib/shop/style-category-links-server";
@@ -109,7 +108,7 @@ export async function generateMetadata(props: {
       isB2BSite,
     };
     const comboLiveCount = isColorFarmingComboCategory(category)
-      ? await catalogLiveCount(catalogFilters, WINE_COMBO_LIVE_COUNT_CAP)
+      ? await catalogLiveCount(catalogFilters, WINE_COMBO_INDEX_MIN_LIVE)
       : null;
     const [config, hasProducts] = await Promise.all([
       getSiteConfig(),

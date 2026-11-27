@@ -16,14 +16,6 @@ export const WINE_REGION_INDEX_MIN_LIVE = 3;
  */
 export const WINE_COMBO_INDEX_MIN_LIVE = 6;
 
-/**
- * How many rows to read when counting a combo page.
- * Organic verification runs after the SQL limit inside fetchProductsData,
- * so a cap of {@link WINE_COMBO_INDEX_MIN_LIVE} under-counts. 200 matches
- * the shop grid's default read.
- */
-export const WINE_COMBO_LIVE_COUNT_CAP = 200;
-
 export const WINE_REGIONS = [
   {
     slug: "languedoc",
