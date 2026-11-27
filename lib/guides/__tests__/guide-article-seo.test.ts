@@ -30,8 +30,8 @@ describe("Sweden-first guide hreflang", () => {
       "https://pactwines.com",
       "sv",
     );
-    expect(languages["x-default"]).toBe(languages.sv);
-    expect(languages.sv).toContain("/guider/");
+    expect(languages["x-default"]).toBe(languages.en);
+    expect(languages["sv-SE"]).toContain("/guider/");
   });
 
   it("defaults buildArticleGuideMeta x-default to SV for Sweden-first guides", () => {
@@ -44,7 +44,8 @@ describe("Sweden-first guide hreflang", () => {
     const languages = meta.alternates?.languages as
       | Record<string, string>
       | undefined;
-    expect(languages?.["x-default"]).toBe(languages?.sv);
+    expect(languages?.["x-default"]).toBe(languages?.en);
+    expect(languages?.["sv-SE"]).toContain("/guider/");
   });
 
   it("keeps EN x-default for general bilingual guides", () => {

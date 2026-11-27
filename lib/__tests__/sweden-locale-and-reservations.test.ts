@@ -23,30 +23,39 @@ const sweden = {
   canCheckoutNormally: true,
 } as ResolvedActiveGeoZone;
 
-describe("Swedish shoppers stay on Swedish", () => {
-  it("uses Swedish on checkout for a signed-in SE user even when the cookie and market locale are English", () => {
+describe("Language follows the URL, then the cookie", () => {
+  const usZone = {
+    ...sweden,
+    countryCode: "US",
+    marketCode: "US",
+    displayName: "Los Angeles",
+    currencyCode: "USD",
+    canCheckoutNormally: false,
+  } as ResolvedActiveGeoZone;
+
+  it("keeps /vin in Swedish even when the zone, cookie and Accept-Language are English", () => {
     expect(
       resolveAppLocale({
         uiLocalizationEnabled: true,
         marketLocale: "en",
         cookieLocale: "en",
         acceptLanguage: "en-US,en;q=0.9",
-        userPreferred: null,
-        activeZone: sweden,
-        pathLocale: null,
+        userPreferred: "en",
+        activeZone: usZone,
+        pathLocale: "sv",
         hasUser: true,
       }),
     ).toBe("sv");
   });
 
-  it("keeps an explicit English preference and an English URL", () => {
+  it("follows the cookie on locale-less pages and ignores zone, market and preferred locale", () => {
     expect(
       resolveAppLocale({
         uiLocalizationEnabled: true,
         marketLocale: "en",
-        cookieLocale: "sv",
+        cookieLocale: "en",
         acceptLanguage: "sv-SE",
-        userPreferred: "en",
+        userPreferred: "sv",
         activeZone: sweden,
         pathLocale: null,
         hasUser: true,
@@ -55,15 +64,27 @@ describe("Swedish shoppers stay on Swedish", () => {
     expect(
       resolveAppLocale({
         uiLocalizationEnabled: true,
-        marketLocale: "sv",
+        marketLocale: "en",
         cookieLocale: "sv",
-        acceptLanguage: "sv-SE",
-        userPreferred: "sv",
-        activeZone: sweden,
-        pathLocale: "en",
+        acceptLanguage: "en-US",
+        userPreferred: "en",
+        activeZone: usZone,
+        pathLocale: null,
         hasUser: true,
       }),
-    ).toBe("en");
+    ).toBe("sv");
+    expect(
+      resolveAppLocale({
+        uiLocalizationEnabled: true,
+        marketLocale: "sv",
+        cookieLocale: null,
+        acceptLanguage: "en-US",
+        userPreferred: "en",
+        activeZone: sweden,
+        pathLocale: null,
+        hasUser: false,
+      }),
+    ).toBe("sv");
   });
 });
 

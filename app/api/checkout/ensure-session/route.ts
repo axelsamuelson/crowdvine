@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import { getCurrentUser } from "@/lib/supabase-server";
 import {
   createEphemeralAuthClient,
@@ -84,6 +85,8 @@ function sessionSuccessResponse(
  * reload without OTP — without opening email-only takeover (#246).
  */
 export async function POST(request: NextRequest) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
   if (!isPlatformOpen()) {
     return NextResponse.json(
       {

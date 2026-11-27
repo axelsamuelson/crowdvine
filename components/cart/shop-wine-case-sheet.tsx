@@ -20,6 +20,10 @@ import { useCartOptional } from "./cart-context";
 import { AnalyticsTracker } from "@/lib/analytics/event-tracker";
 import { beginOptimisticCaseAdd } from "@/lib/cart/optimistic-case-cart";
 import {
+  openWaitlistForCurrentShipTo,
+  shipToBlocksPurchase,
+} from "@/lib/market/ship-to-client";
+import {
   ADD_TO_CART_FETCH_TIMEOUT_MS,
   fetchWithTimeout,
 } from "@/lib/cart/cart-merge-client";
@@ -112,6 +116,14 @@ export function ShopWineCaseSheet({
     if (mode === "mixed") {
       onOpenChange(false);
       setMixedHandoff(true);
+      return;
+    }
+    if (shipToBlocksPurchase()) {
+      onOpenChange(false);
+      openWaitlistForCurrentShipTo(
+        resolvedVariant.id.replace(/-default$/, ""),
+        6,
+      );
       return;
     }
     const started =

@@ -34,7 +34,7 @@ export function generateMetadata(): Metadata {
     alternates: {
       canonical: pageUrl,
       languages: {
-        sv: `${PACT_PUBLIC_ORIGIN}/vin`,
+        "sv-SE": `${PACT_PUBLIC_ORIGIN}/vin`,
         en: `${PACT_PUBLIC_ORIGIN}/wine`,
         "x-default": `${PACT_PUBLIC_ORIGIN}/wine`,
       },

@@ -19,12 +19,11 @@ export function articleGuideHreflang(
 ) {
   const sv = `${baseUrl}${articlePath(content, "sv")}`;
   const en = `${baseUrl}${articlePath(content, "en")}`;
+  void xDefault;
   return {
-    sv,
+    "sv-SE": sv,
     en,
-    // Most bilingual articles: EN as x-default (international ranking).
-    // Sweden-specific topics (e.g. Systembolaget) should pass xDefault: "sv".
-    "x-default": xDefault === "sv" ? sv : en,
+    "x-default": en,
   } as const;
 }
 
@@ -74,9 +73,7 @@ export function buildArticleGuideMeta(
     : options?.noindex
     ? { index: false as const, follow: true as const }
     : undefined;
-  const xDefault =
-    options?.xDefault ??
-    (isSwedenFirstGuideArticle(content) ? "sv" : "en");
+  const xDefault = options?.xDefault ?? "en";
 
   return {
     title,

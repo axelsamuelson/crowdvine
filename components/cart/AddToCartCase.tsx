@@ -49,6 +49,10 @@ import {
   requestCartOpen,
 } from "@/lib/cart/optimistic-case-cart";
 import {
+  openWaitlistForCurrentShipTo,
+  shipToBlocksPurchase,
+} from "@/lib/market/ship-to-client";
+import {
   ADD_TO_CART_FETCH_TIMEOUT_MS,
   fetchWithTimeout,
 } from "@/lib/cart/cart-merge-client";
@@ -463,6 +467,13 @@ export function AddToCartCase({
     if (!resolvedVariant) return;
     if (mode === "mixed") {
       setSheetOpen(true);
+      return;
+    }
+    if (shipToBlocksPurchase()) {
+      openWaitlistForCurrentShipTo(
+        resolvedVariant.id.replace(/-default$/, ""),
+        6,
+      );
       return;
     }
 

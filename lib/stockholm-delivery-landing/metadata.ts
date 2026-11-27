@@ -49,7 +49,7 @@ export async function buildStockholmDeliveryMetadata(
     alternates: {
       canonical: canonicalUrl,
       languages: {
-        sv: `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.sv}`,
+        "sv-SE": `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.sv}`,
         en: `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.en}`,
         "x-default": `${config.baseUrl}${STOCKHOLM_DELIVERY_PATH.en}`,
       },

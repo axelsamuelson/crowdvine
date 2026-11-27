@@ -34,7 +34,7 @@ export function guideHreflang(key: keyof typeof GUIDE_PATHS, baseUrl: string) {
   const sv = `${baseUrl}${GUIDE_PATHS[key].sv}`;
   const en = `${baseUrl}${GUIDE_PATHS[key].en}`;
   return {
-    sv,
+    "sv-SE": sv,
     en,
     "x-default": en,
   } as const;

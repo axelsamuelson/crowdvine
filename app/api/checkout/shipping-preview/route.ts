@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import { loadCustomerShippingRates } from "@/lib/customer-shipping-quote-server";
 import { buildShippingPreview } from "@/lib/checkout/shipping-preview";
 import { normalizeCheckoutShippingCountry } from "@/lib/checkout/resolve-checkout-shipping";
@@ -10,6 +11,8 @@ import { isDirectBoxCheckoutEnabled } from "@/lib/commerce/fulfillment-channel";
  * Authoritative /api/checkout/quote still locks purchase.
  */
 export async function POST(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
   try {
     const bodyUnknown: unknown = await request.json().catch(() => null);
     const body = (bodyUnknown ?? {}) as {

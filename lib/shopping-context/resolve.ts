@@ -1,8 +1,6 @@
 import {
-  appLocaleFromMarketLocale,
   intlLocaleForAppLocale,
   isAppLocale,
-  localeFromAcceptLanguage,
   parseLocaleCookie,
   type AppLocale,
 } from "@/lib/i18n/locale";
@@ -21,7 +19,6 @@ import { applyLocalePolicyToContext } from "@/lib/shopping-context/apply-locale-
 import { resolveDisplayCurrencyCode } from "@/lib/shopping-context/currency-policy";
 import { getSekToDisplayRate } from "@/lib/shopping-context/display-currency";
 import type { ShoppingContext } from "@/lib/shopping-context/types";
-import { clampAppLocaleForZone } from "@/lib/i18n/locale-policy";
 
 export type ResolveShoppingContextInput = {
   userId?: string | null;
@@ -56,21 +53,11 @@ async function loadUserPreferredLocale(
   }
 }
 
-function isSwedenZone(
-  zone: Pick<ResolvedActiveGeoZone, "countryCode">,
-): boolean {
-  return (zone.countryCode ?? "").trim().toUpperCase() === "SE";
-}
-
 /**
- * Locale for the shopping context.
- *
- * Swedish shoppers (Sweden zone) stay on Swedish for locale-less routes
- * (`/checkout`, `/profile`). `markets.locale` is `en` for EU, and
- * Accept-Language / a cookie written by visiting `/wine` must not flip
- * those pages to English. An English URL still wins. A saved
- * `profiles.preferred_locale` wins for signed-in users. Guests can pin
- * English with the locale cookie (the language switcher).
+ * Language comes only from the URL when the path has one.
+ * Zone, market, Accept-Language and preferred_locale do not change it.
+ * Locale-less routes (`/checkout`, `/profile`) follow the last language URL
+ * stored in the locale cookie, otherwise Swedish.
  */
 export function resolveAppLocale(params: {
   uiLocalizationEnabled: boolean;
@@ -87,28 +74,8 @@ export function resolveAppLocale(params: {
   if (!params.uiLocalizationEnabled) {
     return FIXED_LOCALE_WHEN_LOCALIZATION_DISABLED;
   }
-  const fromCookie = parseLocaleCookie(params.cookieLocale);
-  const fromPreferred = params.userPreferred ?? null;
-  const fromAccept = localeFromAcceptLanguage(params.acceptLanguage);
-  const clamp = (locale: AppLocale) =>
-    clampAppLocaleForZone(
-      locale,
-      params.activeZone,
-      params.uiLocalizationEnabled,
-    );
-
-  if (params.pathLocale) return clamp(params.pathLocale);
-  if (fromPreferred) return clamp(fromPreferred);
-
-  if (isSwedenZone(params.activeZone)) {
-    if (params.hasUser) return clamp("sv");
-    if (fromCookie) return clamp(fromCookie);
-    return clamp("sv");
-  }
-
-  const picked =
-    fromCookie ?? fromAccept ?? appLocaleFromMarketLocale(params.marketLocale);
-  return clamp(picked);
+  if (params.pathLocale) return params.pathLocale;
+  return parseLocaleCookie(params.cookieLocale) ?? "sv";
 }
 
 export async function resolveShoppingContext(

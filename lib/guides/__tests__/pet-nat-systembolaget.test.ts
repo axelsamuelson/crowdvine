@@ -318,9 +318,9 @@ describe("pet nat Systembolaget guides", () => {
     expect(listMeta.alternates).toEqual({
       canonical: "https://pactwines.com/guider/basta-pet-nat-systembolaget",
       languages: {
-        sv: "https://pactwines.com/guider/basta-pet-nat-systembolaget",
+        "sv-SE": "https://pactwines.com/guider/basta-pet-nat-systembolaget",
         en: "https://pactwines.com/guides/best-pet-nat-systembolaget",
-        "x-default": "https://pactwines.com/guider/basta-pet-nat-systembolaget",
+        "x-default": "https://pactwines.com/guides/best-pet-nat-systembolaget",
       },
     });
 
@@ -336,7 +336,7 @@ describe("pet nat Systembolaget guides", () => {
     expect(explainerMeta.alternates).toEqual({
       canonical: "https://pactwines.com/guider/vad-ar-pet-nat",
       languages: {
-        sv: "https://pactwines.com/guider/vad-ar-pet-nat",
+        "sv-SE": "https://pactwines.com/guider/vad-ar-pet-nat",
         en: "https://pactwines.com/guides/what-is-pet-nat",
         "x-default": "https://pactwines.com/guides/what-is-pet-nat",
       },

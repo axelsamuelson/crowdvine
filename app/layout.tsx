@@ -8,6 +8,7 @@ import { DebugGrid } from "@/components/debug-grid";
 import { isDevelopment } from "@/lib/constants";
 import { getCachedShopCollections } from "@/lib/shop/cached-layout-data";
 import { ConditionalHeaderServer } from "../components/layout/header/conditional-header-server";
+import { WaitlistHost } from "@/components/waitlist/waitlist-host";
 import { VaulDrawerAttributeSync } from "@/components/layout/vaul-drawer-attribute-sync";
 import { VAUL_DRAWER_WRAPPER_ID } from "@/lib/vaul-drawer-routes";
 import { V0Provider } from "@/lib/context";
@@ -165,6 +166,7 @@ export default async function RootLayout({
                           <VaulDrawerAttributeSync />
                           <HtmlLangSync />
                           <ConditionalHeaderServer collections={collections} />
+                          <WaitlistHost />
                           {children}
                         </div>
                       </div>

@@ -5,6 +5,7 @@
  * Synthetic direct pricing is explicitly labeled when live direct rates unavailable.
  */
 import { NextResponse } from "next/server";
+import { shipToCheckoutResponse } from "@/lib/checkout/ship-to-gate";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { CartService } from "@/src/lib/cart-service";
@@ -47,6 +48,8 @@ type Body = {
 };
 
 export async function POST(request: Request) {
+  const shipBlock = shipToCheckoutResponse(request);
+  if (shipBlock) return shipBlock;
   try {
     // Flag OFF by default; production (non-preview) denied even if flag set.
     if (!isDualOfferCheckoutSurfaceAllowed()) {

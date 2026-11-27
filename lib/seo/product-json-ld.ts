@@ -30,10 +30,7 @@ export function resolveProductOfferAvailability(input: {
   if (!input.availableForSale) {
     return "https://schema.org/OutOfStock";
   }
-  if (input.directDeliveryAvailable) {
-    return "https://schema.org/InStock";
-  }
-  return "https://schema.org/PreOrder";
+  return "https://schema.org/InStock";
 }
 
 /**
@@ -163,7 +160,7 @@ export function buildProductPdpJsonLd(input: ProductJsonLdInput) {
     offers: {
       "@type": "Offer",
       availability,
-      priceCurrency: input.priceCurrency,
+      priceCurrency: "SEK",
       price: input.price,
       url: input.productUrl,
       ...(sku ? { sku } : {}),

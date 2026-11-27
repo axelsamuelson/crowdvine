@@ -55,6 +55,8 @@ export type EventType =
   | "producer_viewed"
   | "product_list_viewed"
   | "product_viewed"
+  | "waitlist_shown"
+  | "waitlist_signup"
   | "price_viewed"
   | "pallet_status_viewed"
   | "filter_used"

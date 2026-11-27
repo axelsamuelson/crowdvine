@@ -73,7 +73,7 @@ export async function buildProducersDirectoryMetadata(
       canonical,
       languages: {
         en: urls.en,
-        sv: urls.sv,
+        "sv-SE": urls.sv,
         "x-default": urls.xDefault,
       },
     },

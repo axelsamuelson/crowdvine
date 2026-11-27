@@ -18,24 +18,12 @@ export type ResolveDisplayCurrencyInput = {
 };
 
 /**
- * Resolved display currency for prices and Stripe.
- * US zones/markets → USD unless the zone explicitly sets a non-SEK currency.
+ * Server-rendered prices and Stripe charges stay in SEK.
+ * A non-SE ship-to shows an approximate amount in the browser only.
  */
 export function resolveDisplayCurrencyCode(
-  input: ResolveDisplayCurrencyInput,
+  _input: ResolveDisplayCurrencyInput,
 ): string {
-  const countryCode = input.countryCode?.trim().toUpperCase() ?? "";
-  const marketCode = input.marketCode?.trim().toUpperCase() ?? "";
-  const zoneCur = input.zoneCurrencyCode?.trim().toUpperCase() ?? "";
-  const marketCur = input.marketCurrencyCode?.trim().toUpperCase() ?? "";
-
-  if (isUsCommerceZone({ countryCode, marketCode })) {
-    if (zoneCur && zoneCur !== "SEK") return zoneCur;
-    return "USD";
-  }
-
-  if (zoneCur) return zoneCur;
-  if (marketCur) return marketCur;
   return "SEK";
 }
 

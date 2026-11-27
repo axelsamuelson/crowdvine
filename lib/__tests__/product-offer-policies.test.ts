@@ -78,19 +78,19 @@ describe("productOfferCommerceFields", () => {
 });
 
 describe("resolveProductOfferAvailability", () => {
-  it("uses PreOrder for shared-pallet wines available for sale", () => {
+  it("uses InStock for wines available for sale", () => {
     expect(
       resolveProductOfferAvailability({ availableForSale: true }),
-    ).toBe("https://schema.org/PreOrder");
+    ).toBe("https://schema.org/InStock");
     expect(
       resolveProductOfferAvailability({
         availableForSale: true,
         directDeliveryAvailable: false,
       }),
-    ).toBe("https://schema.org/PreOrder");
+    ).toBe("https://schema.org/InStock");
   });
 
-  it("uses InStock only when direct delivery can fulfill now", () => {
+  it("uses InStock when direct delivery can fulfill now", () => {
     expect(
       resolveProductOfferAvailability({
         availableForSale: true,
@@ -153,13 +153,14 @@ describe("buildProductPdpJsonLd", () => {
     wineEnrichment: null,
   };
 
-  it("uses PreOrder for shared-pallet availability and includes sku", () => {
+  it("uses InStock for shared-pallet availability and includes sku", () => {
     const jsonLd = buildProductPdpJsonLd({
       ...baseInput,
       includeB2cReturnPolicy: true,
     });
 
-    expect(jsonLd.offers.availability).toBe("https://schema.org/PreOrder");
+    expect(jsonLd.offers.availability).toBe("https://schema.org/InStock");
+    expect(jsonLd.offers.priceCurrency).toBe("SEK");
     expect(jsonLd.sku).toBe("l-2023");
     expect(jsonLd.offers.sku).toBe("l-2023");
     expect(jsonLd).not.toHaveProperty("gtin13");
@@ -259,7 +260,8 @@ describe("buildProductPdpJsonLd", () => {
     expect(serialized).not.toContain("ReturnShippingFees");
     expect(serialized).toContain("merchantReturnLink");
     expect(serialized).toContain("returnPolicyCountry");
-    expect(serialized).toContain("PreOrder");
+    expect(serialized).toContain("InStock");
+    expect(serialized).toContain("eligibleRegion");
   });
 
   it("does not attach the B2C return policy on Dirty Wine (B2B) JSON-LD", () => {
@@ -357,7 +359,7 @@ describe("buildProductPdpJsonLd", () => {
     expect(palletOffer["@type"]).toBe("Offer");
     expect(directOffer["@type"]).toBe("Offer");
     expect(soldOutOffer["@type"]).toBe("Offer");
-    expect(palletOffer.availability).toBe("https://schema.org/PreOrder");
+    expect(palletOffer.availability).toBe("https://schema.org/InStock");
     expect(directOffer.availability).toBe("https://schema.org/InStock");
     expect(soldOutOffer.availability).toBe("https://schema.org/OutOfStock");
     expect(pallet.product.sku).toBe("l-2023");
