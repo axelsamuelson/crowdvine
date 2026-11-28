@@ -320,6 +320,13 @@
   }
 }
 
+/* PACT mobile header adds a Ship to / language row under the logo. */
+@media (max-width: 767px) {
+  html:not([data-b2b="true"]) {
+    --top-spacing: 6.75rem;
+  }
+}
+
 /* ---------------------------
    Dirty Wine (B2B) dark mode
    Applied when data-b2b="true" on html (dirtywine.se or localhost)

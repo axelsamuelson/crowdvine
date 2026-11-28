@@ -261,7 +261,8 @@ describe("buildProductPdpJsonLd", () => {
     expect(serialized).toContain("merchantReturnLink");
     expect(serialized).toContain("returnPolicyCountry");
     expect(serialized).toContain("InStock");
-    expect(serialized).toContain("eligibleRegion");
+    expect(serialized).not.toContain("eligibleRegion");
+    expect(serialized).toContain('"addressCountry":"SE"');
   });
 
   it("does not attach the B2C return policy on Dirty Wine (B2B) JSON-LD", () => {

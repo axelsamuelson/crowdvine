@@ -10,6 +10,7 @@
     "signInReservations": "Logga in för att se reservationer.",
     "noReservations": "Inga reservationer ännu.",
     "changeZone": "Byt land",
+    "shipTo": "Leverera till {country}",
     "viewAllReservations": "Visa alla reservationer",
     "ariaContext": "Handelskontext: {country}, valuta {currency}, språk {language}",
     "mobileContext": "Handelskontext",

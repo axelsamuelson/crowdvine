@@ -20,6 +20,7 @@ import { useAdminStatus } from "@/lib/hooks/use-admin-status";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
 import type { SiteLogos } from "@/lib/context/site-logo-provider";
+import { HeaderShoppingContext } from "@/components/market/header-shopping-context";
 
 interface HeaderProps {
   popularCollections: HeaderProducerLink[];
@@ -192,6 +193,11 @@ export function Header({
           )}
         </div>
         {!isDirtywineSite ? (
+          <div className="hidden shrink-0 md:block">
+            <HeaderShoppingContext />
+          </div>
+        ) : null}
+        {!isDirtywineSite ? (
           <ProfileIcon
             className="hidden md:flex"
             label={t("common.profile")}
@@ -200,6 +206,11 @@ export function Header({
         ) : null}
         <CartModalDynamic />
       </nav>
+      {!isDirtywineSite ? (
+        <div className="col-span-3 flex w-full basis-full flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-2 md:hidden">
+          <HeaderShoppingContext className="w-full justify-between" />
+        </div>
+      ) : null}
     </header>
   );
 }

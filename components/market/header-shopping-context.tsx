@@ -15,6 +15,8 @@ import {
   SEEDED_COUNTRIES,
 } from "@/lib/market/country-registry";
 import { alternateLanguagePath } from "@/lib/i18n/localized-paths";
+import { translate } from "@/lib/i18n/messages";
+import { localeFromShopPath } from "@/lib/i18n/shop-path-locale";
 import {
   readGeoCountryCookie,
   readShipToCookie,
@@ -65,6 +67,63 @@ function ZoneTriggerLabel({
   );
 }
 
+function useSurfaceLocale(): "sv" | "en" {
+  const pathname = usePathname();
+  const { context } = useTranslations();
+  return (
+    localeFromShopPath(pathname || "") ??
+    (context.locale === "en" ? "en" : "sv")
+  );
+}
+
+function deliveryPhrase(locale: "sv" | "en", countryCode: string): string {
+  return translate(locale, "shopping.shipTo", {
+    country: countryLabel(countryCode, locale),
+  });
+}
+
+function LanguageSwitch({ className }: { className?: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const appLocale = useSurfaceLocale();
+
+  return (
+    <div
+      className={cn("inline-flex items-center gap-1 text-xs md:text-sm", className)}
+      role="group"
+      aria-label={appLocale === "sv" ? "Språk" : "Language"}
+    >
+      <button
+        type="button"
+        onClick={() => router.push(alternateLanguagePath(pathname || "/", "sv"))}
+        className={cn(
+          "transition-colors",
+          appLocale === "sv"
+            ? "font-medium text-foreground"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        Svenska
+      </button>
+      <span className="text-muted-foreground/40" aria-hidden>
+        /
+      </span>
+      <button
+        type="button"
+        onClick={() => router.push(alternateLanguagePath(pathname || "/", "en"))}
+        className={cn(
+          "transition-colors",
+          appLocale === "en"
+            ? "font-medium text-foreground"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        English
+      </button>
+    </div>
+  );
+}
+
 function SwedenZonePopover({
   isFooter,
   label,
@@ -83,7 +142,7 @@ function SwedenZonePopover({
   const { context: shopping, t } = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
-  const appLocale = shopping.locale;
+  const appLocale = useSurfaceLocale();
   const localeOptions = shopping.availableLocales;
   const activeLanguageLabel =
     appLocale === "en" ? t("shopping.english") : t("shopping.swedish");
@@ -97,7 +156,7 @@ function SwedenZonePopover({
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
     isFooter
       ? "text-sm text-background/70 hover:text-background focus-visible:ring-background/40"
-      : "hidden md:inline-flex h-8 rounded-full border border-border/80 bg-background/80 px-3 text-xs font-normal text-foreground hover:bg-muted/50 md:text-sm focus-visible:ring-foreground/20",
+      : "h-8 rounded-full border border-border/80 bg-background/80 px-3 text-xs font-normal text-foreground hover:bg-muted/50 md:text-sm focus-visible:ring-foreground/20",
     className,
   );
 
@@ -107,11 +166,7 @@ function SwedenZonePopover({
       className={triggerClass}
       aria-haspopup="dialog"
       aria-expanded={open}
-      aria-label={t("shopping.ariaContext", {
-        country: label,
-        currency: currency ?? shopping.currencyCode,
-        language: activeLanguageLabel,
-      })}
+      aria-label={label}
     >
       <ZoneTriggerLabel
         label={label}
@@ -136,7 +191,9 @@ function SwedenZonePopover({
       >
         <div className="space-y-3">
           <div>
-            <p className="mb-2 text-xs text-muted-foreground">Ship to</p>
+            <p className="mb-2 text-xs text-muted-foreground">
+              {translate(appLocale, "shopping.shipTo", { country: "" }).trim()}
+            </p>
             <div className="flex flex-wrap gap-1">
               {SEEDED_COUNTRIES.map((country) => (
                 <button
@@ -187,9 +244,7 @@ function SwedenZonePopover({
                           : "text-muted-foreground hover:text-foreground",
                       )}
                     >
-                      {loc === "en"
-                        ? t("shopping.english")
-                        : t("shopping.swedish")}
+                      {loc === "en" ? "English" : "Svenska"}
                     </button>
                   </span>
                 ))}
@@ -216,7 +271,7 @@ export function HeaderShoppingContext({
 }: HeaderShoppingContextProps) {
   const isFooter = variant === "footer";
   const { context: shopping } = useTranslations();
-  const uiLocale = shopping.locale === "sv" ? "sv" : "en";
+  const uiLocale = useSurfaceLocale();
   const [ship, setShip] = useState<string | null>(null);
   const [geo, setGeo] = useState<string | null>(null);
 
@@ -226,7 +281,7 @@ export function HeaderShoppingContext({
   }, []);
 
   const code = ship ?? geo ?? "SE";
-  const label = `Ship to ${countryLabel(code, uiLocale)}`;
+  const label = deliveryPhrase(uiLocale, code);
   const suggest = !ship && Boolean(geo) && geo !== "SE";
 
   function choose(countryCode: string) {
@@ -238,10 +293,10 @@ export function HeaderShoppingContext({
   }
 
   return (
-    <div className="inline-flex items-center gap-2">
+    <div className={cn("inline-flex flex-wrap items-center gap-x-3 gap-y-1", className)}>
       {suggest && geo ? (
         <div className="hidden items-center gap-1 text-xs md:flex">
-          <span>Ship to {countryLabel(geo, uiLocale)}?</span>
+          <span>{deliveryPhrase(uiLocale, geo)}?</span>
           <button type="button" className="underline" onClick={() => choose(geo)}>
             {countryLabel(geo, uiLocale)}
           </button>
@@ -253,10 +308,10 @@ export function HeaderShoppingContext({
       <SwedenZonePopover
         isFooter={isFooter}
         label={label}
-        className={className}
-        showCurrency={!isFooter}
+        showCurrency={isFooter}
         currency={shopping.currencyCode}
       />
+      {isFooter ? null : <LanguageSwitch />}
     </div>
   );
 }
@@ -272,15 +327,14 @@ export function HeaderShoppingContextMobile({
   className,
   onNavigate,
 }: HeaderShoppingContextProps & { onNavigate?: () => void }) {
-  const { context: shopping } = useTranslations();
-  const uiLocale = shopping.locale === "sv" ? "sv" : "en";
+  const uiLocale = useSurfaceLocale();
   const [ship, setShip] = useState<string | null>(null);
   const [geo, setGeo] = useState<string | null>(null);
   useEffect(() => {
     setShip(readShipToCookie());
     setGeo(readGeoCountryCookie());
   }, []);
-  const label = `Ship to ${countryLabel(ship ?? geo ?? "SE", uiLocale)}`;
+  const label = deliveryPhrase(uiLocale, ship ?? geo ?? "SE");
 
   return (
     <Link
