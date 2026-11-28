@@ -102,6 +102,13 @@ describe.skipIf(!isTestDb || !serviceKey)(
       if (error) throw error;
       insertedIds = (data ?? []).map((row) => row.id as string);
       expect(insertedIds.length).toBe(syntheticEvents.length);
+
+      // RPCs read precomputed snapshots (migration 318); refresh after insert.
+      const { error: refreshError } = await sb.rpc(
+        "analytics_refresh_shop_view_aggregates",
+        { p_lookback_days: LOOKBACK_DAYS },
+      );
+      if (refreshError) throw refreshError;
     });
 
     afterAll(async () => {

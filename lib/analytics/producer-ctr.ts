@@ -139,20 +139,28 @@ export function pickTopCollectionsByCtr<
 }
 
 /**
- * Throws on RPC failure so unstable_cache keeps the previous successful value
- * instead of caching `{}` for the whole revalidate window.
+ * Fail-soft on RPC errors: return {} so SSG/ISR never hangs or fails the
+ * build when Supabase is slow. Popular-producer order falls back to title
+ * sort via pickTopCollectionsByCtr. Snapshot RPC (migration 318) keeps the
+ * happy path a cheap jsonb read; empty is only a degraded fallback.
  */
 async function loadProducerCtrRecord(): Promise<Record<string, ProducerCtrStats>> {
-  const sb = getSupabaseAdmin();
-  const { data, error } = await sb.rpc("analytics_producer_ctr_aggregates", {
-    p_lookback_days: DEFAULT_LOOKBACK_DAYS,
-  });
+  try {
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb.rpc("analytics_producer_ctr_aggregates", {
+      p_lookback_days: DEFAULT_LOOKBACK_DAYS,
+    });
 
-  if (error) {
-    throw new Error(`[producer-ctr] ${error.message}`);
+    if (error) {
+      console.warn("[producer-ctr]", error.message);
+      return {};
+    }
+
+    return normalizeProducerCtrRecord(data);
+  } catch (error) {
+    console.warn("[producer-ctr]", error);
+    return {};
   }
-
-  return normalizeProducerCtrRecord(data);
 }
 
 const getCachedProducerCtrRecord = unstable_cache(
