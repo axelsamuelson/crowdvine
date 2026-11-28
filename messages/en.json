@@ -10,6 +10,7 @@
     "signInReservations": "Sign in to see reservations.",
     "noReservations": "No reservations yet.",
     "changeZone": "Change country",
+    "shipTo": "Ship to {country}",
     "viewAllReservations": "View all reservations",
     "ariaContext": "Shopping context: {country}, currency {currency}, language {language}",
     "mobileContext": "Shopping context",

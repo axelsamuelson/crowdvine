@@ -1,49 +1,12 @@
--- Country register for Ship to, plus waitlist signups.
--- A country missing from this table is waitlist / 18 / EUR in application code.
--- US stays waitlist here so conditional_reservation cannot be reached from checkout.
-
-CREATE TABLE IF NOT EXISTS public.countries (
-  country_code char(2) PRIMARY KEY,
-  status text NOT NULL CHECK (status IN ('live', 'waitlist', 'blocked')),
-  age_minimum integer NOT NULL CHECK (age_minimum >= 0),
-  display_currency char(3) NOT NULL,
-  notes text,
-  CONSTRAINT countries_country_code_upper CHECK (country_code = upper(country_code)),
-  CONSTRAINT countries_currency_upper CHECK (display_currency = upper(display_currency))
-);
-
-COMMENT ON TABLE public.countries IS
-  'Ship-to register. status=live is the only value that may create a checkout intent.';
-
-INSERT INTO public.countries (country_code, status, age_minimum, display_currency, notes)
-VALUES
-  ('SE', 'live', 20, 'SEK', 'Only live checkout market in this phase'),
-  ('US', 'waitlist', 21, 'USD', 'conditional_reservation remains in code but is unreachable'),
-  ('GB', 'waitlist', 18, 'GBP', NULL),
-  ('CA', 'waitlist', 19, 'CAD', NULL),
-  ('AU', 'waitlist', 18, 'AUD', NULL),
-  ('NO', 'waitlist', 18, 'NOK', NULL),
-  ('DE', 'waitlist', 18, 'EUR', NULL),
-  ('FR', 'waitlist', 18, 'EUR', NULL),
-  ('ES', 'waitlist', 18, 'EUR', NULL),
-  ('NL', 'waitlist', 18, 'EUR', NULL)
-ON CONFLICT (country_code) DO UPDATE
-SET
-  status = EXCLUDED.status,
-  age_minimum = EXCLUDED.age_minimum,
-  display_currency = EXCLUDED.display_currency,
-  notes = EXCLUDED.notes;
-
-ALTER TABLE public.countries ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Admins can select countries" ON public.countries;
-CREATE POLICY "Admins can select countries"
-  ON public.countries
-  FOR SELECT
-  TO authenticated
-  USING (public.is_platform_admin());
-
-GRANT SELECT ON public.countries TO authenticated;
+-- Waitlist signups and the profile Ship to column.
+--
+-- Ship-to policy (live / waitlist / age / currency) lives in
+-- lib/market/country-registry.ts. Do not alter the producer country
+-- list from migrations 078 and 220. A later database register must be
+-- a new table, ship_to_countries.
+--
+-- waitlist_signups and profiles.ship_to_country_code are already applied
+-- in production. The statements below stay idempotent for a re-run.
 
 CREATE TABLE IF NOT EXISTS public.waitlist_signups (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
