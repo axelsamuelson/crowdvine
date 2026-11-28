@@ -57,7 +57,7 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
         ],
         sv: [
           "Regionen omfattar departementen längs södra Frankrikes kust — från Aude och Hérault till Gard och Pyrénées-Orientales. Inland dominerar låga kullar, garrigue och kalksten. Närheten till Medelhavet ger varma somrar och milda vintrar, medaljerade av norra vindar som tramontane och mistral som håller vingårdarna friska och minskar risken för sjukdomar.",
-          "I korthet: cirka 240 000 ha vingård, medelhavsklimat och en ryggrad av Grenache, Syrah och [Carignan](/vin/carignan). Appellationer som återkommer ofta är Saint-Chinian och Faugères. Stilen hos många små producenter är naturvin och ekologiskt arbete med tydlig platskaraktär.",
+          "I korthet: cirka 240 000 ha vingård, medelhavsklimat och en ryggrad av Grenache, Syrah och [Carignan](/vin/carignan-naturvin). Appellationer som återkommer ofta är Saint-Chinian och Faugères. Stilen hos många små producenter är naturvin och ekologiskt arbete med tydlig platskaraktär.",
         ],
       },
     },
@@ -73,7 +73,7 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
           "Saint-Chinian often balances dark fruit with fresh acidity, typically from Grenache and Syrah on limestone and clay. Faugères, on schist, tends toward more mineral, concentrated wines — useful when you want site character ahead of sheer ripeness. Many domaines work across both AOPs and experiment with maceration length and élevage.",
         ],
         sv: [
-          "Languedoc har både breda IGP-etiketter och mer strikta AOP:er. Saint-Chinian och Faugères i norr är kända för strukturerade [röda](/vin/rott-naturvin) från schist och kalksten. Minervois, Corbières och Fitou erbjuder allt från rustika [carignan](/vin/carignan)-dominanta viner till eleganta grenache-syrah-blandningar. Pic Saint-Loup och La Clape vid kusten ger mineraliska [vita](/vin/vitt-naturvin) och friska roséer.",
+          "Languedoc har både breda IGP-etiketter och mer strikta AOP:er. Saint-Chinian och Faugères i norr är kända för strukturerade [röda](/vin/rott-naturvin) från schist och kalksten. Minervois, Corbières och Fitou erbjuder allt från rustika [carignan](/vin/carignan-naturvin)-dominanta viner till eleganta grenache-syrah-blandningar. Pic Saint-Loup och La Clape vid kusten ger mineraliska [vita](/vin/vitt-naturvin) och friska roséer.",
           "För naturvin-entusiaster är just dessa mindre, producentdrivna appellationer ofta mest intressanta.",
           "Saint-Chinian erbjuder röda viner med balans mellan mörk frukt och frisk syra, ofta från grenache och syrah på kalk och lera. Faugères, med sitt skifferunderlag, ger mer mineraliska och koncentrerade viner — idealiska för dem som söker terroir framför volym. Många producenter arbetar i båda appellationerna och experimenterar med macerationstider och äldringsmetoder.",
         ],
@@ -90,7 +90,7 @@ export const languedocNaturalWineArticle: GuideArticleContent = {
           "Whites are often built on Grenache Blanc, Roussanne, Marsanne and Vermentino (Rolle), with Chardonnay and local Terret in the mix. Orange wine and skin-contact whites have a strong foothold here — especially among independent growers working with extended maceration and spontaneous fermentation.",
         ],
         sv: [
-          "Röda viner dominerar, med [grenache](/vin/grenache), [syrah](/vin/syrah), [carignan](/vin/carignan) och mourvèdre som ryggraden — ofta med cinsault i blandningar. Carignan från gamla stockar ger djup och syra; grenache bidrar med röd frukt och alkohol; syrah tillför krydda och struktur.",
+          "Röda viner dominerar, med [grenache](/vin/grenache), [syrah](/vin/syrah), [carignan](/vin/carignan-naturvin) och mourvèdre som ryggraden — ofta med cinsault i blandningar. Carignan från gamla stockar ger djup och syra; grenache bidrar med röd frukt och alkohol; syrah tillför krydda och struktur.",
           "Vita viner byggs ofta på [grenache blanc](/vin/grenache-blanc), roussanne, marsanne och vermentino, med chardonnay och lokal terret i mixen. [Orangevin](/vin/orange-naturvin) och macererade vita har stark förankring här — särskilt bland oberoende producenter som experimenterar med skinkontakt och spontanjäsning.",
         ],
       },

@@ -80,7 +80,9 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Biodynamiskt vin i Sverige | PACT Wines",
       metaDescription:
-        "Köp biodynamiskt vin online med hemleverans i hela Sverige. Producenter som arbetar biodynamiskt — utan mellanhänder via PACT.",
+        "Köp biodynamiskt vin online från producenter som odlar biodynamiskt. Hemleverans i hela Sverige.",
+      description:
+        "Biodynamiskt vin kommer från vingårdar som odlas efter biodynamiska principer: ekologisk odling utan syntetiska bekämpningsmedel, med egna preparat och en odlingskalender. Kända certifieringar är Demeter och Biodyvin. Biodynamiskt säger hur druvorna odlas. Hur mycket som tillsätts i källaren varierar mellan producenter, så biodynamiskt vin är inte automatiskt naturvin. Här visar vi viner där producenten anger biodynamisk odling. Vi levererar i hela Sverige, på delad pall eller direkt hem.",
       contentHeading: "Om biodynamiskt vin",
       longDescription:
         "Biodynamiskt vin bygger på en helhetssyn av vingården som levande ekosystem — inte bara att undvika kemiska medel, utan att aktivt stärka jordhälsa, biodiversitet och balans mellan jord, planta och djur. Odlingsmetoden följer ofta biodynamiska principer: kompostpreparat, dynamiska sprayningar och skörd som planeras efter vingårdens rytm snarare än enbart kalendern.\n\nSkillnaden mot ekologiskt vin ligger i metoden. Ekologiskt fokuserar på vad du inte får använda; biodynamiskt lägger till en aktiv vingårdsfilosofi där jorden, stockarna och till och med månfaserna är en del av besluten. I Languedoc har biodynamisk odling blivit särskilt stark bland små, oberoende producenter som redan arbetar med låga skördar och minimal intervention i källaren.\n\nDu köper flaskor online, och när pallen stänger skickas vinet hem till dig.",
@@ -156,7 +158,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Ekologiskt vin i Sverige | PACT Wines",
       metaDescription:
-        "Köp ekologiskt vin online med hemleverans i hela Sverige. EU-certifierade producenter — utan mellanhänder via PACT.",
+        "Köp ekologiskt vin online med hemleverans i hela Sverige. EU-certifierade producenter.",
       contentHeading: "Om ekologiskt vin",
       longDescription:
         "Ekologiskt vin innebär att druvorna odlas enligt EU:s ekologiska regler — utan syntetiska bekämpningsmedel, utan konstgödsel och med krav på jordhälsa och biodiversitet i vingården. Certifieringen (t.ex. AB-märket) gäller odlingsmetoden; i källaren får producenten fortfarande arbeta på olika sätt, från klassisk vinifiering till minimal intervention.\n\nSkillnaden mot biodynamiskt vin är tydlig: ekologiskt definierar vad som inte får användas i vingården; biodynamiskt lägger till en helhetssyn med kompostpreparat, dynamiska sprayningar och vingårdens rytm. Skillnaden mot naturvin är också viktig — naturvin ställer krav både i vingård och källare (vild jäsning, inga tillsatser), medan ekologiskt vin i första hand handlar om hur druvorna odlas. Många av våra producenter gör både och, men det är inte samma sak.\n\nAtt köpa ekologiskt vin i Sverige via Systembolaget eller importörer ger ofta begränsat urval och höga priser. Du köper flaskor online, och när pallen stänger skickas vinet hem till dig.",
@@ -230,9 +232,11 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
   },
   "rott-naturvin": {
     sv: {
-      title: "Rött naturvin online | PACT Wines",
+      title: "Rött naturvin: köp rött naturvin online",
       metaDescription:
-        "Köp rött naturvin online. Carignan, Grenache och Syrah — hemleverans. Du köper online och vinet levereras hem till dig när pallen stänger.",
+        "Köp rött naturvin online från små producenter, på Carignan, Grenache och Syrah. Hemleverans i Sverige när pallen stänger.",
+      description:
+        "Rött naturvin görs med låg intervention: ekologiskt odlade druvor, spontanjäsning med druvornas egen jäst och lite eller inget tillsatt svavel. Här hittar du rött naturvin från små producenter i Frankrike, många från Languedoc, på druvor som Carignan, Grenache, Syrah och Cinsault. Många är ofiltrerade och kan vara lätt grumliga, det är inte ett fel. Vi levererar i hela Sverige, på delad pall eller direkt hem. Läs mer i [Vad är naturvin?](/guider/vad-ar-naturvin)",
       contentHeading: "Om rött naturvin",
       longDescription:
         "Rött naturvin är kanske den mest omedelbart tilltalande ingången till naturvinsvärlden. Utan tillsatt svavel och utan filtrering får de röda druvorna uttrycka sin fulla fruktighet — ofta med en saftighet och drickbarhet som konventionella röda viner saknar. Många röda naturviner vinifieras med kolsyremaceration, en metod som lyfter fram frukten och dämpar de hårdaste tanninerna, vilket ger viner som är lätta att tycka om direkt.\n\nI Languedoc görs rött naturvin framför allt på de klassiska sydfranska druvorna: Carignan, Grenache, Syrah, Cinsault och Mourvèdre. Stilarna spänner brett. Cinsault ger lätta, nästan svalserverade röda viner med låg tannin. Carignan från gamla stockar ger struktur och mineralitet som håller i tio år. Syrah bidrar med mörk frukt och peppar. Producenterna avgör resten — allt från Le Bouc à Trois Pattes lätta höjdlägesviner till Clos Fantines koncentrerade Faugères-röda.\n\nPå varje produktsida ser du producent, region, druvor och hur vinet är odlat. ",
@@ -328,7 +332,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Vitt naturvin online | PACT Wines",
       metaDescription:
-        "Köp vitt naturvin online. Handplockade flaskor — mineralitet och skalkontakt. Hemleverans i Sverige via PACT.",
+        "Köp vitt naturvin online. Handplockade flaskor, mineralitet och skalkontakt. Hemleverans i Sverige via PACT.",
       contentHeading: "Om vitt naturvin",
       longDescription:
         "Vitt naturvin är en av de mest spännande kategorierna inom naturvinsvärlden — och en av de svåraste att göra bra. Utan tillsatt svavel att skydda de känsliga vita druvorna krävs precision i vingård och källare. De producenter som lyckas gör viner med en textur, salinitet och mineralitet som konventionella vita viner sällan når.\n\nI Languedoc görs vitt naturvin ofta med skalkontakt eller oxidativa metoder som ger vinerna kropp och komplexitet. Druvor som Grenache Blanc, Vermentino, Roussanne och Marsanne trivs i det varma klimatet men behåller sin friskhet hos rätt producent — som Sybil Baldassarre på La Graine Sauvage, vars vita viner från 450 meters höjd i Faugères hör till de mest omskrivna i Languedoc.\n\nVårt urval av vita naturviner är litet och handplockat. Vi tar bara in viner som vi själva vill dricka.",
@@ -417,7 +421,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
       metaDescription:
         "Orange vin är vitt vin som jäst med skalen. Se vårt urval av orange naturvin från små producenter, med hemleverans i Sverige.",
       description:
-        "Orange vin görs av gröna druvor som jäser tillsammans med skalen, vilket ger färg, struktur och en lätt strävhet. Här hittar du våra orange naturviner.",
+        "Orange vin görs av gröna druvor som jäser tillsammans med skalen, på samma sätt som rött vin. Skalkontakten ger färgen, från gyllene till bärnstensfärgad, och en lätt strävhet av tanniner. Metoden är flera tusen år gammal och kommer från Georgien, där vinet jäser i lerkärl, qvevri. Här hittar du orange naturvin från små producenter, med leverans i hela Sverige på delad pall eller direkt hem. Vill du veta mer, läs [Vad är orange vin?](/guider/vad-ar-orange-vin)",
       descriptionLink: {
         label: "Vad är orange vin?",
         href: "/guider/vad-ar-orange-vin",
@@ -592,7 +596,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Rött biodynamiskt vin | PACT Wines",
       metaDescription:
-        "Köp rött biodynamiskt vin online. Röda viner från producenter som arbetar biodynamiskt — hemleverans i Sverige via PACT.",
+        "Köp rött biodynamiskt vin online. Röda viner från producenter som arbetar biodynamiskt. Hemleverans i Sverige via PACT.",
       contentHeading: "Om rött biodynamiskt vin",
       longDescription:
         "Biodynamiskt vin går ett steg längre än ekologiskt: vingården sköts enligt biodynamiska principer med fokus på jordhälsa, biodiversitet och en helhetssyn på vingården som levande system. Rött biodynamiskt vin från Languedoc kombinerar den filosofin med regionens naturliga styrkor — gamla Carignan-stockar, Grenache på stenig mark och Syrah med pepprig precision.\n\nI glaset möter du ofta ren frukt, tydlig mineralitet och en känsla av plats som kommer från låga skördar och manuellt arbete. Att producenten arbetar biodynamiskt är inte garanti för smak, men signalerar att odlingen investerats djupt i vingården — något som syns särskilt i torra, solutsatta lägen i södra Frankrike.\n\nAlla röda biodynamiska viner i sortimentet kommer från producenter som arbetar biodynamiskt. ",
@@ -634,7 +638,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Vitt biodynamiskt vin | PACT Wines",
       metaDescription:
-        "Köp vitt biodynamiskt vin online. Vita viner från producenter som arbetar biodynamiskt — hemleverans i Sverige via PACT.",
+        "Köp vitt biodynamiskt vin online. Vita viner från producenter som arbetar biodynamiskt. Hemleverans i Sverige via PACT.",
       contentHeading: "Om vitt biodynamiskt vin",
       longDescription:
         "Vitt biodynamiskt vin kombinerar biodynamisk vingårdsfilosofi — jordhälsa, biodiversitet och odling enligt biodynamiska principer — med Languedocs naturliga fördelar för vita druvor: lång växtsäsong, kustnärhet och svalare höjdlägen som ger fräschör och arom.\n\nI glaset hittar du allt från rena, citrusdrivna viner på Vermentino och Grenache Blanc till mer texturala flaskor med kort skalkontakt eller oxidativ hantering. Biodynamisk odling handlar om helheten i vingården; i källaren arbetar producenterna ofta med låg intervention, vilket ger vita viner med tydlig platskaraktär snarare än standardiserad stil.\n\nDu köper flaskor online, och vinet skickas hem till dig när pallen stänger.",
@@ -676,7 +680,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Orange biodynamiskt vin | PACT Wines",
       metaDescription:
-        "Köp orange biodynamiskt vin online. Skalkontaktviner från producenter som arbetar biodynamiskt — hemleverans i Sverige via PACT.",
+        "Köp orange biodynamiskt vin online. Skalkontaktviner från producenter som arbetar biodynamiskt. Hemleverans i Sverige via PACT.",
       contentHeading: "Om orange biodynamiskt vin",
       longDescription:
         "Orange biodynamiskt vin förenar två idéer som passar varandra: skalkontakt på vita druvor som ger färg, tannin och textur — och biodynamisk odling som stärker vingårdens ekosystem och ger sunda, koncentrerade druvor att arbeta med.\n\nI Languedoc görs orangevin ofta på Grenache Blanc, Macabeu och andra lokala sorter med dagar eller veckor på skalet. Att producenten arbetar biodynamiskt signalerar djup investering i vingården; resultatet kan variera från lätt, te-liknande viner till mer strukturerade flaskor med kryddig garrigue och fast tannin.\n\nUrval på PACT är litet och kuraterat. Du köper flaskor online, och vinet skickas hem till dig när pallen stänger.",
@@ -790,7 +794,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Vitt ekologiskt vin | PACT Wines",
       metaDescription:
-        "Köp vitt ekologiskt vin online. Certifierat ekologiska vita viner — hemleverans i Sverige via PACT.",
+        "Köp vitt ekologiskt vin online. Certifierat ekologiska vita viner. Hemleverans i Sverige via PACT.",
       contentHeading: "Om vitt ekologiskt vin",
       longDescription:
         "Ekologiskt vin innebär att druvorna odlas utan syntetiska bekämpningsmedel, konstgödsel och med respekt för jord och ekosystem — certifierat enligt EU:s ekologiska regler. Vitt ekologiskt vin från Languedoc utnyttjar regionens långa växtsäsong och kustnära eller höjdbelägna vingårdar för att ge friska, aromatiska viner med tydlig frukt.\n\nHär hittar du allt från rena, friska viner på Vermentino och Grenache Blanc till mer texturala stilar med kort skalkontakt. Många producenter arbetar också med minimal intervention i källaren, även om ekologisk certifiering i sig handlar om vingården. Det ger vita viner som är lätta att dricka men ändå har personlighet.\n\nNär tillräckligt många har köpt fylls en pall, och vinet skickas hem.",
@@ -832,7 +836,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Orange ekologiskt vin | PACT Wines",
       metaDescription:
-        "Köp orange ekologiskt vin. Certifierat ekologiska skalkontaktviner — hemleverans i Sverige via PACT.",
+        "Köp orange ekologiskt vin. Certifierat ekologiska skalkontaktviner. Hemleverans i Sverige via PACT.",
       contentHeading: "Om orange ekologiskt vin",
       longDescription:
         "Orange ekologiskt vin förenar skalkontakt på vita druvor med ekologisk odling enligt EU:s regler — utan syntetiska bekämpningsmedel i vingården och med fokus på jordhälsa och biodiversitet. Skalkontakten ger färg, tannin och textur som ett rött vin skulle ha, men med vit druvas frukt och syra.\n\nI Languedoc görs orangevin ofta på Grenache Blanc, Macabeu och andra lokala sorter. Ekologisk certifiering gäller vingården; i källaren arbetar många producenter med minimal intervention, vilket ger flaskor med tydlig platskaraktär. Stilarna spänner från lätt och te-liknande till mer strukturerade viner med kryddig garrigue.\n\nDu köper flaskor online, och vinet skickas hem till dig när pallen stänger.",
@@ -910,7 +914,7 @@ export const WINE_CATEGORY_CONTENT_OVERRIDES: Record<
     sv: {
       title: "Rött ekologiskt vin | PACT Wines",
       metaDescription:
-        "Köp rött ekologiskt vin online. Carignan, Grenache och Syrah — EU-certifierat, hemleverans i Sverige via PACT.",
+        "Köp rött ekologiskt vin online. Carignan, Grenache och Syrah. EU-certifierat, hemleverans i Sverige via PACT.",
       contentHeading: "Om rött ekologiskt vin",
       longDescription:
         "Rött ekologiskt vin från Languedoc bygger på sydfransk druvtradition — Carignan, Grenache, Syrah, Cinsault — odlad enligt EU:s ekologiska regler. Utan syntetiska bekämpningsmedel och med fokus på jordhälsa får vingårdarna uttrycka plats tydligare, vilket ofta syns i renare frukt och mer transparent smak.\n\nStilarna spänner från lätta, nästan svalserverade röda till mer strukturerade viner från gamla stockar. Ekologisk certifiering handlar om vingården; i källaren kan producenterna fortfarande arbeta med minimal intervention eller mer klassiska metoder. På PACT väljer vi producenter vars ekologiska röda viner vi tycker är genuint bra — inte bara korrekt certifierade.",

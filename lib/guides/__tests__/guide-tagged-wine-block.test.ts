@@ -88,7 +88,7 @@ describe("pet nat guide product block", () => {
     );
     expect(html).toContain("Pet nat att köpa hos PACT");
     expect(html).toContain(
-      "Pet nat som vi köper direkt från producenterna, med leverans i hela Sverige på delad pall eller direkt hem.",
+      "Pet nat från små producenter, med leverans i hela Sverige på delad pall eller direkt hem.",
     );
     expect(html).toContain('href="/vin/pet-nat"');
     expect(html).toContain(">Se alla pet nat →<");

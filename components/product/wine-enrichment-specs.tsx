@@ -27,7 +27,10 @@ import { isCuratedGrape } from "@/lib/curated-grape-categories";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import type { AppLocale } from "@/lib/i18n/locale";
 import { getCategoryUrlForGrape } from "@/lib/wine-categories";
-import { getCategoryUrlForStyle } from "@/lib/shop/style-category-links";
+import {
+  getCategoryUrlForStyle,
+  swedishSparklingStyleAnchor,
+} from "@/lib/shop/style-category-links";
 import { cn } from "@/lib/utils";
 
 function sparklingCategoryHref(
@@ -129,6 +132,7 @@ function SpecItem({
   enrichment,
   locale,
   styleCategoryHref,
+  styleCategoryLabel,
   producerSlug,
 }: {
   specKey: EnrichmentSpecKey;
@@ -137,6 +141,7 @@ function SpecItem({
   enrichment: WineEnrichment | null | undefined;
   locale: AppLocale;
   styleCategoryHref?: string | null;
+  styleCategoryLabel?: string | null;
   producerSlug?: string | null;
 }) {
   const Icon = SPEC_ICONS[specKey] ?? MapPin;
@@ -189,7 +194,7 @@ function SpecItem({
               href={styleCategoryHref}
               className="underline underline-offset-2 hover:text-foreground"
             >
-              {value}
+              {styleCategoryLabel ?? value}
             </Link>
           ) : (
             value
@@ -244,10 +249,13 @@ export function WineEnrichmentSpecs({
   });
 
   const resolvedTasteTags = tasteTags ?? enrichment?.taste_tags ?? [];
-  const styleCategoryHref = sparklingCategoryHref(
-    resolvedTasteTags,
-    context.locale,
-  );
+  const swedishStyleAnchor =
+    context.locale === "sv"
+      ? swedishSparklingStyleAnchor(resolvedTasteTags)
+      : null;
+  const styleCategoryHref =
+    swedishStyleAnchor?.href ??
+    sparklingCategoryHref(resolvedTasteTags, context.locale);
 
   if (entries.length === 0 && resolvedTasteTags.length === 0) return null;
 
@@ -264,6 +272,7 @@ export function WineEnrichmentSpecs({
               enrichment={enrichment}
               locale={context.locale}
               styleCategoryHref={styleCategoryHref}
+              styleCategoryLabel={swedishStyleAnchor?.label}
               producerSlug={producerSlug}
             />
           ))}

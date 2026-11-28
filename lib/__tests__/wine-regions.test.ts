@@ -274,7 +274,7 @@ describe("Margaux region landing copy", () => {
 
   it("builds absolute titles without EN article", () => {
     expect(wineRegionPageTitle(wineRegionBySlug("loire")!, "sv")).toBe(
-      "Naturvin från Loire – producenter och stil | PACT",
+      "Naturvin från Loire. Producenter och stil | PACT",
     );
     expect(wineRegionPageTitle(wineRegionBySlug("loire")!, "en")).toBe(
       "Loire Natural Wine – Producers & Styles | PACT",

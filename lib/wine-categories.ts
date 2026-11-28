@@ -18,38 +18,12 @@ export type { WineCategory, WineCategoryFilter } from "@/lib/wine-category-types
 
 const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
   {
-    slug: "carignan",
-    locale: "sv",
-    h1: "Carignan — rebellisk druvsort",
-    title: "Carignan | PACT Wines",
-    metaDescription:
-      "Carignan från gamla gobeletstockar på skiffer och kalk. Koncentrerade, mineraliska viner.",
-    description:
-      "Carignan har ett oförtjänt dåligt rykte. Unga stockar på bördig jord ger tunna bulkviner — det stämmer. Men gamla gobeletstockar på skiffersluttningarna i Faugères, kalkjorden i Puisserguier eller gnejs-terrasserna på 305 meters höjd förändrar allt. Det är den sortens Carignan vi letar efter.",
-    longDescription:
-      "Carignan härstammar från Aragonien i nordöstra Spanien och etablerade sig i Languedoc under romartiden. Under 1900-talets stora produktionsexpansion planterades den över hela södra Frankrike för ett enda syfte: volym. Druvan är produktiv, tålig och ger höga skördar — men kvaliteten på det stora flertalet viner var därefter. På 1990-talet halverades odlingsarealen av EU-subventioner, och de gamla stockarna lämnades i stort sett ensamma kvar.\n\nDet var naturvinsgenerationens producenter som insåg vad dessa övergivna gamla stockar faktiskt kunde ge. En gobelet-Carignan på 65, 80 eller 100 år producerar en bråkdel av vad en ung stock ger — men det som produceras är koncentrerat, mineraliskt och komplext. Rötterna går djupt ner i skiffersluttningarna och kalkstenen, druvorna koncentreras naturligt och handskörd blir nödvändig.\n\nTerroiret varierar markant inom Languedoc. I Faugères dominerar svart skiffer som ger viner med järnig mineralitet och djup. I Saint-Chinian möter skiffern kalksten — vinerna blir mjukare och mer fruktiga. I Haute Vallée de l'Orb på 300 meters höjd ger gnejs och granit en helt annan fräschör och syrastruktur.",
-    tastingProfile: [
-      "Mörka körsbär, björnbär och plommon",
-      "Garrigue-toner — timjan, rosmarin, vildlavendel",
-      "Hög fruktsyra och mineralisk eftersmak",
-      "Skiffer, kalk eller granit beroende på terroir",
-      "Gamla stockar: mer koncentration, mer komplexitet",
-    ],
-    foodPairing:
-      "Carignan är ett utpräglat matvin. Syran och tanninerna skär igenom fett och lyfter umami. Tänk lammgryta med rosmarin, cassoulet, grillad entrecôte eller mogna ostar som Comté och Ossau-Iraty. Servera vid 15–17°C — karaferas gärna 30 minuter om vinet är ungt.",
-    aboutText:
-      "Vår Carignan kommer bland annat från småproducenter i Faugères, Saint-Chinian och Haute Vallée de l'Orb.",
-    filter: { filterGrape: "Carignan" },
-    hreflang: "carignan",
-    canonical: "/vin/carignan",
-  },
-  {
     slug: "carignan-naturvin",
     locale: "sv",
     h1: "Carignan naturvin från gamla stockar",
     title: "Carignan naturvin | PACT Wines",
     metaDescription:
-      "Carignan naturvin från gamla gobeletstockar — utan tillsatt svavel, utan filtrering.",
+      "Carignan naturvin från gamla gobeletstockar, utan tillsatt svavel, utan filtrering.",
     description:
       "Carignan lämpar sig ovanligt väl för naturvinsproduktion. Gamla stockar ger naturlig koncentration med få eller inga tillsatser, hög fruktsyra fungerar som konservering och druvskalens tjocklek klarar långa macerationer utan att tappa balansen.",
     longDescription:
@@ -66,9 +40,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     h1: "Grenache — Languedocs generösa druvsort",
     title: "Grenache naturvin | PACT Wines",
     metaDescription:
-      "Grenache från gamla stockar — röda bär, värme och silkeslena tanniner.",
+      "Grenache från gamla stockar, röda bär, värme och silkeslena tanniner.",
     description:
-      "Grenache är Languedocs mest generösa druvsort — röd frukt, naturlig sötma och en värme som speglar den soldränkta södern. Från gamla stockar i Faugères och Haute Vallée de l'Orb blir den både kraftfull och elegant.",
+      "Grenache är Languedocs mest generösa druvsort. Röd frukt, naturlig sötma och en värme som speglar den soldränkta södern. Från gamla stockar i Faugères och Haute Vallée de l'Orb blir den både kraftfull och elegant.",
     longDescription:
       "Grenache har sitt ursprung i Aragonien i Spanien, där den kallas Garnacha, och är idag en av de mest planterade druvsorterna i södra Frankrike. Den trivs i värme och torka, mognar sent och bygger upp höga sockerhalter — vilket ger viner med generös frukt, mjuka tanniner och ofta hög alkohol.\n\nI Languedoc visar Grenache sina två ansikten. På låglandet ger den runda, fruktdrivna viner med mörka körsbär och kryddighet. Men i höjdlägena — som Claparedes och Septentrion från Haute Vallée de l'Orb på 300 meters höjd — bevaras syran bättre och vinerna får en fräschör och finess som lyfter druvan bortom ren fruktighet. Pachorra från Faugères visar hur skifferjorden ger Grenache en mineralisk ryggrad.\n\nNaturvinsproducenterna på PACT arbetar med Grenache både som ren druvsort och i klassiska Languedoc-blends med Syrah och Carignan. Gemensamt är gamla stockar, låga skördar och vinifiering med få eller inga tillsatser.",
     tastingProfile: [
@@ -116,9 +90,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     h1: "Syrah — mörk och kryddig från Languedoc",
     title: "Syrah naturvin | PACT Wines",
     metaDescription:
-      "Syrah — mörka bär, peppar och skiffermineralitet. Naturvin från gamla stockar.",
+      "Syrah, mörka bär, peppar och skiffermineralitet. Naturvin från gamla stockar.",
     description:
-      "Syrah ger Languedocs mörkaste, mest kryddiga viner — svarta bär, peppar och en mineralisk stramhet från skiffer och kalksten. På höjderna i Haute Vallée de l'Orb och skiffern i Faugères visar druvan sin eleganta sida.",
+      "Syrah ger Languedocs mörkaste, mest kryddiga viner. Svarta bär, peppar och en mineralisk stramhet från skiffer och kalksten. På höjderna i Haute Vallée de l'Orb och skiffern i Faugères visar druvan sin eleganta sida.",
     longDescription:
       "Syrah härstammar från Rhônedalen, norr om Languedoc, där den gjort druvsorten världsberömd i appellationer som Hermitage och Côte-Rôtie. I Languedoc är den ett relativt sent tillskott men har snabbt visat sig hemtam — särskilt i svalare höjdlägen och på mineralrika jordar.\n\nDruvan ger djupt färgade viner med svarta vinbär, björnbär och en karaktäristisk pepprig kryddighet. Där terroiret är svalt bevaras syran och vinerna blir stramare och mer eleganta. Punkahontas från Julien Peyras — ren Syrah från lerjord och kalksten på 350 meters höjd — visar den svalare, mineraliska stilen. I Faugères ger skiffern som i Courtiol och Otium en rökig, järnig ton. På höjderna i Haute Vallée de l'Orb, som Septentrion, får Syrah en nästan nordrhônsk fräschör.\n\nSyrah används både som ren druvsort och som strukturgivande komponent i Languedoc-blends. Alla Syrah-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, med få eller inga tillsatser.",
     tastingProfile: [
@@ -142,9 +116,9 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     h1: "Cinsault — lätt, friskt och underskattat",
     title: "Cinsault naturvin | PACT Wines",
     metaDescription:
-      "Cinsault — lätta, friska röda viner med låg tannin. Perfekta lätt kylda.",
+      "Cinsault, lätta, friska röda viner med låg tannin. Perfekta lätt kylda.",
     description:
-      "Cinsault är naturvinsälskarnas favorit — lätta, saftiga röda viner med låg tannin, hög fräschör och röd bärfrukt. Perfekta lätt kylda och ett av de mest törstsläckande röda vinerna Languedoc har att erbjuda.",
+      "Cinsault är naturvinsälskarnas favorit. Lätta, saftiga röda viner med låg tannin, hög fräschör och röd bärfrukt. Perfekta lätt kylda och ett av de mest törstsläckande röda vinerna Languedoc har att erbjuda.",
     longDescription:
       "Cinsault har länge levt i skuggan av de tyngre Languedoc-druvorna, ofta använd som en anonym blandningskomponent. Men naturvinsgenerationen har lyft fram den som soloartist — och upptäckt en druva perfekt anpassad för den moderna smaken för lätta, friska röda viner.\n\nDruvan ger blek färg, låg tannin och hög fräschör. Vinifierad med kort skalkontakt blir den nästan som en mörk rosé — saftig, blommig och omedelbart drickbar. La Lanterne Rouge, ren Cinsault, och blends som A Love Supreme från David Behar i Saint-Chinian visar druvans lätta, direkta sida. Miss Piggy Blues kombinerar Cinsault med Muscat för en aromatisk twist.\n\nCinsault trivs i Languedocs värme men behåller sin friskhet tack vare tidig skörd och skonsam vinifiering. Alla Cinsault-viner på PACT kommer från producenter som arbetar ekologiskt eller biodynamiskt, med få eller inga tillsatser.",
     tastingProfile: [
@@ -183,11 +157,11 @@ const LONG_TAIL_WINE_CATEGORIES_SV: WineCategory[] = [
     slug: "pet-nat",
     locale: "sv",
     h1: "Pet nat",
-    title: "Pet nat | PACT Wines",
+    title: "Pet nat: köp pet nat online",
     metaDescription:
       "Pet nat är mousserande vin på méthode ancestrale, där jäsningen avslutas i flaskan. Pétillant naturel, utan en andra jäsning.",
     description:
-      "Pet nat, pétillant naturel, är mousserande vin som buteljeras innan den första jäsningen är klar, så att bubblorna bildas i flaskan. Bubblorna är mjukare än i champagne, och vinet är ofta lätt grumligt av jästfällningen som ligger kvar. Pet nat görs vit, rosé, röd och orange, och de flesta är torra. Vi köper direkt från producenterna och levererar i hela Sverige, på delad pall eller direkt hem. Vill du veta mer om hur det görs, läs [Vad är pet nat?](/guider/vad-ar-pet-nat)",
+      "Pet nat, pétillant naturel, är mousserande vin som buteljeras innan den första jäsningen är klar, så att bubblorna bildas i flaskan. Bubblorna är mjukare än i champagne, och vinet är ofta lätt grumligt av jästfällningen som ligger kvar. Pet nat görs vit, rosé, röd och orange, och de flesta är torra. Vi levererar i hela Sverige, på delad pall eller direkt hem. Vill du veta mer om hur det görs, läs [Vad är pet nat?](/guider/vad-ar-pet-nat)",
     descriptionLink: {
       label: "Vad är pet nat?",
       href: "/guider/vad-ar-pet-nat",
@@ -204,32 +178,6 @@ export const WINE_CATEGORIES_SV: WineCategory[] = [
 ];
 
 const LONG_TAIL_WINE_CATEGORIES_EN: WineCategory[] = [
-  {
-    slug: "carignan",
-    locale: "en",
-    h1: "Carignan — rebellious grape",
-    title: "Carignan | PACT Wines",
-    metaDescription:
-      "Carignan from old goblet vines on schist and limestone. Concentrated, mineral wines.",
-    description:
-      "Carignan has an undeserved reputation. Young vines on fertile soil produce thin bulk wine — that's true. But old goblet vines on the schist slopes of Faugères, the limestone soils of Puisserguier or the gneiss terraces at 305 metres altitude change everything. That's the kind of Carignan we look for.",
-    longDescription:
-      "Carignan originates from Aragon in northeastern Spain and established itself in Languedoc during Roman times. During the 20th century's great production expansion, it was planted across southern France for a single purpose: volume. The grape is productive, hardy and gives high yields — but quality suffered. In the 1990s, EU subsidies halved the planted area, and the old vines were largely left alone.\n\nIt was the natural wine generation's producers who recognised what these abandoned old vines could actually give. A gobelet Carignan of 65, 80 or 100 years produces a fraction of what a young vine gives — but what it produces is concentrated, mineral and complex. The roots go deep into schist slopes and limestone, grapes concentrate naturally and hand harvesting becomes necessary.\n\nThe terroir varies markedly within Languedoc. In Faugères, black schist gives wines with iron minerality and depth. In Saint-Chinian, schist meets limestone — the wines become softer and more fruit-driven. In Haute Vallée de l'Orb at 300 metres altitude, gneiss and granite give a completely different freshness and acid structure.",
-    tastingProfile: [
-      "Dark cherries, blackberries and plums",
-      "Garrigue notes — thyme, rosemary, wild lavender",
-      "High fruit acidity and mineral finish",
-      "Schist, limestone or granite depending on terroir",
-      "Old vines: more concentration, more complexity",
-    ],
-    foodPairing:
-      "Carignan is a quintessential food wine. The acidity and tannins cut through fat and lift umami. Think lamb stew with rosemary, cassoulet, grilled entrecôte or aged cheeses like Comté and Ossau-Iraty. Serve at 15–17°C — decant for 30 minutes if the wine is young.",
-    aboutText:
-      "Our Carignan comes from small producers in places such as Faugères, Saint-Chinian and Haute Vallée de l'Orb.",
-    filter: { filterGrape: "Carignan" },
-    hreflang: "carignan",
-    canonical: "/wine/carignan",
-  },
   {
     slug: "carignan-natural-wine",
     locale: "en",

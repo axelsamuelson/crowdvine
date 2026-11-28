@@ -17,7 +17,7 @@ export type ShopRootNaturalWineContent = {
 const SV: ShopRootNaturalWineContent = {
   h1: "Naturvin",
   intro:
-    "Här hittar du naturvin online från små producenter i hela Frankrike, från Languedoc och Loire till Jura och Alsace. Vinerna från Languedoc köper vi direkt av producenterna, övriga via grossist i Languedoc. Allt samlas på delade pallar och levereras inom Sverige.",
+    "Här hittar du naturvin online från små producenter i hela Frankrike, från Languedoc och Loire till Jura och Alsace. Vinerna från Languedoc köper vi direkt av producenterna, övriga via grossist i Languedoc. Allt samlas på delade pallar och levereras inom Sverige. Hemleverans i Stockholm och i resten av Sverige.",
   contentHeading: "Om naturvin",
   longDescription:
     "Naturvin är vin gjort som det gjordes innan den industriella vinframställningen tog över — druvor odlade ekologiskt eller biodynamiskt, jäsning med druvans egna vilda jästsvampar, och ingenting tillsatt i källaren. Inga syntetiska bekämpningsmedel i vingården, ingen tillsatt jäst, inget socker, inga enzymer, ingen filtrering. På sin höjd en liten mängd svavel vid buteljering — ofta inte ens det.\n\nResultatet är vin som smakar av sin plats och sin årgång snarare än av en standardiserad process. Naturvin är levande, ibland oförutsägbart, alltid ärligt. Ett rött naturvin från gamla Carignan-stockar i Faugères smakar helt annorlunda än ett från kalkjorden i Puisserguier — och det är hela poängen.\n\nVi säljer naturvin online med hemleverans. Ingen mellanhand, inget centrallager, inga påslag i onödiga led. När tillräckligt många har köpt viner för att fylla en pall skickas den hem till dig.",

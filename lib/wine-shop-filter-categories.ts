@@ -123,7 +123,28 @@ export const LEGACY_SHOP_REDIRECT_SLUGS = new Set<string>([
   "natural-wine-france",
   "naturvin-hemleverans-stockholm",
   "natural-wine-delivery-stockholm",
+  "carignan",
 ]);
+
+/**
+ * Colour plus an explicit farming filter (organic or biodynamic).
+ * Natural colour hubs are colour-only and are not combos. Tag, grape and
+ * single-farming pages are not combos.
+ */
+export function isColorFarmingComboCategory(category: {
+  filter: WineCategoryFilter;
+}): boolean {
+  const filter = category.filter;
+  return Boolean(
+    filter.color?.length &&
+      filter.farming?.length &&
+      !filter.tags?.length &&
+      !filter.filterGrape &&
+      !filter.wineRegion &&
+      !filter.region &&
+      !filter.countryCode,
+  );
+}
 
 function comboSlug(
   color: ColorDef,
