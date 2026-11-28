@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
+import { createFailSoftLoader } from "@/lib/analytics/rpc-failsoft";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export type ProductViewStats = {
@@ -95,17 +96,44 @@ function normalizeProductViewRecord(
 }
 
 /**
- * Fail-soft on RPC errors so SSG never fails when stats are unavailable.
- * Popularity sort then falls back to input order / zero rates.
+ * Fail-soft on RPC errors/timeouts so SSG never fails when stats are
+ * unavailable. Popularity sort then falls back to input order / zero rates.
+ * Client abort + single-flight caps wait under Next's 60s page export budget
+ * when the deploy target DB still runs the live-scan RPC (pre-318).
  */
+const loadDefaultProductViewStatsRecord = createFailSoftLoader({
+  label: "product-view-stats",
+  empty: {} as Record<string, ProductViewStats>,
+  load: async (signal) => {
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb
+      .rpc("analytics_product_view_aggregates", {
+        p_lookback_days: DEFAULT_LOOKBACK_DAYS,
+      })
+      .abortSignal(signal);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return normalizeProductViewRecord(data);
+  },
+});
+
 async function loadProductViewStatsRecord(
   lookbackDays: number,
 ): Promise<Record<string, ProductViewStats>> {
+  if (lookbackDays === DEFAULT_LOOKBACK_DAYS) {
+    return loadDefaultProductViewStatsRecord();
+  }
+
   try {
     const sb = getSupabaseAdmin();
-    const { data, error } = await sb.rpc("analytics_product_view_aggregates", {
-      p_lookback_days: lookbackDays,
-    });
+    const { data, error } = await sb
+      .rpc("analytics_product_view_aggregates", {
+        p_lookback_days: lookbackDays,
+      })
+      .abortSignal(AbortSignal.timeout(2_500));
 
     if (error) {
       console.warn("[product-view-stats]", error.message);

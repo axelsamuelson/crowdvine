@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
+import { createFailSoftLoader } from "@/lib/analytics/rpc-failsoft";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 /** How many names Popular Producers shows. */
@@ -139,29 +140,31 @@ export function pickTopCollectionsByCtr<
 }
 
 /**
- * Fail-soft on RPC errors: return {} so SSG/ISR never hangs or fails the
- * build when Supabase is slow. Popular-producer order falls back to title
- * sort via pickTopCollectionsByCtr. Snapshot RPC (migration 318) keeps the
- * happy path a cheap jsonb read; empty is only a degraded fallback.
+ * Fail-soft on RPC errors/timeouts: return {} so SSG/ISR never hangs or
+ * fails the build when Supabase is slow (e.g. preview against prod before
+ * migration 318). Popular-producer order falls back to title sort via
+ * pickTopCollectionsByCtr. Snapshot RPC keeps the happy path a cheap jsonb
+ * read; empty is only a degraded fallback. Client abort + single-flight
+ * caps wait well below Next's 60s page export budget.
  */
-async function loadProducerCtrRecord(): Promise<Record<string, ProducerCtrStats>> {
-  try {
+const loadProducerCtrRecord = createFailSoftLoader({
+  label: "producer-ctr",
+  empty: {} as Record<string, ProducerCtrStats>,
+  load: async (signal) => {
     const sb = getSupabaseAdmin();
-    const { data, error } = await sb.rpc("analytics_producer_ctr_aggregates", {
-      p_lookback_days: DEFAULT_LOOKBACK_DAYS,
-    });
+    const { data, error } = await sb
+      .rpc("analytics_producer_ctr_aggregates", {
+        p_lookback_days: DEFAULT_LOOKBACK_DAYS,
+      })
+      .abortSignal(signal);
 
     if (error) {
-      console.warn("[producer-ctr]", error.message);
-      return {};
+      throw new Error(error.message);
     }
 
     return normalizeProducerCtrRecord(data);
-  } catch (error) {
-    console.warn("[producer-ctr]", error);
-    return {};
-  }
-}
+  },
+});
 
 const getCachedProducerCtrRecord = unstable_cache(
   loadProducerCtrRecord,

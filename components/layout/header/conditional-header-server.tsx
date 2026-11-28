@@ -15,16 +15,42 @@ export async function ConditionalHeaderServer({
 }: {
   collections: Array<{ id: string; handle: string; title: string }>;
 }) {
+  const withBudget = <T,>(
+    label: string,
+    promise: Promise<T>,
+    fallback: T,
+    ms = 8_000,
+  ): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<T>((resolve) => {
+        setTimeout(() => {
+          console.warn(`[header] ${label} budget exceeded (${ms}ms)`);
+          resolve(fallback);
+        }, ms);
+      }),
+    ]);
+
+  const emptyNav = { sv: [], en: [] };
+
   const [popularCollections, shopSubmenu, shopMega] = await Promise.all([
     pickPopularProducerCollections(collections),
-    getShopNavSubmenu().catch((error) => {
-      console.error("[header] shop submenu", error);
-      return { sv: [], en: [] };
-    }),
-    getShopMegaMenu().catch((error) => {
-      console.error("[header] shop mega menu", error);
-      return { sv: [], en: [] };
-    }),
+    withBudget(
+      "shop submenu",
+      getShopNavSubmenu().catch((error) => {
+        console.error("[header] shop submenu", error);
+        return emptyNav;
+      }),
+      emptyNav,
+    ),
+    withBudget(
+      "shop mega menu",
+      getShopMegaMenu().catch((error) => {
+        console.error("[header] shop mega menu", error);
+        return emptyNav;
+      }),
+      emptyNav,
+    ),
   ]);
 
   return (
