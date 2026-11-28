@@ -69,6 +69,14 @@ describe("dual-offer customer surface guards", () => {
     expect(panelSrc).toMatch(/formatCheckoutPalletDeliveryLines/);
     expect(panelSrc).not.toMatch(/Budbee/);
     expect(panelSrc).toMatch(/CheckoutPalletFillStatus/);
+    // Fill + stängning/leveranstid paint from /zones (+ public deadline)
+    // before offer-quotes resolves (guest 401 until ensure-session).
+    expect(panelSrc).toMatch(/pallet-charge-deadline/);
+    expect(panelSrc).toMatch(/earlySharedDeliveryLines|earlyChargeDeadlineAt/);
+    // Visual parity with main once quotes resolve:
+    expect(panelSrc).toMatch(/sharedCheckoutDeliveryLines/);
+    expect(panelSrc).toMatch(/directBoxDeliveryCopy|deliveryLabel/);
+    expect(panelSrc).toMatch(/dualOfferConfirmHintNone/);
     expect(panelSrc).toMatch(/dualOfferLegalLineSharedWithSwitch/);
     expect(panelSrc).toMatch(/dualOfferAgeCheckLine/);
     expect(panelSrc).toMatch(/dual-offer-age-\$\{quote\.offer\}/);

@@ -58,54 +58,86 @@ export type SumReservedBottlesResult =
 export async function sumReservedBottlesOnPalletResult(
   palletId: string,
 ): Promise<SumReservedBottlesResult> {
+  const batch = await sumReservedBottlesOnPalletsResult([palletId]);
+  if (!batch.ok) return batch;
+  return { ok: true, bottles: batch.byPallet.get(palletId) ?? 0 };
+}
+
+export type SumReservedBottlesBatchResult =
+  | { ok: true; byPallet: Map<string, number> }
+  | { ok: false; error: string };
+
+/**
+ * Batch fill for many pallets (two queries total, not 2N).
+ * Missing / empty pallets map to 0.
+ */
+export async function sumReservedBottlesOnPalletsResult(
+  palletIds: string[],
+): Promise<SumReservedBottlesBatchResult> {
+  const ids = [
+    ...new Set(
+      palletIds
+        .map((id) => String(id ?? "").trim())
+        .filter((id) => id.length > 0),
+    ),
+  ];
+  const byPallet = new Map<string, number>();
+  for (const id of ids) byPallet.set(id, 0);
+  if (ids.length === 0) return { ok: true, byPallet };
+
   const sb = getSupabaseAdmin();
 
   const { data: reservations, error: reservationsError } = await sb
     .from("order_reservations")
-    .select("id")
-    .eq("pallet_id", palletId)
+    .select("id, pallet_id")
+    .in("pallet_id", ids)
     .in("status", [...PALLET_FILL_STATUSES])
     // Defense in depth: archived rows must never count even if status lagged.
     .is("archived_at", null);
 
   if (reservationsError) {
-    const message = `Failed to load reservations for pallet ${palletId}: ${reservationsError.message}`;
+    const message = `Failed to load reservations for pallets: ${reservationsError.message}`;
     console.error(`[pallet-fill-count] ${message}`);
     return { ok: false, error: message };
   }
 
   if (!reservations?.length) {
-    return { ok: true, bottles: 0 };
+    return { ok: true, byPallet };
   }
 
-  const reservationIds = reservations
-    .map((r) => r.id)
-    .filter((id): id is string => typeof id === "string" && id.length > 0);
-
+  const reservationToPallet = new Map<string, string>();
+  for (const row of reservations) {
+    const rid = typeof row.id === "string" ? row.id : "";
+    const pid = typeof row.pallet_id === "string" ? row.pallet_id.trim() : "";
+    if (!rid || !pid) continue;
+    reservationToPallet.set(rid, pid);
+  }
+  const reservationIds = [...reservationToPallet.keys()];
   if (reservationIds.length === 0) {
-    return { ok: true, bottles: 0 };
+    return { ok: true, byPallet };
   }
 
   const { data: items, error: itemsError } = await sb
     .from("order_reservation_items")
-    .select("quantity")
+    .select("quantity, reservation_id")
     .in("reservation_id", reservationIds);
 
   if (itemsError) {
-    const message = `Failed to load reservation items for pallet ${palletId}: ${itemsError.message}`;
+    const message = `Failed to load reservation items for pallets: ${itemsError.message}`;
     console.error(`[pallet-fill-count] ${message}`);
     return { ok: false, error: message };
   }
 
-  if (!items?.length) {
-    return { ok: true, bottles: 0 };
+  for (const row of items ?? []) {
+    const rid =
+      typeof row.reservation_id === "string" ? row.reservation_id : "";
+    const pid = reservationToPallet.get(rid);
+    if (!pid) continue;
+    const qty = Number(row.quantity) || 0;
+    byPallet.set(pid, (byPallet.get(pid) ?? 0) + qty);
   }
 
-  const bottles = items.reduce(
-    (sum, row) => sum + (Number(row.quantity) || 0),
-    0,
-  );
-  return { ok: true, bottles };
+  return { ok: true, byPallet };
 }
 
 /**

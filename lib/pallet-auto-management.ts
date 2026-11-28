@@ -3,7 +3,10 @@
  * EU-only inventory cannot be reserved against unsupported destination countries at checkout.
  */
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { sumReservedBottlesOnPallet } from "@/lib/pallet-fill-count";
+import {
+  sumReservedBottlesOnPallet,
+  sumReservedBottlesOnPalletsResult,
+} from "@/lib/pallet-fill-count";
 import {
   namePalletForRoute,
   palletHasHistoryForCleanup,
@@ -185,42 +188,82 @@ export async function ensureAcceptingPalletForRoute(
   return findOrCreatePalletForRegion(shippingRegionId, deliveryZoneId);
 }
 
+export type FindOrCreatePalletRow = {
+  id: string;
+  name: string | null;
+  bottle_capacity: number | null;
+  min_bottles_to_complete: number | null;
+  cost_cents: number | null;
+  last_mile_cost_cents_per_bottle: number | null;
+  status: string | null;
+  current_pickup_producer:
+    | { id: string; name: string | null }
+    | { id: string; name: string | null }[]
+    | null;
+};
+
+export type FindOrCreatePalletForRegionResult = {
+  palletId: string;
+  created: boolean;
+  /**
+   * Reserved bottles when measured during overflow selection (or 0 on create).
+   * Callers can reuse this to avoid a second fill round-trip on the checkout
+   * zones hot path.
+   */
+  reservedBottles: number;
+  /** Full row when loaded during find/create — avoids a follow-up select. */
+  palletRow: FindOrCreatePalletRow | null;
+};
+
+const FIND_OR_CREATE_PALLET_SELECT = `
+  id,
+  name,
+  bottle_capacity,
+  min_bottles_to_complete,
+  cost_cents,
+  last_mile_cost_cents_per_bottle,
+  status,
+  current_pickup_producer:producers!current_pickup_producer_id(id, name)
+`;
+
+function normalizeFindOrCreatePalletRow(
+  row: Record<string, unknown> | null | undefined,
+): FindOrCreatePalletRow | null {
+  if (!row || typeof row.id !== "string" || !row.id) return null;
+  return {
+    id: row.id,
+    name: typeof row.name === "string" ? row.name : null,
+    bottle_capacity:
+      row.bottle_capacity == null ? null : Number(row.bottle_capacity),
+    min_bottles_to_complete:
+      row.min_bottles_to_complete == null
+        ? null
+        : Number(row.min_bottles_to_complete),
+    cost_cents: row.cost_cents == null ? null : Number(row.cost_cents),
+    last_mile_cost_cents_per_bottle:
+      row.last_mile_cost_cents_per_bottle == null
+        ? null
+        : Number(row.last_mile_cost_cents_per_bottle),
+    status: typeof row.status === "string" ? row.status : null,
+    current_pickup_producer:
+      (row.current_pickup_producer as FindOrCreatePalletRow["current_pickup_producer"]) ??
+      null,
+  };
+}
+
 /**
  * Idempotent: repeated calls return the same open pallet row for (region, delivery).
+ *
+ * Hot path: look up accepting pallets + batch fill first. Region/zone display
+ * names are loaded only when inserting a new row.
  */
 export async function findOrCreatePalletForRegion(
   shippingRegionId: string,
   deliveryZoneId: string,
-): Promise<{ palletId: string; created: boolean }> {
+): Promise<FindOrCreatePalletForRegionResult> {
   const sb = getSupabaseAdmin();
 
   try {
-    const [{ data: regionRow, error: regionErr }, { data: zoneRow, error: zoneErr }] =
-      await Promise.all([
-        sb
-          .from("shipping_regions")
-          .select("name")
-          .eq("id", shippingRegionId)
-          .maybeSingle(),
-        sb
-          .from("pallet_zones")
-          .select("name")
-          .eq("id", deliveryZoneId)
-          .maybeSingle(),
-      ]);
-
-    if (regionErr) {
-      console.error("[findOrCreatePalletForRegion] region:", regionErr.message);
-      throw regionErr;
-    }
-    if (zoneErr) {
-      console.error("[findOrCreatePalletForRegion] zone:", zoneErr.message);
-      throw zoneErr;
-    }
-
-    const regionName = String(regionRow?.name ?? "Region");
-    const deliveryName = String(zoneRow?.name ?? "Delivery");
-
     for (let spin = 0; spin < MAX_FIND_OR_CREATE_SPINS; spin++) {
       // Accept open / consolidating / complete (ship-ready) so a pallet at the
       // min ship threshold keeps taking orders until physical overflow or admin
@@ -228,7 +271,7 @@ export async function findOrCreatePalletForRegion(
       // new reservations open a fresh pallet.
       const { data: existingRows, error: findErr } = await sb
         .from("pallets")
-        .select("id, bottle_capacity, status")
+        .select(FIND_OR_CREATE_PALLET_SELECT)
         .eq("shipping_region_id", shippingRegionId)
         .eq("delivery_zone_id", deliveryZoneId)
         .in("status", [...PALLET_ACCEPTING_STATUSES])
@@ -240,47 +283,98 @@ export async function findOrCreatePalletForRegion(
         throw findErr;
       }
 
-      const candidates = existingRows ?? [];
-      let foundAssignable: string | null = null;
-      let overflowFallback: string | null = null;
+      const candidateRows = (existingRows ?? [])
+        .map((row) =>
+          normalizeFindOrCreatePalletRow(row as Record<string, unknown>),
+        )
+        .filter((row): row is FindOrCreatePalletRow => row != null);
 
-      for (const existing of candidates) {
-        if (!existing?.id) continue;
-        let bottles = 0;
-        try {
-          bottles = await sumReservedBottlesOnPallet(existing.id as string);
-        } catch (e) {
-          console.error("[findOrCreatePalletForRegion] sum bottles:", e);
-          foundAssignable = existing.id as string;
+      let foundAssignable: FindOrCreatePalletRow | null = null;
+      let foundBottles = 0;
+      let overflowFallback: FindOrCreatePalletRow | null = null;
+      let overflowBottles = 0;
+
+      if (candidateRows.length > 0) {
+        const fillBatch = await sumReservedBottlesOnPalletsResult(
+          candidateRows.map((c) => c.id),
+        );
+        if (!fillBatch.ok) {
+          // Fail open on fill read: reuse newest accepting pallet (legacy).
+          console.error(
+            "[findOrCreatePalletForRegion] sum bottles:",
+            fillBatch.error,
+          );
+          return {
+            palletId: candidateRows[0]!.id,
+            created: false,
+            reservedBottles: 0,
+            palletRow: candidateRows[0]!,
+          };
+        }
+
+        for (const existing of candidateRows) {
+          const bottles = fillBatch.byPallet.get(existing.id) ?? 0;
+          const cap = Math.max(
+            0,
+            Math.floor(Number(existing.bottle_capacity) || 0),
+          );
+          const overflowCap = Math.floor(cap * PALLET_OVERFLOW_THRESHOLD);
+
+          // Physical overflow only — never use min_bottles_to_complete here.
+          if (cap > 0 && bottles >= overflowCap) {
+            if (!overflowFallback) {
+              overflowFallback = existing;
+              overflowBottles = bottles;
+            }
+            continue;
+          }
+
+          foundAssignable = existing;
+          foundBottles = bottles;
           break;
         }
-
-        const cap = Math.max(
-          0,
-          Math.floor(Number(existing.bottle_capacity) || 0),
-        );
-        const overflowCap = Math.floor(cap * PALLET_OVERFLOW_THRESHOLD);
-
-        // Physical overflow only — never use min_bottles_to_complete here.
-        if (cap > 0 && bottles >= overflowCap) {
-          if (!overflowFallback) overflowFallback = existing.id as string;
-          continue;
-        }
-
-        foundAssignable = existing.id as string;
-        break;
       }
 
       if (foundAssignable) {
-        return { palletId: foundAssignable, created: false };
+        return {
+          palletId: foundAssignable.id,
+          created: false,
+          reservedBottles: foundBottles,
+          palletRow: foundAssignable,
+        };
       }
 
-      const { count: priorCount, error: countErr } = await sb
-        .from("pallets")
-        .select("id", { count: "exact", head: true })
-        .eq("shipping_region_id", shippingRegionId)
-        .eq("delivery_zone_id", deliveryZoneId);
+      // Names only needed when creating a new row.
+      const [
+        { data: regionRow, error: regionErr },
+        { data: zoneRow, error: zoneErr },
+        { count: priorCount, error: countErr },
+      ] = await Promise.all([
+        sb
+          .from("shipping_regions")
+          .select("name")
+          .eq("id", shippingRegionId)
+          .maybeSingle(),
+        sb
+          .from("pallet_zones")
+          .select("name")
+          .eq("id", deliveryZoneId)
+          .maybeSingle(),
+        sb
+          .from("pallets")
+          .select("id", { count: "exact", head: true })
+          .eq("shipping_region_id", shippingRegionId)
+          .eq("delivery_zone_id", deliveryZoneId),
+      ]);
 
+      if (regionErr) {
+        console.error("[findOrCreatePalletForRegion] region:", regionErr.message);
+        throw regionErr;
+      }
+      if (zoneErr) {
+        console.error("[findOrCreatePalletForRegion] zone:", zoneErr.message);
+        throw zoneErr;
+      }
       if (countErr) {
         console.error(
           "[findOrCreatePalletForRegion] route count:",
@@ -289,6 +383,8 @@ export async function findOrCreatePalletForRegion(
         throw countErr;
       }
 
+      const regionName = String(regionRow?.name ?? "Region");
+      const deliveryName = String(zoneRow?.name ?? "Delivery");
       const name = namePalletForRoute(
         regionName,
         deliveryName,
@@ -308,7 +404,9 @@ export async function findOrCreatePalletForRegion(
           status: "open",
           current_pickup_producer_id: null,
         })
-        .select("id")
+        .select(
+          "id, name, bottle_capacity, min_bottles_to_complete, cost_cents, last_mile_cost_cents_per_bottle, status",
+        )
         .single();
 
       if (insErr) {
@@ -316,7 +414,12 @@ export async function findOrCreatePalletForRegion(
           // Unique index covers all accepting statuses: if another accepting
           // pallet exists (e.g. overflowed), reuse it rather than spinning forever.
           if (overflowFallback) {
-            return { palletId: overflowFallback, created: false };
+            return {
+              palletId: overflowFallback.id,
+              created: false,
+              reservedBottles: overflowBottles,
+              palletRow: overflowFallback,
+            };
           }
           continue;
         }
@@ -328,7 +431,31 @@ export async function findOrCreatePalletForRegion(
         throw new Error("findOrCreatePalletForRegion: insert returned no id");
       }
 
-      return { palletId: inserted.id as string, created: true };
+      return {
+        palletId: inserted.id as string,
+        created: true,
+        reservedBottles: 0,
+        palletRow: {
+          id: inserted.id as string,
+          name: typeof inserted.name === "string" ? inserted.name : null,
+          bottle_capacity:
+            inserted.bottle_capacity == null
+              ? null
+              : Number(inserted.bottle_capacity),
+          min_bottles_to_complete:
+            inserted.min_bottles_to_complete == null
+              ? null
+              : Number(inserted.min_bottles_to_complete),
+          cost_cents:
+            inserted.cost_cents == null ? null : Number(inserted.cost_cents),
+          last_mile_cost_cents_per_bottle:
+            inserted.last_mile_cost_cents_per_bottle == null
+              ? null
+              : Number(inserted.last_mile_cost_cents_per_bottle),
+          status: typeof inserted.status === "string" ? inserted.status : null,
+          current_pickup_producer: null,
+        },
+      };
     }
 
     throw new Error("findOrCreatePalletForRegion: exceeded spin limit");
