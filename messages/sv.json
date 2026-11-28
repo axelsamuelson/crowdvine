@@ -408,6 +408,7 @@
     "subtitle": "Granska din order och dina leveransuppgifter.",
     "emptyCart": "Din varukorg är tom. Lägg till produkter innan du går till kassan.",
     "loadingCart": "Laddar varukorg…",
+    "cartLoadFailed": "Kunde inte ladda varukorgen. Kontrollera nätverket och försök igen.",
     "continueShopping": "Fortsätt handla",
     "yourOrder": "Din order",
     "bottle": "flaska",
