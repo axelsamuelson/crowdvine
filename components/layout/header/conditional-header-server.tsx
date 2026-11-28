@@ -1,4 +1,5 @@
 import { pickPopularProducerCollections } from "@/lib/analytics/producer-ctr";
+import { getShopMegaMenu } from "@/lib/nav/shop-mega-menu";
 import { getShopNavSubmenu } from "@/lib/nav/shop-submenu";
 import { toHeaderProducerLinks } from "@/lib/shop/shop-producer-link";
 import { ConditionalHeader } from "./conditional-header";
@@ -14,10 +15,14 @@ export async function ConditionalHeaderServer({
 }: {
   collections: Array<{ id: string; handle: string; title: string }>;
 }) {
-  const [popularCollections, shopSubmenu] = await Promise.all([
+  const [popularCollections, shopSubmenu, shopMega] = await Promise.all([
     pickPopularProducerCollections(collections),
     getShopNavSubmenu().catch((error) => {
       console.error("[header] shop submenu", error);
+      return { sv: [], en: [] };
+    }),
+    getShopMegaMenu().catch((error) => {
+      console.error("[header] shop mega menu", error);
       return { sv: [], en: [] };
     }),
   ]);
@@ -26,6 +31,7 @@ export async function ConditionalHeaderServer({
     <ConditionalHeader
       popularCollections={toHeaderProducerLinks(popularCollections)}
       shopSubmenu={shopSubmenu}
+      shopMega={shopMega}
     />
   );
 }

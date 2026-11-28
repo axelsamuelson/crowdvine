@@ -32,7 +32,10 @@ describe("mobile menu close stacking (PACT + Dirty Wine)", () => {
   });
 
   it("uses z-[60] on backdrop + panel (not PACT-only z-50)", () => {
-    expect(menuSrc).toMatch(/fixed inset-0 z-\[60\] bg-foreground\/30/);
+    // Drawer starts under the header so the logo stays visible and clickable.
+    expect(menuSrc).toMatch(
+      /fixed inset-x-0 bottom-0 top-\[var\(--top-spacing\)\] z-\[60\] bg-foreground\/30/,
+    );
     expect(menuSrc).toMatch(/z-\[60\] flex w-full/);
     expect(menuSrc).not.toMatch(/fixed inset-0 z-50/);
     expect(menuSrc).not.toMatch(/p-modal-sides z-50/);
