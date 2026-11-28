@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation";
 import { Header } from "./index";
 import { CheckoutMinimalHeader } from "./checkout-minimal-header";
 import { isDirtywineHost } from "@/lib/b2b-site";
+import type { MegaMenuColumn } from "@/lib/nav/shop-mega-menu";
 import type { ShopNavLink } from "@/lib/nav/shop-submenu";
 import type { HeaderProducerLink } from "@/lib/shop/shop-producer-link";
 
 interface ConditionalHeaderProps {
   popularCollections: HeaderProducerLink[];
   shopSubmenu: { sv: ShopNavLink[]; en: ShopNavLink[] };
+  shopMega: { sv: MegaMenuColumn[]; en: MegaMenuColumn[] };
 }
 
 function shouldHideHeader(
@@ -45,6 +47,7 @@ function shouldHideHeader(
 export function ConditionalHeader({
   popularCollections,
   shopSubmenu,
+  shopMega,
 }: ConditionalHeaderProps) {
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
@@ -84,6 +87,7 @@ export function ConditionalHeader({
     <Header
       popularCollections={popularCollections}
       shopSubmenu={shopSubmenu}
+      shopMega={shopMega}
       isDirtywineSite={isDirtywineSite}
     />
   );

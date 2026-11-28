@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { MobileMenu } from "./mobile-menu";
+import { ShopMegaMenu } from "./shop-mega-menu";
 import { ShopNavSubmenu } from "./shop-nav-submenu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,6 +13,8 @@ import { ProfileIcon } from "./profile-icon";
 import { PortalToggle } from "./portal-toggle";
 import { NavItem } from "@/lib/types";
 import { CompleteOrderRailDynamic } from "./complete-order-rail-dynamic";
+import { visibleMegaMenuImageTiles } from "@/lib/nav/mega-menu-images";
+import type { MegaMenuColumn } from "@/lib/nav/shop-mega-menu";
 import type { ShopNavLink } from "@/lib/nav/shop-submenu";
 import type { HeaderProducerLink } from "@/lib/shop/shop-producer-link";
 import { useUserRole } from "@/lib/hooks/use-user-role";
@@ -25,6 +28,7 @@ import { HeaderShoppingContext } from "@/components/market/header-shopping-conte
 interface HeaderProps {
   popularCollections: HeaderProducerLink[];
   shopSubmenu: { sv: ShopNavLink[]; en: ShopNavLink[] };
+  shopMega: { sv: MegaMenuColumn[]; en: MegaMenuColumn[] };
   isDirtywineSite: boolean;
   initialLogos?: SiteLogos;
 }
@@ -32,6 +36,7 @@ interface HeaderProps {
 export function Header({
   popularCollections,
   shopSubmenu,
+  shopMega,
   isDirtywineSite,
   initialLogos,
 }: HeaderProps) {
@@ -41,6 +46,9 @@ export function Header({
   // Dirty Wine: omit Guider — those routes 301 to pactwines.com (CORS on prefetch).
   const shopLinks =
     paths.locale === "en" ? shopSubmenu.en : shopSubmenu.sv;
+  const shopColumns =
+    paths.locale === "en" ? shopMega.en : shopMega.sv;
+  const imageTiles = visibleMegaMenuImageTiles(paths.locale);
   const navItems: NavItem[] = [
     { label: t("nav.home"), href: paths.home },
     { label: t("nav.shopAll"), href: paths.shop },
@@ -84,13 +92,14 @@ export function Header({
         <MobileMenu
           popularCollections={popularCollections}
           shopLinks={shopLinks}
+          shopColumns={shopColumns}
           isDirtywineSite={isDirtywineSite}
         />
       </div>
       <Link
         href={paths.home}
         className={cn(
-          "md:col-span-3 xl:col-span-2 flex justify-center md:justify-start min-w-0",
+          "relative z-[70] md:col-span-3 xl:col-span-2 flex shrink-0 justify-center md:justify-start",
           isDirtywineSite &&
             "absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2 md:static md:translate-x-0 md:translate-y-0 md:top-auto md:left-auto",
         )}
@@ -121,6 +130,19 @@ export function Header({
                   ? pathname === paths.home
                   : pathname === item.href ||
                     pathname?.startsWith(item.href + "/");
+              if (item.href === paths.shop && !isDirtywineSite) {
+                return (
+                  <ShopMegaMenu
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    columns={shopColumns}
+                    imageTiles={imageTiles}
+                    active={active}
+                    submenuLabel={t("nav.shopSubmenu")}
+                  />
+                );
+              }
               if (item.href === paths.shop) {
                 return (
                   <ShopNavSubmenu

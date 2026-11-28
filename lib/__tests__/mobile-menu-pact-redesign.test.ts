@@ -91,7 +91,7 @@ describe("PACT mobile menu redesign", () => {
     expect(menuSrc).toMatch(/min-w-\[56px\]/);
     expect(menuSrc).toMatch(/h-11 min-h-11/);
     expect(menuSrc).toMatch(/text-\[15px\] font-medium text-\[#0A0A0A\]/);
-    expect(menuSrc).toMatch(/fixed inset-0 z-\[60\]/);
+    expect(menuSrc).toMatch(/fixed inset-x-0 bottom-0 top-\[var\(--top-spacing\)\] z-\[60\]/);
   });
 
   it("tagline: not italic on PACT; EN sentence case; SV wording unchanged", () => {

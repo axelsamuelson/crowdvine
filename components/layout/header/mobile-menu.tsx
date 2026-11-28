@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -15,7 +15,9 @@ import { PortalToggle } from "./portal-toggle";
 import { Shield } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
+import type { MegaMenuColumn } from "@/lib/nav/shop-mega-menu";
 import type { ShopNavLink } from "@/lib/nav/shop-submenu";
+import { ShopMegaColumns } from "./shop-mega-panel";
 import { cn } from "@/lib/utils";
 
 /** PACT mobile nav row — desktop header uppercase nav + Inès tokens. */
@@ -36,15 +38,20 @@ function isNavCurrent(pathname: string | null, href: string, homeHref: string) {
 export function MobileMenu({
   popularCollections,
   shopLinks,
+  shopColumns,
   isDirtywineSite,
 }: {
   popularCollections: { handle: string; title: string }[];
   shopLinks: readonly ShopNavLink[];
+  shopColumns: readonly MegaMenuColumn[];
   isDirtywineSite: boolean;
 }) {
   const { t } = useTranslations();
   const paths = useLocalizedPaths();
   const { isOpen, openMobileMenu, closeMobileMenu } = useMobileMenu();
+  const shopPanelId = useId();
+  const shopButtonRef = useRef<HTMLButtonElement>(null);
+  const [shopOpen, setShopOpen] = useState(false);
   // Dirty Wine: omit Profil / Om oss / Guider (PACT-only; guides 301 → CORS).
   // PACT order (Inès): Hem, Butik, Guider, Om oss, Profil.
   const navItems = isDirtywineSite
@@ -77,7 +84,20 @@ export function MobileMenu({
 
   useEffect(() => {
     closeMobileMenu();
+    setShopOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!shopOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setShopOpen(false);
+      shopButtonRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [shopOpen]);
 
   return (
     <>
@@ -99,7 +119,7 @@ export function MobileMenu({
 
       <div
         className={cn(
-          "fixed inset-0 z-[60] bg-foreground/30 transition-opacity duration-300",
+          "fixed inset-x-0 bottom-0 top-[var(--top-spacing)] z-[60] bg-foreground/30 transition-opacity duration-300",
           isOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={closeMobileMenu}
@@ -108,13 +128,13 @@ export function MobileMenu({
 
       <div
         className={cn(
-          "fixed bottom-0 left-0 top-0 z-[60] flex w-full p-modal-sides transition-transform duration-300 md:w-[400px]",
+          "fixed inset-x-0 bottom-0 top-[var(--top-spacing)] z-[60] flex w-full p-modal-sides transition-transform duration-300 md:w-[400px]",
           isOpen ? "translate-x-0" : "pointer-events-none -translate-x-full",
         )}
         aria-hidden={!isOpen}
         inert={!isOpen ? true : undefined}
       >
-        <div className="flex w-full flex-col overflow-hidden rounded bg-muted p-3 md:p-4">
+        <div className="relative flex w-full flex-col overflow-hidden rounded bg-muted p-3 md:p-4">
                   <div className="mb-10 flex items-center justify-between pl-2">
                     <p className="text-2xl font-semibold text-foreground">
                       {t("common.menu")}
@@ -199,6 +219,25 @@ export function MobileMenu({
                             item.href,
                             paths.home,
                           );
+                          if (item.href === paths.shop && shopColumns.length > 0) {
+                            return (
+                              <div key={item.href}>
+                                <button
+                                  ref={shopButtonRef}
+                                  type="button"
+                                  aria-expanded={shopOpen}
+                                  aria-controls={shopPanelId}
+                                  onClick={() => setShopOpen(true)}
+                                  className={cn(
+                                    PACT_NAV_ROW,
+                                    current && PACT_NAV_CURRENT,
+                                  )}
+                                >
+                                  {item.label}
+                                </button>
+                              </div>
+                            );
+                          }
                           if (item.href === paths.shop) {
                             return (
                               <div key={item.href}>
@@ -316,6 +355,27 @@ export function MobileMenu({
                   </div>
         </div>
       </div>
+      {shopColumns.length > 0 ? (
+        <div
+          id={shopPanelId}
+          className={cn(
+            "fixed inset-x-0 bottom-0 top-[var(--top-spacing)] z-[65] overflow-y-auto border-y border-[#0A0A0A] bg-background",
+            shopOpen ? "visible" : "invisible pointer-events-none",
+          )}
+        >
+          <button
+            type="button"
+            className={cn(PACT_NAV_ROW, "px-4")}
+            onClick={() => {
+              setShopOpen(false);
+              shopButtonRef.current?.focus();
+            }}
+          >
+            {t("common.close")}
+          </button>
+          <ShopMegaColumns columns={shopColumns} layout="stack" />
+        </div>
+      ) : null}
     </>
   );
 }
