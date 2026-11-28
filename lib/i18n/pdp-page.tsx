@@ -13,6 +13,7 @@ import { isProductPdpIndexable } from "@/lib/seo/product-indexable";
 import { buildProductPdpJsonLd } from "@/lib/seo/product-json-ld";
 import { getOffersByWineId } from "@/lib/external-prices/db";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { SHOP_ROOT_LABEL } from "@/lib/nav/shop-root-label";
 import {
   PACT_PUBLIC_ORIGIN,
   producerShopPathFromName,
@@ -235,7 +236,7 @@ export async function renderProductPdpPage(options: {
       {
         "@type": "ListItem",
         position: 1,
-        name: locale === "sv" ? "Alla viner" : "Shop",
+        name: SHOP_ROOT_LABEL[locale],
         item: `${config.baseUrl}${shopPathForLocale(locale)}`,
       },
       ...(producerName

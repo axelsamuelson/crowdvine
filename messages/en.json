@@ -38,12 +38,14 @@
   },
   "nav": {
     "home": "home",
-    "shopAll": "All wines",
+    "shopAll": "All natural wines",
+    "shopSubmenu": "Open categories",
     "producer": "producer",
     "admin": "admin",
     "guides": "Guides"
   },
   "home": {
+    "heroShopCta": "All wines",
     "pageTitle": "Home",
     "pageDescription": "Discover wines from independent producers",
     "latestDrop": "latest drop",

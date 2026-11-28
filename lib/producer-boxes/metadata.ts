@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { AppLocale } from "@/lib/i18n/locale";
+import { SHOP_ROOT_LABEL } from "@/lib/nav/shop-root-label";
 import { PACT_CONFIG } from "@/lib/site-config";
 import { producerBoxContentsLine } from "@/lib/producer-boxes/contents-line";
 import {
@@ -75,7 +76,7 @@ export function buildProducerBoxesJsonLd(
   const copy = PRODUCER_BOXES_COPY[locale];
   const pageUrl = producerBoxesCanonical(locale);
   const shopUrl = `${PACT_CONFIG.baseUrl}${locale === "sv" ? "/vin" : "/wine"}`;
-  const shopName = locale === "sv" ? "Alla viner" : "All wines";
+  const shopName = SHOP_ROOT_LABEL[locale];
 
   const breadcrumb = {
     "@context": "https://schema.org",

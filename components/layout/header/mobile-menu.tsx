@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { ShopLinks } from "@/components/layout/shop-links";
 import { SidebarLinks } from "@/components/layout/sidebar/product-sidebar-links";
@@ -16,6 +15,7 @@ import { PortalToggle } from "./portal-toggle";
 import { Shield } from "lucide-react";
 import { useTranslations } from "@/lib/hooks/use-translations";
 import { useLocalizedPaths } from "@/lib/hooks/use-localized-paths";
+import type { ShopNavLink } from "@/lib/nav/shop-submenu";
 import { cn } from "@/lib/utils";
 
 /** PACT mobile nav row — desktop header uppercase nav + Inès tokens. */
@@ -35,9 +35,11 @@ function isNavCurrent(pathname: string | null, href: string, homeHref: string) {
 
 export function MobileMenu({
   popularCollections,
+  shopLinks,
   isDirtywineSite,
 }: {
   popularCollections: { handle: string; title: string }[];
+  shopLinks: readonly ShopNavLink[];
   isDirtywineSite: boolean;
 }) {
   const { t } = useTranslations();
@@ -52,7 +54,7 @@ export function MobileMenu({
       ]
     : [
         { href: paths.home, label: t("common.home") },
-        // Same label as desktop header (Alla viner / All wines); footer keeps common.shop.
+        // Same label as desktop header (Alla naturviner / All natural wines); footer keeps common.shop.
         { href: paths.shop, label: t("nav.shopAll") },
         { href: paths.guides, label: t("common.guides") },
         { href: paths.about, label: t("common.about") },
@@ -62,11 +64,6 @@ export function MobileMenu({
   const { role } = useUserRole();
   const { showPortalToggle } = usePortalAccess();
   const { isAdmin } = useAdminStatus();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -100,28 +97,24 @@ export function MobileMenu({
         {t("common.menu")}
       </Button>
 
-      {isClient && (
-        <AnimatePresence>
-          {isOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="fixed inset-0 z-[60] bg-foreground/30"
-                onClick={closeMobileMenu}
-                aria-hidden="true"
-              />
+      <div
+        className={cn(
+          "fixed inset-0 z-[60] bg-foreground/30 transition-opacity duration-300",
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={closeMobileMenu}
+        aria-hidden="true"
+      />
 
-              <motion.div
-                initial={{ x: "-100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "-100%" }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="fixed bottom-0 left-0 top-0 z-[60] flex w-full p-modal-sides md:w-[400px]"
-              >
-                <div className="flex w-full flex-col overflow-hidden rounded bg-muted p-3 md:p-4">
+      <div
+        className={cn(
+          "fixed bottom-0 left-0 top-0 z-[60] flex w-full p-modal-sides transition-transform duration-300 md:w-[400px]",
+          isOpen ? "translate-x-0" : "pointer-events-none -translate-x-full",
+        )}
+        aria-hidden={!isOpen}
+        inert={!isOpen ? true : undefined}
+      >
+        <div className="flex w-full flex-col overflow-hidden rounded bg-muted p-3 md:p-4">
                   <div className="mb-10 flex items-center justify-between pl-2">
                     <p className="text-2xl font-semibold text-foreground">
                       {t("common.menu")}
@@ -206,6 +199,38 @@ export function MobileMenu({
                             item.href,
                             paths.home,
                           );
+                          if (item.href === paths.shop) {
+                            return (
+                              <div key={item.href}>
+                                <a
+                                  href={item.href}
+                                  onClick={closeMobileMenu}
+                                  aria-current={current ? "page" : undefined}
+                                  className={cn(
+                                    PACT_NAV_ROW,
+                                    current && PACT_NAV_CURRENT,
+                                  )}
+                                >
+                                  {item.label}
+                                </a>
+                                {shopLinks.length > 0 ? (
+                                  <ul>
+                                    {shopLinks.map((link) => (
+                                      <li key={link.href}>
+                                        <a
+                                          href={link.href}
+                                          onClick={closeMobileMenu}
+                                          className="flex h-11 w-full items-center border-t border-[rgba(10,10,10,0.10)] pl-4 text-[13px] font-medium uppercase tracking-[0.02em] text-[#0A0A0A]"
+                                        >
+                                          {link.label}
+                                        </a>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : null}
+                              </div>
+                            );
+                          }
                           return (
                             <Link
                               key={item.href}
@@ -289,12 +314,8 @@ export function MobileMenu({
                     </div>
                     <SidebarLinks className="w-full gap-2" />
                   </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      )}
+        </div>
+      </div>
     </>
   );
 }

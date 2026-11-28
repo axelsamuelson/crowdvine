@@ -105,7 +105,7 @@ export function HomeHeroContent({
             "md:bg-stone-900 md:text-white md:hover:bg-stone-800",
           )}
         >
-          {t("nav.shopAll")}
+          {t("home.heroShopCta")}
         </Link>
         {wineBoxesHref ? (
           <Link
