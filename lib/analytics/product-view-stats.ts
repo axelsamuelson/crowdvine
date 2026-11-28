@@ -10,7 +10,6 @@ export type ProductViewStats = {
 };
 
 const DEFAULT_LOOKBACK_DAYS = 30;
-const MAX_EVENTS = 5000;
 
 export function computePlpToPdpConversionRate(
   plpViews: number,
@@ -20,7 +19,11 @@ export function computePlpToPdpConversionRate(
   return pdpViews / plpViews;
 }
 
-function aggregateWineViewStats(
+/**
+ * Pure JS aggregation (same rules as analytics_product_view_aggregates).
+ * Kept for unit tests / parity checks against the SQL RPC.
+ */
+export function aggregateWineViewStats(
   events: Array<{
     event_type: string;
     event_metadata: unknown;
@@ -72,50 +75,68 @@ function aggregateWineViewStats(
   return stats;
 }
 
+function normalizeProductViewRecord(
+  raw: unknown,
+): Record<string, ProductViewStats> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, ProductViewStats> = {};
+  for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const row = value as Record<string, unknown>;
+    const plpViews = Number(row.plpViews) || 0;
+    const pdpViews = Number(row.pdpViews) || 0;
+    out[id] = {
+      plpViews,
+      pdpViews,
+      conversionRate: computePlpToPdpConversionRate(plpViews, pdpViews),
+    };
+  }
+  return out;
+}
+
 /**
- * PLP/PDP view counts per wine id from `user_events` (last N days by default).
- * Cached per request via React `cache()`.
+ * Throws on RPC failure so unstable_cache keeps the previous successful value.
+ */
+async function loadProductViewStatsRecord(
+  lookbackDays: number,
+): Promise<Record<string, ProductViewStats>> {
+  const sb = getSupabaseAdmin();
+  const { data, error } = await sb.rpc("analytics_product_view_aggregates", {
+    p_lookback_days: lookbackDays,
+  });
+
+  if (error) {
+    throw new Error(`[product-view-stats] ${error.message}`);
+  }
+
+  return normalizeProductViewRecord(data);
+}
+
+/**
+ * PLP/PDP view counts per wine id from SQL aggregates (last N days by default).
+ * Cached per request via React `cache()`. Throws on RPC error (caller should catch).
  */
 export const getProductViewStatsByWineId = cache(
   async (options?: {
     lookbackDays?: number | null;
   }): Promise<Map<string, ProductViewStats>> => {
     const lookbackDays =
-      options?.lookbackDays === undefined
+      options?.lookbackDays === undefined || options.lookbackDays == null
         ? DEFAULT_LOOKBACK_DAYS
-        : options.lookbackDays;
+        : options.lookbackDays > 0
+          ? options.lookbackDays
+          : DEFAULT_LOOKBACK_DAYS;
 
-    const sb = getSupabaseAdmin();
-    let query = sb
-      .from("user_events")
-      .select("event_type, event_metadata, created_at")
-      .in("event_type", ["product_list_viewed", "product_viewed"])
-      .order("created_at", { ascending: false })
-      .limit(MAX_EVENTS);
-
-    if (lookbackDays != null && lookbackDays > 0) {
-      const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
-      query = query.gte("created_at", since.toISOString());
-    }
-
-    const { data: events, error } = await query;
-    if (error) {
-      console.warn("[product-view-stats]", error.message);
-      return new Map();
-    }
-
-    return aggregateWineViewStats(events ?? []);
+    const record = await loadProductViewStatsRecord(lookbackDays);
+    return productViewStatsFromRecord(record);
   },
 );
 
 /** Cross-request cache for PLP popularity sort (default on B2C shop). */
 export const getCachedProductViewStatsByWineId = unstable_cache(
-  async () => {
-    const stats = await getProductViewStatsByWineId();
-    return Object.fromEntries(stats) as Record<string, ProductViewStats>;
-  },
-  ["product-view-stats-plp"],
-  { revalidate: 300 },
+  async () => loadProductViewStatsRecord(DEFAULT_LOOKBACK_DAYS),
+  ["product-view-stats-plp-rpc"],
+  { revalidate: 3600 },
 );
 
 export function productViewStatsFromRecord(
