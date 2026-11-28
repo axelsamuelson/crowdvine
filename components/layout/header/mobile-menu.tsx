@@ -359,7 +359,7 @@ export function MobileMenu({
         <div
           id={shopPanelId}
           className={cn(
-            "fixed inset-x-0 bottom-0 top-[var(--top-spacing)] z-[65] overflow-y-auto border-t border-[#0A0A0A] bg-background",
+            "fixed inset-x-0 bottom-0 top-[var(--top-spacing)] z-[65] overflow-y-auto border-y border-[#0A0A0A] bg-background",
             shopOpen ? "visible" : "invisible pointer-events-none",
           )}
         >

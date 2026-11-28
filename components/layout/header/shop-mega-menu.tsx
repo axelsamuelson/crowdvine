@@ -166,7 +166,7 @@ export function ShopMegaMenu({
       <div
         id={menuId}
         className={cn(
-          "fixed inset-x-0 top-[calc(var(--top-spacing)+1px)] z-40 border-t border-[#0A0A0A] bg-background",
+          "fixed inset-x-0 top-[calc(var(--top-spacing)+1px)] z-40 border-y border-[#0A0A0A] bg-background",
           open ? "visible" : "invisible pointer-events-none",
         )}
       >
