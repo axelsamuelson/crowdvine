@@ -408,7 +408,7 @@
     "subtitle": "Review your order and delivery details.",
     "emptyCart": "Your cart is empty. Please add some items before proceeding to checkout.",
     "loadingCart": "Loading cart…",
-    "cartLoadFailed": "Could not load your cart. Check your connection and try again.",
+    "cartLoadFailed": "Couldn't load your cart right now. Please try again in a moment.",
     "continueShopping": "Continue shopping",
     "yourOrder": "Your order",
     "bottle": "bottle",
