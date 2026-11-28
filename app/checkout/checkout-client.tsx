@@ -85,6 +85,15 @@ import {
   resolveGuestEnsureSessionOutcome,
   shouldClearGuestEnsureAttemptOnCleanup,
 } from "@/lib/checkout/guest-ensure-session-client";
+import {
+  CHECKOUT_FETCH_TIMEOUT_MS,
+  checkoutFlagsAfterCartSettled,
+  emptyCheckoutCartPlaceholder,
+  planCheckoutHydrate,
+  shouldCheckoutRunInitialMerge,
+  shouldShowCheckoutCartSkeleton,
+} from "@/lib/checkout/checkout-cart-hydrate";
+import { fetchWithTimeout } from "@/lib/cart/cart-merge-client";
 import { toast } from "sonner";
 import {
   MapPin,
@@ -310,10 +319,13 @@ function CheckoutContent({
   /** True after the first /api/crowdvine/cart attempt finishes (ok or error). */
   const [cartFetchDone, setCartFetchDone] = useState(false);
   /**
-   * Fresh logged-in sessions: wait for /api/cart/merge before treating an
-   * empty cart as empty (avoids cart (0) / empty-checkout flash).
+   * OTP / post-auth merge gate: false while merge+cart must finish before an
+   * empty cart is shown. Initial paint sets this true without awaiting merge
+   * (CartProvider merges in the background — see shouldCheckoutRunInitialMerge).
    */
   const [postAuthCartReady, setPostAuthCartReady] = useState(false);
+  /** Set when cart fetch timed out or failed — show retry instead of hanging. */
+  const [cartLoadError, setCartLoadError] = useState<string | null>(null);
   const formatChargedAmount = useCallback(
     (amount: number, currencyCode?: string | null) =>
       formatCartLinePrice(
@@ -1608,13 +1620,18 @@ function CheckoutContent({
   const fetchCart = useCallback(async () => {
     try {
       console.log("🔄 [Checkout] Fetching cart...");
-      const response = await fetch("/api/crowdvine/cart");
+      const response = await fetchWithTimeout(
+        "/api/crowdvine/cart",
+        {},
+        CHECKOUT_FETCH_TIMEOUT_MS,
+      );
       if (response.ok) {
         const cartData = await response.json();
         console.log("✅ [Checkout] Cart updated:", {
           totalQuantity: cartData.totalQuantity,
           items: cartData.lines?.length || 0,
         });
+        setCartLoadError(null);
         setCart(cartData);
         // Keep header badge in sync after post-auth merge (avoids sticky (0)).
         if (typeof window !== "undefined") {
@@ -1624,38 +1641,27 @@ function CheckoutContent({
         }
       } else {
         // Fail soft: treat as empty so we do not spin forever.
-        setCart({
-          id: "",
-          lines: [],
-          totalQuantity: 0,
-          cost: {
-            totalAmount: { amount: "0", currencyCode: "SEK" },
-            subtotalAmount: { amount: "0", currencyCode: "SEK" },
-            totalTaxAmount: { amount: "0", currencyCode: "SEK" },
-          },
-        } as Cart);
+        setCartLoadError("http");
+        setCart(emptyCheckoutCartPlaceholder() as Cart);
       }
     } catch (error) {
       console.error("Failed to fetch cart:", error);
-      setCart({
-        id: "",
-        lines: [],
-        totalQuantity: 0,
-        cost: {
-          totalAmount: { amount: "0", currencyCode: "SEK" },
-          subtotalAmount: { amount: "0", currencyCode: "SEK" },
-          totalTaxAmount: { amount: "0", currencyCode: "SEK" },
-        },
-      } as Cart);
+      setCartLoadError("timeout");
+      setCart(emptyCheckoutCartPlaceholder() as Cart);
     } finally {
-      setCartFetchDone(true);
-      setLoading(false);
+      const settled = checkoutFlagsAfterCartSettled();
+      setCartFetchDone(settled.cartFetchDone);
+      setLoading(settled.loading);
     }
   }, []);
 
   const fetchProfile = useCallback(async () => {
     try {
-      const response = await fetch("/api/user/profile");
+      const response = await fetchWithTimeout(
+        "/api/user/profile",
+        {},
+        CHECKOUT_FETCH_TIMEOUT_MS,
+      );
       if (response.ok) {
         const data = await response.json();
         const profileData = data.profile || data;
@@ -1682,19 +1688,39 @@ function CheckoutContent({
     }
   }, [requiredAge]);
 
+  /**
+   * After OTP / ensure-session: profile || (merge → cart) in parallel.
+   * Merge must finish before an empty cart is shown (postAuthCartReady gate).
+   */
   const ensureProfileAfterAuth = useCallback(async () => {
     setAuthReady(true);
     setGuestSessionError(null);
-    await fetchProfile();
+    const plan = planCheckoutHydrate("post_otp");
+    if (plan.awaitMergeBeforeCart) {
+      setPostAuthCartReady(false);
+    }
     try {
-      await fetch("/api/cart/merge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ strategy: "auto" }),
-      });
-      await fetchCart();
-    } catch {
-      await fetchCart();
+      await Promise.all([
+        fetchProfile(),
+        (async () => {
+          try {
+            await fetchWithTimeout(
+              "/api/cart/merge",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ strategy: "auto" }),
+              },
+              CHECKOUT_FETCH_TIMEOUT_MS,
+            );
+          } catch {
+            // Merge timeout/error: still fetch cart; gate clears in finally.
+          }
+          await fetchCart();
+        })(),
+      ]);
+    } finally {
+      setPostAuthCartReady(true);
     }
   }, [fetchProfile, fetchCart]);
 
@@ -1844,31 +1870,18 @@ function CheckoutContent({
     guestRequiresLogin,
   ]);
 
-  // After auth is known: merge (if logged in) then fetch cart once. Keeps the
-  // skeleton up until the post-auth cart is known — no empty-cart flash.
-  const cartHydratedAfterAuthRef = useRef(false);
+  // Soft cart refetch after auth is known. Initial /api/cart/merge is owned by
+  // CartProvider (shouldCheckoutRunInitialMerge === false) so we do not double
+  // merge on first paint; OTP path still merges via ensureProfileAfterAuth.
+  const softRefetchAfterAuthRef = useRef(false);
   useEffect(() => {
-    if (!authChecked || cartHydratedAfterAuthRef.current) return;
-    cartHydratedAfterAuthRef.current = true;
-    void (async () => {
-      try {
-        if (authReady) {
-          await fetch("/api/cart/merge", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ strategy: "auto" }),
-          });
-        }
-      } catch {
-        // cart still available via cv_cart_id
-      }
-      try {
-        await fetchCart();
-      } finally {
-        setPostAuthCartReady(true);
-      }
-    })();
-  }, [authChecked, authReady, fetchCart]);
+    if (!authReady || !cartFetchDone || softRefetchAfterAuthRef.current) return;
+    softRefetchAfterAuthRef.current = true;
+    if (shouldCheckoutRunInitialMerge()) return;
+    void fetchCart().catch(() => {
+      // Silent — skeleton already cleared by the first cart attempt.
+    });
+  }, [authReady, cartFetchDone, fetchCart]);
 
   // Account-bound promo coupons (e.g. PACT points conversion) for one-click apply.
   useEffect(() => {
@@ -1909,11 +1922,15 @@ function CheckoutContent({
     async (strategy: "keep_session" | "keep_user" | "merge") => {
       setCartMergeLoading(true);
       try {
-        await fetch("/api/cart/merge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ strategy }),
-        });
+        await fetchWithTimeout(
+          "/api/cart/merge",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ strategy }),
+          },
+          CHECKOUT_FETCH_TIMEOUT_MS,
+        );
         setCartMergeOpen(false);
         await fetchCart();
       } finally {
@@ -2000,8 +2017,18 @@ function CheckoutContent({
   }, []);
 
   useEffect(() => {
-    // Cart hydrate waits for authChecked (see post-auth merge effect).
-    void fetchProfile().then(() => void fetchZoneShopContext());
+    // Initial hydrate: profile + cart in parallel (not serial profile→merge→cart).
+    // Merge does not block first paint — CartProvider merges in the background;
+    // checkout only awaits merge after OTP (ensureProfileAfterAuth).
+    const plan = planCheckoutHydrate("initial");
+    void Promise.all([
+      fetchProfile().then(() => void fetchZoneShopContext()),
+      fetchCart().finally(() => {
+        if (!plan.awaitMergeBeforeCart) {
+          setPostAuthCartReady(true);
+        }
+      }),
+    ]);
     fetchPactPointsBalance();
 
     // Check if returning from Stripe payment method setup
@@ -2014,6 +2041,7 @@ function CheckoutContent({
     }
   }, [
     fetchProfile,
+    fetchCart,
     fetchZoneShopContext,
     fetchPactPointsBalance,
   ]);
@@ -4918,8 +4946,15 @@ function CheckoutContent({
   // text based on zone (Bring for Stockholm, others for other zones).
 
   // IMPORTANT: keep these conditional returns AFTER all hooks above to preserve hook order
-  // Keep skeleton until cart is known post-auth — never flash empty-cart / (0).
-  if (loading || !cartFetchDone || !postAuthCartReady || cart == null) {
+  // Skeleton only while cart is unknown; timeouts always settle flags (no forever hang).
+  if (
+    shouldShowCheckoutCartSkeleton({
+      loading,
+      cartFetchDone,
+      postAuthCartReady,
+      cart,
+    })
+  ) {
     // Mirror loaded checkout shell: max-w-[1280px] + two columns at ≥1280.
     // Heights approximate sections 1–4 + sticky order sidebar.
     return (
@@ -4985,13 +5020,37 @@ function CheckoutContent({
         <div className="mx-auto max-w-[1280px] space-y-8 px-6 pb-6 pt-[calc(var(--top-spacing)+1.5rem)]">
           <div>
             <h1 className="mb-4 text-2xl font-semibold">{t("checkout.title")}</h1>
-            <p className="text-gray-600">{t("checkout.emptyCart")}</p>
-            <Button
-              asChild
-              className="mt-4 border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
-            >
-              <a href="/">{t("checkout.continueShopping")}</a>
-            </Button>
+            {cartLoadError ? (
+              <div
+                className="space-y-3"
+                data-testid="checkout-cart-load-error"
+              >
+                <p className="text-gray-600">{t("checkout.cartLoadFailed")}</p>
+                <Button
+                  type="button"
+                  data-testid="checkout-cart-load-retry"
+                  className="border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none"
+                  onClick={() => {
+                    setLoading(true);
+                    setCartFetchDone(false);
+                    setCartLoadError(null);
+                    void fetchCart().finally(() => setPostAuthCartReady(true));
+                  }}
+                >
+                  {t("checkout.tryAgain")}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-600">{t("checkout.emptyCart")}</p>
+                <Button
+                  asChild
+                  className="mt-4 border-transparent bg-black text-white shadow-none ring-0 hover:border-transparent hover:bg-black/90 hover:shadow-none focus-visible:border-transparent focus-visible:bg-black/90 focus-visible:ring-white/40"
+                >
+                  <a href="/">{t("checkout.continueShopping")}</a>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </main>
