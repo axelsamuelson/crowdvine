@@ -308,7 +308,7 @@ export const bestRedNaturalWinesSystembolagetSvArticle: GuideArticleContent = {
   },
   lede: {
     en: "Looking for red natural wine at Systembolaget? Here is our selection of red wines from growers who work organically or biodynamically and with low intervention in the cellar, from the Loire, Beaujolais, Sicily, Austria, Spain and Chile. The list follows Systembolaget's range and is updated when it changes. The prices on the cards are Systembolaget's own.",
-    sv: "Letar du efter rött naturvin på Systembolaget? Här är vårt urval av röda viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Beaujolais, Sicilien, Österrike, Spanien och Chile. Listan följer Systembolagets sortiment och uppdateras när det ändras. Priserna på korten är Systembolagets egna.",
+    sv: "Letar du efter rött [naturvin](/vin) på Systembolaget? Här är vårt urval av röda viner från odlare som arbetar ekologiskt eller biodynamiskt och med låg intervention i källaren, från Loire, Beaujolais, Sicilien, Österrike, Spanien och Chile. Listan följer Systembolagets sortiment och uppdateras när det ändras. Priserna på korten är Systembolagets egna.",
   },
   breadcrumbShort: {
     en: "Red natural wine at Systembolaget",

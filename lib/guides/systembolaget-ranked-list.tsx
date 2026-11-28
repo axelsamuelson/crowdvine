@@ -1122,7 +1122,9 @@ export async function renderSystembolagetRankedListPage(
                 : "mt-6 text-lg leading-relaxed text-muted-foreground"
             }
           >
-            {intro}
+            {intro.includes("](")
+              ? renderArticleRichText(intro, "intro")
+              : intro}
           </p>
 
           {shortlist ? (
