@@ -141,6 +141,47 @@ describe("scrubCheckoutDobFromBrowserStorage (Camille / Juliette)", () => {
     expect(CHECKOUT_LOCAL_DRAFT_STORAGE_KEYS).toContain("pact_checkout_draft");
   });
 
+  it("strips DOB from session postal draft too (Juliette / Camille)", () => {
+    const draft = JSON.stringify({
+      postal: "11151",
+      city: "Stockholm",
+      street: "Vasagatan 1",
+      fullName: "Test Gäst",
+      email: "gast@example.com",
+      phone: "0701234567",
+      dateOfBirth: "1990-01-15",
+    });
+    const local = memoryStorage({
+      pact_checkout_postal_draft: draft,
+    });
+    const session = memoryStorage({
+      pact_checkout_postal_draft: draft,
+      checkoutFormData: JSON.stringify({
+        email: "legacy@example.com",
+        dateOfBirth: "1985-05-15",
+      }),
+    });
+
+    scrubCheckoutDobFromBrowserStorage({
+      localStorage: local,
+      sessionStorage: session,
+    });
+
+    const localParsed = JSON.parse(local._dump().pact_checkout_postal_draft);
+    expect(localParsed.dateOfBirth).toBeUndefined();
+    expect(localParsed.email).toBe("gast@example.com");
+
+    const sessionParsed = JSON.parse(
+      session._dump().pact_checkout_postal_draft,
+    );
+    expect(sessionParsed.dateOfBirth).toBeUndefined();
+    expect(sessionParsed.fullName).toBe("Test Gäst");
+    expect(sessionParsed.phone).toBe("0701234567");
+    expect(
+      JSON.parse(session._dump().checkoutFormData).dateOfBirth,
+    ).toBeUndefined();
+  });
+
   it("checkout client wires scrub on mount and disables DOB autocomplete", async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");

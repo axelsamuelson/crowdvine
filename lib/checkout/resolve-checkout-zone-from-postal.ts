@@ -36,8 +36,9 @@ export const CHECKOUT_FULFILLMENT_POSTAL_KEY =
   "pact_checkout_fulfillment_postal";
 
 /**
- * Guest postal / address lines for reload (Camille 22/11: 3/4 runs wiped
- * postal after remount). sessionStorage only — no DOB; scrub list aware.
+ * Guest postal / address / contact draft for same-tab reload.
+ * sessionStorage only (never localStorage / never server). Cleared when the
+ * order is placed. Never includes dateOfBirth — scrub list aware.
  */
 export const CHECKOUT_POSTAL_DRAFT_STORAGE_KEY = "pact_checkout_postal_draft";
 
@@ -76,6 +77,9 @@ export type CheckoutPostalDraftStored = {
   street?: string;
   countryCode?: string;
   regionCode?: string | null;
+  fullName?: string;
+  email?: string;
+  phone?: string;
 };
 
 /** Local copy of Stockholm-area heuristic — avoid importing zone-matching here. */
@@ -238,6 +242,12 @@ export function storeFulfillmentChannel(
   }
 }
 
+function optionalTrimmedString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
 export function readStoredPostalDraft(): CheckoutPostalDraftStored | null {
   if (typeof window === "undefined") return null;
   try {
@@ -248,16 +258,19 @@ export function readStoredPostalDraft(): CheckoutPostalDraftStored | null {
       .trim()
       .replace(/\s+/g, "");
     if (!postal) return null;
+    // Never surface dateOfBirth even if a legacy blob still has it.
     return {
       postal,
-      city: typeof parsed.city === "string" ? parsed.city : undefined,
-      street: typeof parsed.street === "string" ? parsed.street : undefined,
-      countryCode:
-        typeof parsed.countryCode === "string" ? parsed.countryCode : undefined,
+      city: optionalTrimmedString(parsed.city),
+      street: optionalTrimmedString(parsed.street),
+      countryCode: optionalTrimmedString(parsed.countryCode),
       regionCode:
         parsed.regionCode === null || typeof parsed.regionCode === "string"
           ? parsed.regionCode
           : undefined,
+      fullName: optionalTrimmedString(parsed.fullName),
+      email: optionalTrimmedString(parsed.email),
+      phone: optionalTrimmedString(parsed.phone),
     };
   } catch {
     return null;
@@ -271,12 +284,16 @@ export function storePostalDraft(draft: CheckoutPostalDraftStored): void {
     .replace(/\s+/g, "");
   if (!postal) return;
   try {
+    // Never write DOB — Juliette/Camille: no age in browser storage.
     const payload: CheckoutPostalDraftStored = {
       postal,
       city: draft.city?.trim() || undefined,
       street: draft.street?.trim() || undefined,
       countryCode: draft.countryCode?.trim() || undefined,
       regionCode: draft.regionCode ?? null,
+      fullName: draft.fullName?.trim() || undefined,
+      email: draft.email?.trim() || undefined,
+      phone: draft.phone?.trim() || undefined,
     };
     window.sessionStorage.setItem(
       CHECKOUT_POSTAL_DRAFT_STORAGE_KEY,
@@ -287,7 +304,7 @@ export function storePostalDraft(draft: CheckoutPostalDraftStored): void {
   }
 }
 
-/** Clear guest postal draft (Byt / wipe). */
+/** Clear guest postal / contact draft (Byt / order placed). */
 export function clearStoredPostalDraft(): void {
   if (typeof window === "undefined") return;
   try {
@@ -310,6 +327,15 @@ export function clearStoredFulfillmentChannel(): void {
   } catch {
     /* private mode */
   }
+}
+
+/**
+ * Clear all checkout session drafts after a successful order (postal, contact,
+ * sticky channel). sessionStorage only — nothing to clear on the server.
+ */
+export function clearCheckoutSessionDrafts(): void {
+  clearStoredPostalDraft();
+  clearStoredFulfillmentChannel();
 }
 
 /**

@@ -187,6 +187,7 @@ import {
 } from "@/lib/checkout/resolve-delivery-after-profile-save";
 import { buildCheckoutEditDeliveryDraft } from "@/lib/checkout/profile-modal-form-seed";
 import {
+  clearCheckoutSessionDrafts,
   clearStoredFulfillmentChannel,
   clearStoredPostalDraft,
   mergeProfileContactIntoDelivery,
@@ -378,9 +379,9 @@ function CheckoutContent({
         postal: stored.postal,
         countryCode: stored.countryCode ?? "SE",
         regionCode: stored.regionCode ?? null,
-        fullName: null,
-        phone: null,
-        email: null,
+        fullName: stored.fullName ?? null,
+        phone: stored.phone ?? null,
+        email: stored.email ?? null,
       };
     },
   );
@@ -2986,10 +2987,20 @@ function CheckoutContent({
           },
         );
         if (res.status === 401) {
-          // Guest: keep draft as source of truth
+          // Guest: keep draft as source of truth (+ sessionStorage for F5)
           addressPersistedRef.current = true;
           addressAutoSaveRef.current = true;
           setEditingAddress(false);
+          storePostalDraft({
+            postal: eff.postal,
+            city: eff.city,
+            street: eff.street,
+            countryCode: eff.countryCode,
+            regionCode: eff.regionCode,
+            fullName: eff.fullName ?? undefined,
+            email: eff.email ?? undefined,
+            phone: eff.phone ?? undefined,
+          });
           if (!silent) toast.success(t("checkout.deliverySaved"));
           await updateZoneInfo(eff, { silent: true });
           if (eff.postal && eff.countryCode) {
@@ -3131,6 +3142,18 @@ function CheckoutContent({
       setZoneAddressRow(resolved.nextZoneAddressRow);
       setDeliveryDraft(resolved.nextDeliveryDraft);
       setPostalCodeDraft(savedLines.postal);
+      // Ändra must update session postal draft — otherwise F5 restores the
+      // previous postal and PR316 clears sticky Direkt (Camille 11151).
+      storePostalDraft({
+        postal: savedLines.postal,
+        city: savedLines.city,
+        street: savedLines.street,
+        countryCode: savedLines.countryCode,
+        regionCode: savedLines.regionCode,
+        fullName: savedLines.fullName ?? undefined,
+        email: savedLines.email ?? undefined,
+        phone: savedLines.phone ?? undefined,
+      });
       addressPersistedRef.current = true;
       addressAutoSaveRef.current = true;
       setEditingAddress(false);
@@ -3359,6 +3382,7 @@ function CheckoutContent({
 
         emitCheckoutStepCompleted("payment");
         checkoutCompletedRef.current = true;
+        clearCheckoutSessionDrafts();
         clearCheckoutAnalyticsSession();
         window.location.href =
           redirectUrl ||
@@ -3631,6 +3655,7 @@ function CheckoutContent({
           : null;
       emitCheckoutStepCompleted("payment");
       checkoutCompletedRef.current = true;
+      clearCheckoutSessionDrafts();
       clearCheckoutAnalyticsSession();
       // Do not releaseSubmit — navigate away; keep button disabled.
       const fallbackSuccess =
@@ -4806,6 +4831,9 @@ function CheckoutContent({
       street: lines.street,
       countryCode,
       regionCode: lines.regionCode,
+      fullName: lines.fullName ?? undefined,
+      email: lines.email ?? undefined,
+      phone: lines.phone ?? undefined,
     });
     void checkBudbeeAvailability(v, countryCode);
     // Match zones immediately so shipping + pallet show before address step.
@@ -6349,6 +6377,9 @@ function CheckoutContent({
                               street: next.street,
                               countryCode: next.countryCode,
                               regionCode: next.regionCode,
+                              fullName: next.fullName ?? undefined,
+                              email: next.email ?? undefined,
+                              phone: next.phone ?? undefined,
                             });
                           }
                           return next;
