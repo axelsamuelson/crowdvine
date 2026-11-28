@@ -187,6 +187,10 @@ import {
 } from "@/lib/checkout/resolve-delivery-after-profile-save";
 import { buildCheckoutEditDeliveryDraft } from "@/lib/checkout/profile-modal-form-seed";
 import {
+  shouldClearDeliveryDraftOnSeed,
+  shouldResetAddressFocusWhenDraftMissing,
+} from "@/lib/checkout/address-step-seed";
+import {
   clearCheckoutSessionDrafts,
   clearStoredFulfillmentChannel,
   clearStoredPostalDraft,
@@ -2027,7 +2031,17 @@ function CheckoutContent({
       }),
     );
 
-    if (fromDb && contactOk && !editingAddress) {
+    // Never clear the draft while an address field still has focus — unmount
+    // without blur leaves addressFieldFocused stuck true and shows
+    // "Laddar vinzon…" forever (summary needs !focused; form needs draft).
+    if (
+      shouldClearDeliveryDraftOnSeed({
+        hasCompleteZoneRow: Boolean(fromDb),
+        contactOk,
+        editingAddress,
+        addressFieldFocused,
+      })
+    ) {
       setDeliveryDraft(null);
       return;
     }
@@ -2093,8 +2107,27 @@ function CheckoutContent({
     profile?.postal_code,
     postalCodeDraft,
     editingAddress,
+    addressFieldFocused,
     checkoutMarketCountry,
   ]);
+
+  // If the address form unmounts without blur (draft cleared while focused),
+  // reset the focus flag so we never pin the loading spinner permanently.
+  useEffect(() => {
+    if (
+      !shouldResetAddressFocusWhenDraftMissing({
+        hasDeliveryDraft: deliveryDraft !== null,
+        addressFieldFocused,
+      })
+    ) {
+      return;
+    }
+    if (addressFocusBlurTimerRef.current) {
+      window.clearTimeout(addressFocusBlurTimerRef.current);
+      addressFocusBlurTimerRef.current = null;
+    }
+    setAddressFieldFocused(false);
+  }, [deliveryDraft, addressFieldFocused]);
 
   // Auto-save progressive address when all required fields are filled.
   // Never auto-save while a field has focus / user is still typing, while
