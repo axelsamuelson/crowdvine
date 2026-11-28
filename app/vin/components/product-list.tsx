@@ -206,7 +206,12 @@ export default async function ProductList({
         }),
         getCachedShopCollections(),
         isPopularSort
-          ? getCachedProductViewStatsByWineId()
+          ? getCachedProductViewStatsByWineId().catch((error) => {
+              // Do not fail the PLP when aggregates miss; unstable_cache keeps
+              // the previous success when the loader throws.
+              console.warn("[product-view-stats]", error);
+              return null;
+            })
           : Promise.resolve(null),
         getCachedAllWineSourceSlugs(),
       ]);

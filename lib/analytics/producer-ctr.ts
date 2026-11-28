@@ -1,16 +1,11 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import {
-  getExcludedProfileIds,
-  isExcludedUserId,
-} from "@/lib/analytics/excluded-profile-ids";
 
 /** How many names Popular Producers shows. */
 export const POPULAR_PRODUCER_LIMIT = 5;
 
 const DEFAULT_LOOKBACK_DAYS = 30;
-const MAX_EVENTS = 5000;
 
 export type ProducerCtrStats = {
   /** Times the producer appeared on a product list. */
@@ -26,6 +21,10 @@ export function computeProducerCtr(clicks: number, impressions: number): number 
   return clicks / impressions;
 }
 
+/**
+ * Pure JS aggregation (same rules as analytics_producer_ctr_aggregates).
+ * Kept for unit tests / parity checks against the SQL RPC.
+ */
 export function aggregateProducerCtr(
   events: Array<{
     event_type: string;
@@ -84,6 +83,25 @@ export function producerCtrFromRecord(
   return new Map(Object.entries(record));
 }
 
+function normalizeProducerCtrRecord(
+  raw: unknown,
+): Record<string, ProducerCtrStats> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, ProducerCtrStats> = {};
+  for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const row = value as Record<string, unknown>;
+    const impressions = Number(row.impressions) || 0;
+    const clicks = Number(row.clicks) || 0;
+    out[id] = {
+      impressions,
+      clicks,
+      ctr: computeProducerCtr(clicks, impressions),
+    };
+  }
+  return out;
+}
+
 /**
  * Highest CTR first. Ties break on clicks, then impressions, then title.
  * Producers with no list impressions stay at CTR 0 and sort after anyone with data.
@@ -120,37 +138,27 @@ export function pickTopCollectionsByCtr<
     .slice(0, limit);
 }
 
+/**
+ * Throws on RPC failure so unstable_cache keeps the previous successful value
+ * instead of caching `{}` for the whole revalidate window.
+ */
 async function loadProducerCtrRecord(): Promise<Record<string, ProducerCtrStats>> {
   const sb = getSupabaseAdmin();
-  const since = new Date(
-    Date.now() - DEFAULT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
-  );
-  const excluded = await getExcludedProfileIds(sb);
-
-  const { data: events, error } = await sb
-    .from("user_events")
-    .select("event_type, event_metadata, user_id, created_at")
-    .in("event_type", ["product_list_viewed", "product_viewed"])
-    .gte("created_at", since.toISOString())
-    .order("created_at", { ascending: false })
-    .limit(MAX_EVENTS);
+  const { data, error } = await sb.rpc("analytics_producer_ctr_aggregates", {
+    p_lookback_days: DEFAULT_LOOKBACK_DAYS,
+  });
 
   if (error) {
-    console.warn("[producer-ctr]", error.message);
-    return {};
+    throw new Error(`[producer-ctr] ${error.message}`);
   }
 
-  const included = (events ?? []).filter(
-    (event) => !isExcludedUserId(event.user_id as string | null, excluded),
-  );
-  const stats = aggregateProducerCtr(included);
-  return Object.fromEntries(stats);
+  return normalizeProducerCtrRecord(data);
 }
 
 const getCachedProducerCtrRecord = unstable_cache(
   loadProducerCtrRecord,
-  ["producer-ctr-30d"],
-  { revalidate: 300 },
+  ["producer-ctr-30d-rpc"],
+  { revalidate: 3600 },
 );
 
 /** CTR per producer id for the last 30 days. Cached across requests. */
