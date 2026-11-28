@@ -83,7 +83,7 @@ export default async function Concept13Page() {
               src={BACKDROP_IMAGE}
               title={BACKDROP_TITLE}
               subtitle={BACKDROP_SUBTITLE}
-              primaryCta={{ href: paths.shop, label: t("nav.shopAll") }}
+              primaryCta={{ href: paths.shop, label: t("home.heroShopCta") }}
               secondaryCta={{
                 href: paths.shopCollection("wine-boxes"),
                 label: t("home.allWineBoxes"),

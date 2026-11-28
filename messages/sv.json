@@ -38,12 +38,14 @@
   },
   "nav": {
     "home": "Hem",
-    "shopAll": "Alla viner",
+    "shopAll": "Alla naturviner",
+    "shopSubmenu": "Öppna kategorier",
     "producer": "Producent",
     "admin": "Admin",
     "guides": "Guider"
   },
   "home": {
+    "heroShopCta": "Alla viner",
     "pageTitle": "Hem",
     "pageDescription": "Upptäck vin från oberoende producenter",
     "latestDrop": "senaste släppet",

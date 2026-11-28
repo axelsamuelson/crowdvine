@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import { Header } from "./index";
 import { CheckoutMinimalHeader } from "./checkout-minimal-header";
 import { isDirtywineHost } from "@/lib/b2b-site";
+import type { ShopNavLink } from "@/lib/nav/shop-submenu";
 import type { HeaderProducerLink } from "@/lib/shop/shop-producer-link";
 
 interface ConditionalHeaderProps {
   popularCollections: HeaderProducerLink[];
+  shopSubmenu: { sv: ShopNavLink[]; en: ShopNavLink[] };
 }
 
 function shouldHideHeader(
@@ -42,6 +44,7 @@ function shouldHideHeader(
 
 export function ConditionalHeader({
   popularCollections,
+  shopSubmenu,
 }: ConditionalHeaderProps) {
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
@@ -80,6 +83,7 @@ export function ConditionalHeader({
   return (
     <Header
       popularCollections={popularCollections}
+      shopSubmenu={shopSubmenu}
       isDirtywineSite={isDirtywineSite}
     />
   );

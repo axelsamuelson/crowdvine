@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { MobileMenuDynamic } from "./mobile-menu-dynamic";
+import { MobileMenu } from "./mobile-menu";
+import { ShopNavSubmenu } from "./shop-nav-submenu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ import { ProfileIcon } from "./profile-icon";
 import { PortalToggle } from "./portal-toggle";
 import { NavItem } from "@/lib/types";
 import { CompleteOrderRailDynamic } from "./complete-order-rail-dynamic";
+import type { ShopNavLink } from "@/lib/nav/shop-submenu";
 import type { HeaderProducerLink } from "@/lib/shop/shop-producer-link";
 import { useUserRole } from "@/lib/hooks/use-user-role";
 import { usePortalAccess } from "@/lib/hooks/use-portal-access";
@@ -21,12 +23,14 @@ import type { SiteLogos } from "@/lib/context/site-logo-provider";
 
 interface HeaderProps {
   popularCollections: HeaderProducerLink[];
+  shopSubmenu: { sv: ShopNavLink[]; en: ShopNavLink[] };
   isDirtywineSite: boolean;
   initialLogos?: SiteLogos;
 }
 
 export function Header({
   popularCollections,
+  shopSubmenu,
   isDirtywineSite,
   initialLogos,
 }: HeaderProps) {
@@ -34,6 +38,8 @@ export function Header({
   const paths = useLocalizedPaths();
   const pathname = usePathname();
   // Dirty Wine: omit Guider — those routes 301 to pactwines.com (CORS on prefetch).
+  const shopLinks =
+    paths.locale === "en" ? shopSubmenu.en : shopSubmenu.sv;
   const navItems: NavItem[] = [
     { label: t("nav.home"), href: paths.home },
     { label: t("nav.shopAll"), href: paths.shop },
@@ -74,8 +80,9 @@ export function Header({
         «Stäng»/Close is never covered by the cart badge. Same for PACT + Dirty Wine.
       */}
       <div className="relative z-[60] block flex-none md:hidden">
-        <MobileMenuDynamic
+        <MobileMenu
           popularCollections={popularCollections}
+          shopLinks={shopLinks}
           isDirtywineSite={isDirtywineSite}
         />
       </div>
@@ -107,28 +114,43 @@ export function Header({
             <CompleteOrderRailDynamic />
           )}
           <ul className="flex items-center gap-5 pl-3 shrink-0">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "font-semibold text-base transition-colors duration-200",
-                    // Dirtywine: sentence case matching mobile (Hem / Alla viner / …).
-                    // PACT keeps uppercase nav labels.
-                    isDirtywineSite ? "normal-case" : "uppercase",
-                    (item.href === paths.home
-                      ? pathname === paths.home
-                      : pathname === item.href ||
-                        pathname?.startsWith(item.href + "/"))
-                      ? "text-foreground"
-                      : "text-foreground/50",
-                  )}
-                  prefetch
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {navItems.map((item) => {
+              const active =
+                item.href === paths.home
+                  ? pathname === paths.home
+                  : pathname === item.href ||
+                    pathname?.startsWith(item.href + "/");
+              if (item.href === paths.shop) {
+                return (
+                  <ShopNavSubmenu
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    links={shopLinks}
+                    active={active}
+                    isDirtywineSite={isDirtywineSite}
+                    submenuLabel={t("nav.shopSubmenu")}
+                  />
+                );
+              }
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "font-semibold text-base transition-colors duration-200",
+                      // Dirtywine: sentence case matching mobile.
+                      // PACT keeps uppercase nav labels.
+                      isDirtywineSite ? "normal-case" : "uppercase",
+                      active ? "text-foreground" : "text-foreground/50",
+                    )}
+                    prefetch
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
             {role === "producer" && (
               <li>
                 <Link

@@ -43,12 +43,12 @@ describe("PACT mobile menu redesign", () => {
     expect(menuSrc).not.toMatch(/icon: User/);
   });
 
-  it("orders PACT items Hem → Alla viner → Guider → Om oss → Profil; Admin secondary", () => {
+  it("orders PACT items Hem → Alla naturviner → Guider → Om oss → Profil; Admin secondary", () => {
     const pactBlock = menuSrc.match(
       /isDirtywineSite\s*\?\s*\[[\s\S]*?\]\s*:\s*\[([\s\S]*?)\]/,
     )?.[1];
     expect(pactBlock).toBeTruthy();
-    // Shop row uses desktop header key nav.shopAll (Alla viner / All wines).
+    // Shop row uses desktop header key nav.shopAll (Alla naturviner / All natural wines).
     expect(pactBlock).toMatch(/t\("nav\.shopAll"\)/);
     expect(pactBlock).not.toMatch(/t\("common\.shop"\)/);
     const order = [
@@ -63,8 +63,8 @@ describe("PACT mobile menu redesign", () => {
       "common.about",
       "common.profile",
     ]);
-    expect(sv.nav.shopAll).toBe("Alla viner");
-    expect(en.nav.shopAll).toBe("All wines");
+    expect(sv.nav.shopAll).toBe("Alla naturviner");
+    expect(en.nav.shopAll).toBe("All natural wines");
     expect(sv.common.shop).toBe("Butik");
     expect(en.common.shop).toBe("Shop");
     expect(menuSrc).toMatch(/data-testid="mobile-menu-nav-admin"/);

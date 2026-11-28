@@ -15,6 +15,7 @@ import {
 } from "@/lib/external-prices/cached-source-slugs";
 import { mapProductDataToShopProducts } from "@/lib/map-product-data-to-shop-product";
 import { PACT_PUBLIC_ORIGIN } from "@/lib/i18n/localized-routes";
+import { SHOP_ROOT_LABEL } from "@/lib/nav/shop-root-label";
 import {
   producerShopPageHeading,
   producerShopPagePath,
@@ -233,7 +234,7 @@ export default async function WineCategoryPage(props: PageProps) {
         {
           "@type": "ListItem",
           position: 1,
-          name: "All wines",
+          name: SHOP_ROOT_LABEL.en,
           item: `${config.baseUrl}/wine`,
         },
         {
@@ -321,7 +322,7 @@ export default async function WineCategoryPage(props: PageProps) {
       {
         "@type": "ListItem",
         position: 1,
-        name: "All wines",
+        name: SHOP_ROOT_LABEL.en,
         item: `${config.baseUrl}/wine`,
       },
       {
