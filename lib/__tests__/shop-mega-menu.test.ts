@@ -6,8 +6,10 @@ import {
 } from "@/lib/nav/mega-menu-images";
 import {
   NEW_WINES_LISTING_PATH,
+  columnsFromCatalog,
   rankMegaMenuRegions,
 } from "@/lib/nav/shop-mega-menu";
+import { countWinesForFilter } from "@/lib/nav/shop-menu-catalog";
 import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
 
 describe("shop mega menu", () => {
@@ -53,5 +55,46 @@ describe("shop mega menu", () => {
       src: null,
     });
     expect(MEGA_MENU_IMAGE_TILES.en[1].src).toBeNull();
+  });
+
+  it("shows every menu link when the catalog query fails", () => {
+    const columns = columnsFromCatalog("sv", null);
+    const hrefs = columns.flatMap((column) => column.links.map((link) => link.href));
+    expect(hrefs).toContain("/vin");
+    expect(hrefs).toContain("/vin/rott-naturvin");
+    expect(hrefs).toContain("/vin/carignan-naturvin");
+    expect(hrefs).toContain("/vin/naturvin-languedoc");
+    expect(hrefs).toContain("/vin/naturvin-lada");
+    expect(hrefs).toContain("/guider");
+  });
+
+  it("drops an empty colour and keeps a grape that the catalog lists", () => {
+    const red = getWineCategorySv("rott-naturvin");
+    const white = getWineCategorySv("vitt-naturvin");
+    expect(red && countWinesForFilter([{ color: "Red", grape_varieties: "Carignan", tags: [], region: "Languedoc" }], red.filter)).toBe(1);
+    expect(white && countWinesForFilter([{ color: "Red", grape_varieties: "Carignan", tags: [], region: "Languedoc" }], white.filter)).toBe(0);
+
+    const columns = columnsFromCatalog("sv", {
+      shopLive: true,
+      boxesLive: false,
+      regionCounts: { Languedoc: 4 },
+      wines: [
+        {
+          color: "Red",
+          grape_varieties: "Grenache Blanc",
+          tags: ["sparkling"],
+          region: "Languedoc",
+        },
+      ],
+    });
+    const hrefs = columns.flatMap((column) => column.links.map((link) => link.href));
+    expect(hrefs).toContain("/vin/rott-naturvin");
+    expect(hrefs).not.toContain("/vin/vitt-naturvin");
+    expect(hrefs).toContain("/vin/grenache");
+    expect(hrefs).toContain("/vin/grenache-blanc");
+    expect(hrefs).toContain("/vin/mousserande-vin");
+    expect(hrefs).not.toContain("/vin/pet-nat");
+    expect(hrefs).not.toContain("/vin/naturvin-lada");
+    expect(hrefs).toContain("/vin/naturvin-languedoc");
   });
 });

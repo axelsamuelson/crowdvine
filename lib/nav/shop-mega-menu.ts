@@ -1,23 +1,23 @@
-import { unstable_cache } from "next/cache";
-
-import { catalogHasProducts } from "@/lib/crowdvine/products-data";
 import { guidePath } from "@/lib/guides/guide-routes";
 import type { AppLocale } from "@/lib/i18n/locale";
+import {
+  countWinesForFilter,
+  getShopMenuCatalog,
+  type ShopMenuCatalog,
+} from "@/lib/nav/shop-menu-catalog";
 import { SHOP_ROOT_LABEL } from "@/lib/nav/shop-root-label";
-import { PRODUCER_BOXES_PATH, PRODUCER_BOXES_PUBLISHED } from "@/lib/producer-boxes/config";
-import { loadResolvedProducerBoxes } from "@/lib/producer-boxes/load";
+import { PRODUCER_BOXES_PATH } from "@/lib/producer-boxes/config";
 import {
   isNoindexCategorySlug,
   isThinDynamicGrapeCategory,
 } from "@/lib/seo/noindex-robots";
 import { indexableRegionLinksFromCounts } from "@/lib/shop/indexable-region-links";
+import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
 import {
-  getWineCategoryEn,
-  getWineCategorySv,
-  wineCategoryCatalogFilters,
-} from "@/lib/wine-categories";
-import { getLiveWineRegionCountsMap } from "@/lib/wine-region-live-counts";
-import { wineRegionBySlug } from "@/lib/wine-regions";
+  WINE_REGIONS,
+  wineRegionBySlug,
+  wineRegionPagePath,
+} from "@/lib/wine-regions";
 
 export type MegaMenuLink = {
   href: string;
@@ -112,81 +112,64 @@ function shopPrefix(locale: AppLocale): string {
   return locale === "en" ? "/wine" : "/vin";
 }
 
-async function categoryIsListed(
+function categoryIsListed(
   locale: AppLocale,
   slug: string,
-): Promise<boolean> {
+  catalog: ShopMenuCatalog | null,
+): boolean {
   if (isNoindexCategorySlug(slug, locale)) return false;
   const category =
     locale === "sv" ? getWineCategorySv(slug) : getWineCategoryEn(slug);
   if (!category) return false;
   if (isThinDynamicGrapeCategory(category)) return false;
-  try {
-    return await catalogHasProducts({
-      ...wineCategoryCatalogFilters(category.filter),
-      isB2BSite: false,
-    });
-  } catch (error) {
-    console.error("[shop-mega-menu] catalog", slug, error);
-    return true;
-  }
+  if (!catalog) return true;
+  return countWinesForFilter(catalog.wines, category.filter) > 0;
 }
 
-async function boxesAreListed(): Promise<boolean> {
-  if (!PRODUCER_BOXES_PUBLISHED) return false;
-  try {
-    const { boxes, loadError } = await loadResolvedProducerBoxes();
-    if (loadError) return true;
-    return boxes.some((box) => box.purchasable);
-  } catch (error) {
-    console.error("[shop-mega-menu] producer boxes", error);
-    return true;
-  }
-}
-
-async function listedLinks(
+function listedLinks(
   locale: AppLocale,
   entries: readonly { slug: string; label: string }[],
-): Promise<MegaMenuLink[]> {
-  const flags = await Promise.all(
-    entries.map((entry) => categoryIsListed(locale, entry.slug)),
-  );
+  catalog: ShopMenuCatalog | null,
+): MegaMenuLink[] {
   return entries
-    .filter((_, index) => flags[index])
+    .filter((entry) => categoryIsListed(locale, entry.slug, catalog))
     .map((entry) => ({
       href: `${shopPrefix(locale)}/${entry.slug}`,
       label: entry.label,
     }));
 }
 
-async function regionLinks(locale: AppLocale): Promise<MegaMenuLink[]> {
-  try {
-    const counts = await getLiveWineRegionCountsMap();
-    const ranked = indexableRegionLinksFromCounts(locale, counts).map(
-      (link) => {
-        const region = wineRegionBySlug(link.slug);
-        return {
-          href: link.href,
-          label: link.label,
-          count: region ? (counts.get(region.value) ?? 0) : 0,
-        };
-      },
-    );
-    return rankMegaMenuRegions(ranked);
-  } catch (error) {
-    console.error("[shop-mega-menu] regions", error);
-    return [];
+function regionLinks(
+  locale: AppLocale,
+  catalog: ShopMenuCatalog | null,
+): MegaMenuLink[] {
+  if (!catalog) {
+    return WINE_REGIONS.map((region) => ({
+      href: wineRegionPagePath(region.slug, locale),
+      label: locale === "sv" ? region.labelSv : region.labelEn,
+    }));
   }
+  const counts = new Map(Object.entries(catalog.regionCounts));
+  const ranked = indexableRegionLinksFromCounts(locale, counts).map((link) => {
+    const region = wineRegionBySlug(link.slug);
+    return {
+      href: link.href,
+      label: link.label,
+      count: region ? (counts.get(region.value) ?? 0) : 0,
+    };
+  });
+  return rankMegaMenuRegions(ranked);
 }
 
-async function columnsFor(locale: AppLocale): Promise<MegaMenuColumn[]> {
-  const [shopLive, colour, grapes, regions, boxesLive] = await Promise.all([
-    catalogHasProducts({ isB2BSite: false }).catch(() => true),
-    listedLinks(locale, COLOUR_SLUGS[locale]),
-    listedLinks(locale, GRAPE_SLUGS[locale]),
-    regionLinks(locale),
-    boxesAreListed(),
-  ]);
+export function columnsFromCatalog(
+  locale: AppLocale,
+  catalog: ShopMenuCatalog | null,
+): MegaMenuColumn[] {
+  const shopLive = catalog ? catalog.shopLive : true;
+  const colour = listedLinks(locale, COLOUR_SLUGS[locale], catalog);
+  const grapes = listedLinks(locale, GRAPE_SLUGS[locale], catalog);
+  const regions = regionLinks(locale, catalog);
+  const boxesLive = catalog ? catalog.boxesLive : true;
 
   const colourLinks: MegaMenuLink[] = [
     ...(shopLive
@@ -208,20 +191,14 @@ async function columnsFor(locale: AppLocale): Promise<MegaMenuColumn[]> {
   return columns.filter((column) => column.links.length > 0);
 }
 
-async function computeShopMegaMenu(): Promise<{
-  sv: MegaMenuColumn[];
-  en: MegaMenuColumn[];
-}> {
-  const [sv, en] = await Promise.all([columnsFor("sv"), columnsFor("en")]);
-  return { sv, en };
-}
-
 /** Header mega menu. Empty or noindex categories are omitted. */
-export function getShopMegaMenu(): Promise<{
+export async function getShopMegaMenu(): Promise<{
   sv: MegaMenuColumn[];
   en: MegaMenuColumn[];
 }> {
-  return unstable_cache(computeShopMegaMenu, ["shop-mega-menu-v1"], {
-    revalidate: 300,
-  })();
+  const catalog = await getShopMenuCatalog();
+  return {
+    sv: columnsFromCatalog("sv", catalog),
+    en: columnsFromCatalog("en", catalog),
+  };
 }

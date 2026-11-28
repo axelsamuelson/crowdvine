@@ -1,14 +1,6 @@
-import { unstable_cache } from "next/cache";
-
-import { catalogHasProducts } from "@/lib/crowdvine/products-data";
 import type { AppLocale } from "@/lib/i18n/locale";
-import { PRODUCER_BOXES_PUBLISHED } from "@/lib/producer-boxes/config";
-import { loadResolvedProducerBoxes } from "@/lib/producer-boxes/load";
-import {
-  getWineCategoryEn,
-  getWineCategorySv,
-  wineCategoryCatalogFilters,
-} from "@/lib/wine-categories";
+import { getShopMenuCatalog, countWinesForFilter, type ShopMenuCatalog } from "@/lib/nav/shop-menu-catalog";
+import { getWineCategoryEn, getWineCategorySv } from "@/lib/wine-categories";
 
 export type ShopNavLink = {
   href: string;
@@ -68,68 +60,39 @@ export const SHOP_NAV_SUBMENU_EN: readonly ShopNavEntry[] = [
   },
 ];
 
-async function boxesHaveLiveWines(): Promise<boolean> {
-  if (!PRODUCER_BOXES_PUBLISHED) return false;
-  try {
-    const { boxes, loadError } = await loadResolvedProducerBoxes();
-    if (loadError) return true;
-    return boxes.some((box) => box.purchasable);
-  } catch (error) {
-    console.error("[shop-submenu] producer boxes", error);
-    return true;
-  }
-}
-
-async function entryIsLive(
+function entryIsLive(
   entry: ShopNavEntry,
   locale: AppLocale,
-): Promise<boolean> {
-  if (entry.boxes) return boxesHaveLiveWines();
+  catalog: ShopMenuCatalog | null,
+): boolean {
+  if (entry.boxes) return catalog ? catalog.boxesLive : true;
   const category =
     locale === "sv"
       ? getWineCategorySv(entry.slug ?? "")
       : getWineCategoryEn(entry.slug ?? "");
   if (!category) return false;
-  try {
-    return await catalogHasProducts({
-      ...wineCategoryCatalogFilters(category.filter),
-      isB2BSite: false,
-    });
-  } catch (error) {
-    console.error("[shop-submenu] catalog", entry.href, error);
-    return true;
-  }
+  if (!catalog) return true;
+  return countWinesForFilter(catalog.wines, category.filter) > 0;
 }
 
-async function liveLinks(
+function liveLinks(
   entries: readonly ShopNavEntry[],
   locale: AppLocale,
-): Promise<ShopNavLink[]> {
-  const flags = await Promise.all(
-    entries.map((entry) => entryIsLive(entry, locale)),
-  );
+  catalog: ShopMenuCatalog | null,
+): ShopNavLink[] {
   return entries
-    .filter((_, index) => flags[index])
+    .filter((entry) => entryIsLive(entry, locale, catalog))
     .map(({ href, label }) => ({ href, label }));
 }
 
-async function computeShopNavSubmenu(): Promise<{
-  sv: ShopNavLink[];
-  en: ShopNavLink[];
-}> {
-  const [sv, en] = await Promise.all([
-    liveLinks(SHOP_NAV_SUBMENU_SV, "sv"),
-    liveLinks(SHOP_NAV_SUBMENU_EN, "en"),
-  ]);
-  return { sv, en };
-}
-
 /** Category links for the shop nav. Empty categories are omitted. */
-export function getShopNavSubmenu(): Promise<{
+export async function getShopNavSubmenu(): Promise<{
   sv: ShopNavLink[];
   en: ShopNavLink[];
 }> {
-  return unstable_cache(computeShopNavSubmenu, ["shop-nav-submenu-v1"], {
-    revalidate: 300,
-  })();
+  const catalog = await getShopMenuCatalog();
+  return {
+    sv: liveLinks(SHOP_NAV_SUBMENU_SV, "sv", catalog),
+    en: liveLinks(SHOP_NAV_SUBMENU_EN, "en", catalog),
+  };
 }

@@ -15,14 +15,17 @@ import {
   type ResolvedProducerBox,
 } from "@/lib/producer-boxes/match";
 
-export async function loadProducerBoxesCatalog(): Promise<ProducerBoxesCatalog> {
+export async function loadProducerBoxesCatalog(
+  signal?: AbortSignal,
+): Promise<ProducerBoxesCatalog> {
   try {
     const sb = getSupabaseAdmin();
-    const { data, error } = await sb
+    let query = sb
       .from("site_content")
       .select("value")
-      .eq("key", PRODUCER_BOXES_CONTENT_KEY)
-      .maybeSingle();
+      .eq("key", PRODUCER_BOXES_CONTENT_KEY);
+    if (signal) query = query.abortSignal(signal);
+    const { data, error } = await query.maybeSingle();
 
     if (error || !data?.value) return defaultProducerBoxesCatalog();
     const boxes = parseProducerBoxesCatalog(data.value);
