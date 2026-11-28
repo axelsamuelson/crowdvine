@@ -138,18 +138,24 @@ export function pickTopCollectionsByCtr<
     .slice(0, limit);
 }
 
+const PRODUCER_CTR_TIMEOUT_MS = 8_000;
+
 /**
- * Fail-soft on RPC errors: return {} so SSG/ISR never hangs or fails the
- * build when Supabase is slow. Popular-producer order falls back to title
- * sort via pickTopCollectionsByCtr. Snapshot RPC (migration 318) keeps the
- * happy path a cheap jsonb read; empty is only a degraded fallback.
+ * Fail-soft on RPC errors and on a hung request. Aborting the socket lets the
+ * cache callback settle, so SSG does not wait out a statement that never
+ * returns. Popular-producer order then falls back to title sort.
+ * Snapshot RPC (migration 318) keeps the happy path a cheap jsonb read.
  */
 async function loadProducerCtrRecord(): Promise<Record<string, ProducerCtrStats>> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PRODUCER_CTR_TIMEOUT_MS);
   try {
     const sb = getSupabaseAdmin();
-    const { data, error } = await sb.rpc("analytics_producer_ctr_aggregates", {
-      p_lookback_days: DEFAULT_LOOKBACK_DAYS,
-    });
+    const { data, error } = await sb
+      .rpc("analytics_producer_ctr_aggregates", {
+        p_lookback_days: DEFAULT_LOOKBACK_DAYS,
+      })
+      .abortSignal(controller.signal);
 
     if (error) {
       console.warn("[producer-ctr]", error.message);
@@ -160,6 +166,8 @@ async function loadProducerCtrRecord(): Promise<Record<string, ProducerCtrStats>
   } catch (error) {
     console.warn("[producer-ctr]", error);
     return {};
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -169,16 +177,26 @@ const getCachedProducerCtrRecord = unstable_cache(
   { revalidate: 3600 },
 );
 
-/** CTR per producer id for the last 30 days. Cached across requests. */
+let producerCtrInflight: Promise<Map<string, ProducerCtrStats>> | null = null;
+
+function loadProducerCtrShared(): Promise<Map<string, ProducerCtrStats>> {
+  if (!producerCtrInflight) {
+    producerCtrInflight = getCachedProducerCtrRecord()
+      .then((record) => producerCtrFromRecord(record))
+      .catch((error: unknown) => {
+        console.warn("[producer-ctr]", error);
+        return new Map();
+      })
+      .finally(() => {
+        producerCtrInflight = null;
+      });
+  }
+  return producerCtrInflight;
+}
+
+/** CTR per producer id for the last 30 days. One RPC, shared across pages. */
 export const getProducerCtrById = cache(
-  async (): Promise<Map<string, ProducerCtrStats>> => {
-    try {
-      return producerCtrFromRecord(await getCachedProducerCtrRecord());
-    } catch (error) {
-      console.warn("[producer-ctr]", error);
-      return new Map();
-    }
-  },
+  async (): Promise<Map<string, ProducerCtrStats>> => loadProducerCtrShared(),
 );
 
 export async function pickPopularProducerCollections<
