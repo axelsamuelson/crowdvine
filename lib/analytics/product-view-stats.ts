@@ -95,26 +95,33 @@ function normalizeProductViewRecord(
 }
 
 /**
- * Throws on RPC failure so unstable_cache keeps the previous successful value.
+ * Fail-soft on RPC errors so SSG never fails when stats are unavailable.
+ * Popularity sort then falls back to input order / zero rates.
  */
 async function loadProductViewStatsRecord(
   lookbackDays: number,
 ): Promise<Record<string, ProductViewStats>> {
-  const sb = getSupabaseAdmin();
-  const { data, error } = await sb.rpc("analytics_product_view_aggregates", {
-    p_lookback_days: lookbackDays,
-  });
+  try {
+    const sb = getSupabaseAdmin();
+    const { data, error } = await sb.rpc("analytics_product_view_aggregates", {
+      p_lookback_days: lookbackDays,
+    });
 
-  if (error) {
-    throw new Error(`[product-view-stats] ${error.message}`);
+    if (error) {
+      console.warn("[product-view-stats]", error.message);
+      return {};
+    }
+
+    return normalizeProductViewRecord(data);
+  } catch (error) {
+    console.warn("[product-view-stats]", error);
+    return {};
   }
-
-  return normalizeProductViewRecord(data);
 }
 
 /**
  * PLP/PDP view counts per wine id from SQL aggregates (last N days by default).
- * Cached per request via React `cache()`. Throws on RPC error (caller should catch).
+ * Cached per request via React `cache()`. Fail-soft on RPC error.
  */
 export const getProductViewStatsByWineId = cache(
   async (options?: {
